@@ -30,3 +30,193 @@ paths:
                   config:
                     type: string
                     description: Which config is the API using.
+  /booking:
+    post:
+      summary: Create booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+      responses:
+        200:
+          description: Success
+        400:
+          $ref: '#/components/responses/BadRequestError'
+        409:
+          description: Booking cannot be executed, for example room types are not available anymore
+          $ref: '#/components/responses/ConflictError'
+components:
+  responses:
+    BadRequestError:
+      description: The server does not understand the request (HTTP code 400)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ConflictError:
+      description: The server cannot process the request due to a conflicting inner state (HTTP code 409)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Booking:
+      description: Booking object passed from a customer to a hotel
+      type: object
+      required:
+        - customer
+        - hotelId
+      properties:
+        createdAt:
+          type: string
+          description: Date and time when the booking happened on the reseller's side.
+          format: date-time
+        reseller:
+          description: Information about the party that enabled the booking
+          type: object
+          properties:
+            name:
+              description: Human readable name of the reseller
+              type: string
+            reference:
+              description: Reseller's reference (such as ID) to this particular booking
+              type: string
+            channel:
+              description: Reseller's channel, such as web, physical office, etc.
+              type: string
+        customer:
+          description: Person responsible for this booking
+          type: object
+          required:
+            - name
+            - surname
+            - phone
+            - email
+            - address
+          properties:
+            name:
+              type: string
+            surname:
+              type: string
+            phone:
+              description: Phone number (with country prefix)
+              type: string
+              maxLength: 18
+              example: +44123456789
+            email:
+              description: E-mail contact
+              type: string
+              format: email
+              example: joseph.urban@example.com
+              maxLength: 150
+            address:
+              $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+        note:
+          description: Additional information to a hotel from a customer
+          type: string
+        hotelId:
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
+        booking:
+          description: Information on the booked property
+          type: object
+          properties:
+            arrival:
+              type: string
+              format: date
+            departure:
+              type: string
+              format: date
+            numberOfGuests:
+              type: number
+            guestInfo:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  surname:
+                    type: string
+                  age:
+                    type: number
+            roomTypes:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  guests:
+                    type: array
+                    items:
+                      type: number
+        pricing:
+          type: object
+          properties:
+            currency:
+              $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
+            total:
+              type: number
+              format: float
+            ratePlans:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  roomTypeId:
+                    type: string
+                  guests:
+                    type: array
+                    items:
+                      type: number
+                  price:
+                    type: number
+                    format: float
+                  from:
+                    type: string
+                    format: date
+                  to:
+                    type: string
+                    format: date
+                  appliedModifier:
+                    $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
+                  subtotal:
+                    type: number
+                    format: float
+            # amenities
+        cancellationFees:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: string
+                format: date
+              to:
+                type: string
+                format: date
+              amount:
+                type: number
+                format: float
+        # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
+        # guarantee: TBD (can be for example credit card info)
+    Error:
+      title: Error
+      description: Default schema for errors returned by API.
+      properties:
+        status:
+          type: number
+          description: HTTP status
+        code:
+          type: string
+          description: Computer-readable error. Use this for comparison.
+        short:
+          type: string
+          description: Human-readable error with a short description of the error.
+        long:
+          type: string
+          description: Verbose explanation of what happened.
