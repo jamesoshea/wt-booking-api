@@ -45,8 +45,9 @@ paths:
         400:
           $ref: '#/components/responses/BadRequestError'
         409:
-          description: Booking cannot be executed, for example room types are not available anymore
           $ref: '#/components/responses/ConflictError'
+        422:
+          $ref: '#/components/responses/UnprocessableEntityError'
 components:
   responses:
     BadRequestError:
@@ -56,7 +57,13 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     ConflictError:
-      description: The server cannot process the request due to a conflicting inner state (HTTP code 409)
+      description: Booking cannot be executed, for example room types are not available anymore (HTTP code 409)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntityError:
+      description: Request body or params validation failed.
       content:
         application/json:
           schema:
@@ -67,15 +74,20 @@ components:
       type: object
       required:
         - customer
+        - reseller
         - hotelId
+        - booking
+        - pricing
       properties:
         createdAt:
           type: string
           description: Date and time when the booking happened on the reseller's side.
           format: date-time
         reseller:
-          description: Information about the party that enabled the booking
+          description: Information about the party that made the booking possible
           type: object
+          required:
+            - name
           properties:
             name:
               description: Human readable name of the reseller
@@ -87,7 +99,7 @@ components:
               description: Reseller's channel, such as web, physical office, etc.
               type: string
         customer:
-          description: Person responsible for this booking
+          description: Person responsible for this booking who should be contacted by the hotel if needed
           type: object
           required:
             - name
@@ -114,23 +126,31 @@ components:
             address:
               $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
         note:
-          description: Additional information to a hotel from a customer
+          description: Additional information passed to a hotel from a customer
           type: string
         hotelId:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
         booking:
           description: Information on the booked property
           type: object
+          required:
+            - arrival
+            - departure
+            - numberOfGuests
           properties:
             arrival:
+              description: At what day will the people arrive
               type: string
               format: date
             departure:
+              description: At what day will the people depart
               type: string
               format: date
             numberOfGuests:
+              description: How many people will take part
               type: number
             guestInfo:
+              description: Additional information on every guest when required
               type: array
               items:
                 type: object
@@ -140,68 +160,107 @@ components:
                   surname:
                     type: string
                   age:
+                    description: Age at the time of arrival
                     type: number
             roomTypes:
               type: array
+              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
               items:
                 type: object
+                required:
+                  - id
                 properties:
                   id:
+                    description: Room type ID as stated in the Hotel description document on WT
                     type: string
+                  numberOfGuests:
+                    description: To how many guests does this rate plan apply?
+                    type: number
                   guests:
                     type: array
                     items:
+                      description: Which guests will be staying in this room? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
                       type: number
         pricing:
           type: object
+          required:
+            - currency
+            - total
+            - ratePlans
+            - cancellationFees
           properties:
             currency:
               $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
             total:
+              description: Total price that should be paid. Including taxes - this is subject to change in the future.
               type: number
               format: float
             ratePlans:
+              description: List of rate plans that form the total price.
               type: array
               items:
                 type: object
+                required:
+                  - id
+                  - roomTypeId
+                  - price
+                  - from
+                  - to
+                  - subtotal
                 properties:
                   id:
+                    description: Rate plan ID as stated in the Hotel ratePlans document on WT
                     type: string
                   roomTypeId:
+                    description: Room type ID as stated in the Hotel description document on WT
                     type: string
+                  numberOfGuests:
+                    description: To how many guests does this rate plan apply?
+                    type: number
                   guests:
+                    description: To which guests does this rate plan apply? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
                     type: array
                     items:
                       type: number
                   price:
+                    description: Base price for this rate plan for one person and for one night
                     type: number
                     format: float
                   from:
+                    description: The first date to which this rate plan applies.
                     type: string
                     format: date
                   to:
+                    description: The last date to which this rate plan applies.
                     type: string
                     format: date
                   appliedModifier:
                     $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
                   subtotal:
+                    description: The amount that this rate plan with this modifier adds to the overall price.
                     type: number
                     format: float
             # amenities
-        cancellationFees:
-          type: array
-          items:
-            type: object
-            properties:
-              from:
-                type: string
-                format: date
-              to:
-                type: string
-                format: date
-              amount:
-                type: number
-                format: float
+            cancellationFees:
+              description: Under what conditions can this booking be cancelled and how much will it cost.
+              type: array
+              items:
+                type: object
+                required:
+                  - amount
+                properties:
+                  from:
+                    description: After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.
+                    type: string
+                    format: date
+                  to:
+                    description: Before which date does this cancellation policy apply (including). If not present, this policy applies until the time of arrival.
+                    type: string
+                    format: date
+                  amount:
+                    description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.
+                    type: number
+                    format: float
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
     Error:
