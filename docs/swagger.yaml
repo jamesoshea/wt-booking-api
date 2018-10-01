@@ -84,103 +84,16 @@ components:
           description: Date and time when the booking happened on the reseller's side.
           format: date-time
         reseller:
-          description: Information about the party that made the booking possible
-          type: object
-          required:
-            - name
-          properties:
-            name:
-              description: Human readable name of the reseller
-              type: string
-            reference:
-              description: Reseller's reference (such as ID) to this particular booking
-              type: string
-            channel:
-              description: Reseller's channel, such as web, physical office, etc.
-              type: string
+          $ref: '#/components/schemas/Reseller'
         customer:
-          description: Person responsible for this booking who should be contacted by the hotel if needed
-          type: object
-          required:
-            - name
-            - surname
-            - phone
-            - email
-            - address
-          properties:
-            name:
-              type: string
-            surname:
-              type: string
-            phone:
-              description: Phone number (with country prefix)
-              type: string
-              maxLength: 18
-              example: +44123456789
-            email:
-              description: E-mail contact
-              type: string
-              format: email
-              example: joseph.urban@example.com
-              maxLength: 150
-            address:
-              $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+          $ref: '#/components/schemas/Customer'
         note:
           description: Additional information passed to a hotel from a customer
           type: string
         hotelId:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
         booking:
-          description: Information on the booked property
-          type: object
-          required:
-            - arrival
-            - departure
-            - numberOfGuests
-          properties:
-            arrival:
-              description: At what day will the people arrive
-              type: string
-              format: date
-            departure:
-              description: At what day will the people depart
-              type: string
-              format: date
-            numberOfGuests:
-              description: How many people will take part
-              type: number
-            guestInfo:
-              description: Additional information on every guest when required
-              type: array
-              items:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  surname:
-                    type: string
-                  age:
-                    description: Age at the time of arrival
-                    type: number
-            roomTypes:
-              type: array
-              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
-              items:
-                type: object
-                required:
-                  - id
-                properties:
-                  id:
-                    description: Room type ID as stated in the Hotel description document on WT
-                    type: string
-                  numberOfGuests:
-                    description: To how many guests does this rate plan apply?
-                    type: number
-                  guests:
-                    type: array
-                    items:
-                      description: Which guests will be staying in this room? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
-                      type: number
+          $ref: '#/components/schemas/BookingInfo'
         pricing:
           type: object
           required:
@@ -197,49 +110,9 @@ components:
               format: float
             ratePlans:
               description: List of rate plans that form the total price.
-              type: array
-              items:
-                type: object
-                required:
-                  - id
-                  - roomTypeId
-                  - price
-                  - from
-                  - to
-                  - subtotal
-                properties:
-                  id:
-                    description: Rate plan ID as stated in the Hotel ratePlans document on WT
-                    type: string
-                  roomTypeId:
-                    description: Room type ID as stated in the Hotel description document on WT
-                    type: string
-                  numberOfGuests:
-                    description: To how many guests does this rate plan apply?
-                    type: number
-                  guests:
-                    description: To which guests does this rate plan apply? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
-                    type: array
-                    items:
-                      type: number
-                  price:
-                    description: Base price for this rate plan for one person and for one night
-                    type: number
-                    format: float
-                  from:
-                    description: The first date to which this rate plan applies.
-                    type: string
-                    format: date
-                  to:
-                    description: The last date to which this rate plan applies.
-                    type: string
-                    format: date
-                  appliedModifier:
-                    $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
-                  subtotal:
-                    description: The amount that this rate plan with this modifier adds to the overall price.
-                    type: number
-                    format: float
+              oneOf:
+                - $ref: '#/components/schemas/RatePlansWithGuestInfo'
+                - $ref: '#/components/schemas/RatePlansWithNumberOfGuests'
             # amenities
             cancellationFees:
               description: Under what conditions can this booking be cancelled and how much will it cost.
@@ -263,6 +136,206 @@ components:
                     format: float
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
+    Reseller:
+      description: Information about the party that made the booking possible
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          description: Human readable name of the reseller
+          type: string
+        reference:
+          description: Reseller's reference (such as ID) to this particular booking
+          type: string
+        channel:
+          description: Reseller's channel, such as web, physical office, etc.
+          type: string
+    Customer:
+      description: Person responsible for this booking who should be contacted by the hotel if needed
+      type: object
+      required:
+        - name
+        - surname
+        - phone
+        - email
+        - address
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        phone:
+          description: Phone number (with country prefix)
+          type: string
+          maxLength: 18
+          example: +44123456789
+        email:
+          description: E-mail contact
+          type: string
+          format: email
+          example: joseph.urban@example.com
+          maxLength: 150
+        address:
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+    RoomTypeBase:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          description: Room type ID as stated in the Hotel description document on WT
+          type: string
+    RoomTypeWithGuestInfo:
+      type: object
+      required:
+        - guestInfo
+      allOf:
+        - $ref: '#/components/schemas/RoomTypeBase'
+        - type: object
+          properties:
+            guestInfo:
+              type: array
+              items:
+                description: Which guests will be staying in this room? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
+                type: number
+    RoomTypeWithNumberOfGuests:
+      type: object
+      required:
+        - numberOfGuests
+      allOf:
+        - $ref: '#/components/schemas/RoomTypeBase'
+        - type: object
+          properties:
+            numberOfGuests:
+              description: To how many guests does this rate plan apply?
+              type: number
+    BookingInfoBase:
+      description: Information on the booked property
+      type: object
+      required:
+        - arrival
+        - departure
+        - roomTypes
+      properties:
+        arrival:
+          description: At what day will the people arrive
+          type: string
+          format: date
+        departure:
+          description: At what day will the people depart
+          type: string
+          format: date
+    BookingInfoWithGuestInfo:
+      type: object
+      required:
+        - guestInfo
+      allOf:
+        - $ref: '#/components/schemas/BookingInfoBase'
+        - type: object
+          properties:
+            guestInfo:
+              description: Additional information on every guest when required
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  surname:
+                    type: string
+                  age:
+                    description: Age at the time of arrival
+                    type: number
+            roomTypes:
+              type: array
+              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
+              items:
+                $ref: '#/components/schemas/RoomTypeWithGuestInfo'
+    BookingInfoWithNumberOfGuests:
+      type: object
+      required:
+        - numberOfGuests
+      allOf:
+        - $ref: '#/components/schemas/BookingInfoBase'
+        - type: object
+          properties:
+            numberOfGuests:
+              description: How many people will take part
+              type: number
+            roomTypes:
+              type: array
+              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
+              items:
+                $ref: '#/components/schemas/RoomTypeWithNumberOfGuests'
+    BookingInfo:
+      oneOf:
+        - $ref: '#/components/schemas/BookingInfoWithGuestInfo'
+        - $ref: '#/components/schemas/BookingInfoWithNumberOfGuests'
+    RatePlansWithGuestInfo:
+      type: array
+      items:
+        $ref: '#/components/schemas/RatePlanWithGuestInfo'
+    RatePlansWithNumberOfGuests:
+      type: array
+      items:
+        $ref: '#/components/schemas/RatePlanWithNumberOfGuests'
+    RatePlanBase:
+      type: object
+      required:
+        - id
+        - roomTypeId
+        - price
+        - from
+        - to
+        - subtotal
+      properties:
+        id:
+          description: Rate plan ID as stated in the Hotel ratePlans document on WT
+          type: string
+        roomTypeId:
+          description: Room type ID as stated in the Hotel description document on WT
+          type: string
+        price:
+          description: Base price for this rate plan for one person and for one night
+          type: number
+          format: float
+        from:
+          description: The first date to which this rate plan applies.
+          type: string
+          format: date
+        to:
+          description: The last date to which this rate plan applies.
+          type: string
+          format: date
+        appliedModifier:
+          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
+        subtotal:
+          description: The amount that this rate plan with this modifier adds to the overall price.
+          type: number
+          format: float
+    RatePlanWithGuestInfo:
+      allOf:
+        - $ref: '#/components/schemas/RatePlanBase'
+        - type: object
+          required:
+            - guestInfo
+          properties:
+            guestInfo:
+              description: To which guests does this rate plan apply? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
+              type: array
+              items:
+                type: number
+    RatePlanWithNumberOfGuests:
+      allOf:
+        - $ref: '#/components/schemas/RatePlanBase'
+        - type: object
+          required:
+            - numberOfGuests
+          properties:
+            numberOfGuests:
+              description: To how many guests does this rate plan apply?
+              type: number
     Error:
       title: Error
       description: Default schema for errors returned by API.
