@@ -2,7 +2,7 @@ const winston = require('winston');
 
 const env = process.env.WT_CONFIG || 'dev';
 
-module.exports = Object.assign({
+const config = Object.assign({
   port: 8935,
   baseUrl: process.env.WT_API_BASE_URL || 'http://localhost:8935',
   logger: winston.createLogger({
@@ -15,3 +15,10 @@ module.exports = Object.assign({
     ],
   }),
 }, require(`./${env}`));
+
+if (!config.hotelId) {
+  throw new Error('No hotelId specified!');
+}
+config.hotelId = config.hotelId.toLowerCase();
+
+module.exports = config;

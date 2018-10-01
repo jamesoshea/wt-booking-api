@@ -40,5 +40,13 @@ describe('controllers - booking', function () {
         .expect(422)
         .end(done);
     });
+
+    it('should return 422 if an unexpected hotelId is used', (done) => {
+      request(server)
+        .post('/book')
+        .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
+        .expect(422)
+        .end(done);
+    });
   });
 });

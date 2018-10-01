@@ -1,4 +1,8 @@
 {
   "type": "object",
-  "properties": {}
+  "properties": {
+    "hotelId": {
+      "type": "string"
+    }
+  }
 }

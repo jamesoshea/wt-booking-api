@@ -1,4 +1,8 @@
+const config = require('../../src/config');
+
 module.exports.getBooking = function () {
-  // TODO: Implement.
-  return {};
+  // TODO: Fill in more data.
+  return {
+    hotelId: config.hotelId,
+  };
 };
