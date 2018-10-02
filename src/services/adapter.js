@@ -9,14 +9,19 @@ class WTAdapter {
     this.writeApiUrl = writeApiUrl;
     this.writeApiAccessKey = writeApiAccessKey;
     this.writeApiWalletPassword = writeApiWalletPassword;
+
+    // A promise that serves for serializing of all updates.
+    this.updating = Promise.resolve();
   }
 
   /**
    * Get the current availability document.
    *
+   * Do not call directly to avoid race conditions.
+   *
    * @returns {Promise<Object>}
    */
-  async getAvailability () {
+  async _getAvailability () {
     try {
       const response = await request({
         method: 'GET',
@@ -38,9 +43,12 @@ class WTAdapter {
   /**
    * Set availability.
    *
+   * Do not call directly to avoid race conditions.
+   *
+   * @param {Object} availability
    * @returns {Promise<Object>}
    */
-  async setAvailability (availability) {
+  async _setAvailability (availability) {
     const response = await request({
       method: 'POST',
       uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
@@ -60,6 +68,40 @@ class WTAdapter {
     } else {
       throw new Error(`Error ${response.statusCode}`);
     }
+  }
+
+  /**
+   * Apply availability update.
+   *
+   * @param {Object} availability
+   * @param {Object} update
+   * @returns {Promise<Object>}
+   */
+  _applyUpdate (availability, update) {
+    // TODO: implement
+    return availability;
+  }
+
+  /**
+   * Update availability.
+   *
+   * Serializes calls internally to avoid race conditions.
+   *
+   * @param {Object} update
+   * @returns {Promise<Object>}
+   */
+  updateAvailability (update) {
+    this.updating = this.updating.then(() => {
+      return this._getAvailability();
+    }).then((orig) => {
+      return this._applyUpdate(orig, update);
+    }).then((availability) => {
+      return this._setAvailability(availability);
+    });
+    const ret = this.updating;
+    // Do not propagate errors further;
+    this.updating = this.updating.catch(() => undefined);
+    return ret;
   }
 }
 
