@@ -74,17 +74,10 @@ components:
       type: object
       required:
         - customer
-        - reseller
         - hotelId
         - booking
         - pricing
       properties:
-        createdAt:
-          type: string
-          description: Date and time when the booking happened on the reseller's side.
-          format: date-time
-        reseller:
-          $ref: '#/components/schemas/Reseller'
         customer:
           $ref: '#/components/schemas/Customer'
         note:
@@ -99,7 +92,6 @@ components:
           required:
             - currency
             - total
-            - ratePlans
             - cancellationFees
           properties:
             currency:
@@ -108,8 +100,6 @@ components:
               description: Total price that should be paid. Including taxes - this is subject to change in the future.
               type: number
               format: float
-            ratePlans:
-              $ref: '#/components/schemas/RatePlans'
             # amenities
             cancellationFees:
               description: Under what conditions can this booking be cancelled and how much will it cost.
@@ -133,21 +123,6 @@ components:
                     format: float
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
-    Reseller:
-      description: Information about the party that made the booking possible
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          description: Human readable name of the reseller
-          type: string
-        reference:
-          description: Reseller's reference (such as ID) to this particular booking
-          type: string
-        channel:
-          description: Reseller's channel, such as web, physical office, etc.
-          type: string
     Customer:
       allOf:
         - $ref: '#/components/schemas/CustomerBase'
@@ -189,7 +164,7 @@ components:
           format: email
           example: joseph.urban@example.com
           maxLength: 150
-    RoomType:
+    Room:
       type: object
       required:
         - id
@@ -209,7 +184,7 @@ components:
       required:
         - arrival
         - departure
-        - roomTypes
+        - rooms
         - guestInfo
       properties:
         arrival:
@@ -238,56 +213,11 @@ components:
               age:
                 description: Age at the time of arrival
                 type: number
-        roomTypes:
+        rooms:
           type: array
           description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
           items:
-            $ref: '#/components/schemas/RoomType'
-    RatePlans:
-      description: List of rate plans that form the total price.
-      type: array
-      items:
-        $ref: '#/components/schemas/RatePlan'
-    RatePlan:
-      type: object
-      required:
-        - id
-        - roomTypeId
-        - price
-        - from
-        - to
-        - guestInfoIds
-        - subtotal
-      properties:
-        id:
-          description: Rate plan ID as stated in the Hotel ratePlans document on WT
-          type: string
-        roomTypeId:
-          description: Room type ID as stated in the Hotel description document on WT
-          type: string
-        price:
-          description: Base price for this rate plan for one person and for one night
-          type: number
-          format: float
-        from:
-          description: The first date to which this rate plan applies.
-          type: string
-          format: date
-        to:
-          description: The last date to which this rate plan applies.
-          type: string
-          format: date
-        guestInfoIds:
-          type: array
-          items:
-            description: Which guests will be staying in this room? The strings should be id fields from guestInfo, so we can match the guests and their additional information when needed.
-            type: string
-        appliedModifier:
-          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
-        subtotal:
-          description: The amount that this rate plan with this modifier adds to the overall price.
-          type: number
-          format: float
+            $ref: '#/components/schemas/Room'
 
     Error:
       title: Error
