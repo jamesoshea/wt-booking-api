@@ -84,7 +84,7 @@ class WTAdapter {
    *
    * "update" is an object where keys are roomTypeIds and values
    * are arrays of items with two properties: "date" and
-   * "delta".
+   * "subtract".
    *
    * @param {Object} availability
    * @param {Object} update
@@ -99,11 +99,11 @@ class WTAdapter {
         var found = false;
         for (let availabilityItem of availability[roomTypeId]) {
           if (availabilityItem.date === updateItem.date) {
-            if (availabilityItem.quantity + updateItem.delta < 0) {
+            if (availabilityItem.quantity - updateItem.subtract < 0) {
               const msg = `Room type ${roomTypeId} and date ${updateItem.date} is overbooked.`;
               throw new InvalidUpdateError(msg);
             }
-            availabilityItem.quantity += updateItem.delta;
+            availabilityItem.quantity -= updateItem.subtract;
             found = true;
             break;
           }

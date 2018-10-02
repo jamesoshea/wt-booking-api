@@ -47,10 +47,10 @@ describe('services - adapter', function () {
     it('should apply the update requested update', async () => {
       wtAdapter._applyUpdate(availability, {
         roomType1: [
-          { date: '2019-01-01', delta: -1 },
-          { date: '2019-01-02', delta: -2 },
+          { date: '2019-01-01', subtract: 1 },
+          { date: '2019-01-02', subtract: 2 },
         ],
-        roomType2: [{ date: '2019-01-01', delta: -3 }],
+        roomType2: [{ date: '2019-01-01', subtract: 3 }],
       });
       assert.deepEqual(availability, {
         roomType1: [
@@ -66,19 +66,19 @@ describe('services - adapter', function () {
 
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
       assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomTypeX: [{ date: '2019-01-01', delta: -1 }],
+        roomTypeX: [{ date: '2019-01-01', subtract: 1 }],
       }), InvalidUpdateError);
     });
 
     it('should throw InvalidUpdateError upon unknown date', async () => {
       assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomType1: [{ date: '2021-01-01', delta: -1 }],
+        roomType1: [{ date: '2021-01-01', subtract: 1 }],
       }), InvalidUpdateError);
     });
 
     it('should throw InvalidUpdateError upon overbooking', async () => {
       assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomType1: [{ date: '2019-01-01', delta: -100 }],
+        roomType1: [{ date: '2019-01-01', subtract: 100 }],
       }), InvalidUpdateError);
     });
   });
