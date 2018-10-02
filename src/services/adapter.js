@@ -1,6 +1,7 @@
 const request = require('request-promise-native');
 
 class UpstreamError extends Error {};
+class InvalidUpdateError extends Error {};
 
 class WTAdapter {
   constructor (hotelId, readApiUrl, writeApiUrl, writeApiAccessKey, writeApiWalletPassword) {
@@ -49,24 +50,28 @@ class WTAdapter {
    * @returns {Promise<Object>}
    */
   async _setAvailability (availability) {
-    const response = await request({
-      method: 'POST',
-      uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
-      json: true,
-      body: {
-        availability,
-      },
-      headers: {
-        'X-Access-Key': this.writeApiAccessKey,
-        'X-Wallet-Password': this.writeApiWalletPassword,
-      },
-      simple: false,
-      resolveWithFullResponse: true,
-    });
-    if (response.statusCode <= 299) {
-      return response.body;
-    } else {
-      throw new Error(`Error ${response.statusCode}`);
+    try {
+      const response = await request({
+        method: 'POST',
+        uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
+        json: true,
+        body: {
+          availability,
+        },
+        headers: {
+          'X-Access-Key': this.writeApiAccessKey,
+          'X-Wallet-Password': this.writeApiWalletPassword,
+        },
+        simple: false,
+        resolveWithFullResponse: true,
+      });
+      if (response.statusCode <= 299) {
+        return response.body;
+      } else {
+        throw new Error(`Error ${response.statusCode}`);
+      }
+    } catch (err) {
+      throw new UpstreamError(err.message);
     }
   }
 
@@ -87,12 +92,25 @@ class WTAdapter {
    */
   _applyUpdate (availability, update) {
     for (let roomTypeId in update) {
+      if (!availability[roomTypeId]) {
+        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
+      }
       for (let updateItem of update[roomTypeId]) {
+        var found = false;
         for (let availabilityItem of availability[roomTypeId]) {
           if (availabilityItem.date === updateItem.date) {
+            if (availabilityItem.quantity + updateItem.delta < 0) {
+              const msg = `Room type ${roomTypeId} and date ${updateItem.date} is overbooked.`;
+              throw new InvalidUpdateError(msg);
+            }
             availabilityItem.quantity += updateItem.delta;
+            found = true;
             break;
           }
+        }
+        if (!found) {
+          const msg = `No availability provided for room type ${roomTypeId} and date ${updateItem.date}.`;
+          throw new InvalidUpdateError(msg);
         }
       }
     }
@@ -142,6 +160,7 @@ function set (wtAdapter) {
 module.exports = {
   WTAdapter,
   UpstreamError,
+  InvalidUpdateError,
   get,
   set,
 };

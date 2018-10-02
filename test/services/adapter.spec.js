@@ -2,7 +2,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 
-const { WTAdapter } = require('../../src/services/adapter');
+const { WTAdapter, InvalidUpdateError } = require('../../src/services/adapter');
 
 describe('services - adapter', function () {
   let wtAdapter;
@@ -62,6 +62,24 @@ describe('services - adapter', function () {
           { date: '2019-01-02', quantity: 5 },
         ],
       });
+    });
+
+    it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
+      assert.throws(() => wtAdapter._applyUpdate(availability, {
+        roomTypeX: [{ date: '2019-01-01', delta: -1 }],
+      }), InvalidUpdateError);
+    });
+
+    it('should throw InvalidUpdateError upon unknown date', async () => {
+      assert.throws(() => wtAdapter._applyUpdate(availability, {
+        roomType1: [{ date: '2021-01-01', delta: -1 }],
+      }), InvalidUpdateError);
+    });
+
+    it('should throw InvalidUpdateError upon overbooking', async () => {
+      assert.throws(() => wtAdapter._applyUpdate(availability, {
+        roomType1: [{ date: '2019-01-01', delta: -100 }],
+      }), InvalidUpdateError);
     });
   });
 
