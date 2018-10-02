@@ -149,9 +149,11 @@ components:
           description: Reseller's channel, such as web, physical office, etc.
           type: string
     Customer:
-      oneOf:
-        - $ref: '#/components/schemas/CustomerWithPhone'
-        - $ref: '#/components/schemas/CustomerWithEmail'
+      allOf:
+        - $ref: '#/components/schemas/CustomerBase'
+        - anyOf:
+          - $ref: '#/components/schemas/CustomerWithPhone'
+          - $ref: '#/components/schemas/CustomerWithEmail'
     CustomerBase:
       description: Person responsible for this booking who should be contacted by the hotel if needed
       type: object
@@ -164,31 +166,29 @@ components:
           type: string
         surname:
           type: string
+        address:
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+    CustomerWithPhone:
+      type: object
+      required:
+        - phone
+      properties:
         phone:
           description: Phone number (with country prefix)
           type: string
           maxLength: 18
           example: +44123456789
+    CustomerWithEmail:
+      type: object
+      required:
+        - email
+      properties:
         email:
           description: E-mail contact
           type: string
           format: email
           example: joseph.urban@example.com
           maxLength: 150
-        address:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
-    CustomerWithPhone:
-      allOf:
-        - $ref: '#/components/schemas/CustomerBase'
-        - type: object
-          required:
-            - phone
-    CustomerWithEmail:
-      allOf:
-        - $ref: '#/components/schemas/CustomerBase'
-        - type: object
-          required:
-            - email
     RoomType:
       type: object
       required:
