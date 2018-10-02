@@ -16,9 +16,9 @@ describe('services - adapter', function () {
     });
     sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
       if (update === 'fail') {
-        return Promise.reject(new Error('Failed update'));
+        throw new Error('Failed update');
       }
-      return Promise.resolve({ count: orig.count - 1 });
+      return { count: orig.count - 1 };
     });
     sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
       wtAdapter.__availability = availability;

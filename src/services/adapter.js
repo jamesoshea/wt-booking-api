@@ -75,7 +75,7 @@ class WTAdapter {
    *
    * @param {Object} availability
    * @param {Object} update
-   * @returns {Promise<Object>}
+   * @returns {Object}
    */
   _applyUpdate (availability, update) {
     // TODO: implement
@@ -94,8 +94,7 @@ class WTAdapter {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((orig) => {
-      return this._applyUpdate(orig, update);
-    }).then((availability) => {
+      const availability = this._applyUpdate(orig, update);
       return this._setAvailability(availability);
     });
     const ret = this.updating;
