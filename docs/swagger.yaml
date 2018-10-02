@@ -109,10 +109,7 @@ components:
               type: number
               format: float
             ratePlans:
-              description: List of rate plans that form the total price.
-              oneOf:
-                - $ref: '#/components/schemas/RatePlansWithGuestInfo'
-                - $ref: '#/components/schemas/RatePlansWithNumberOfGuests'
+              $ref: '#/components/schemas/RatePlans'
             # amenities
             cancellationFees:
               description: Under what conditions can this booking be cancelled and how much will it cost.
@@ -152,13 +149,15 @@ components:
           description: Reseller's channel, such as web, physical office, etc.
           type: string
     Customer:
+      oneOf:
+        - $ref: '#/components/schemas/CustomerWithPhone'
+        - $ref: '#/components/schemas/CustomerWithEmail'
+    CustomerBase:
       description: Person responsible for this booking who should be contacted by the hotel if needed
       type: object
       required:
         - name
         - surname
-        - phone
-        - email
         - address
       properties:
         name:
@@ -178,45 +177,40 @@ components:
           maxLength: 150
         address:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
-    RoomTypeBase:
+    CustomerWithPhone:
+      allOf:
+        - $ref: '#/components/schemas/CustomerBase'
+        - type: object
+          required:
+            - phone
+    CustomerWithEmail:
+      allOf:
+        - $ref: '#/components/schemas/CustomerBase'
+        - type: object
+          required:
+            - email
+    RoomType:
       type: object
       required:
         - id
+        - guestInfoIds
       properties:
         id:
           description: Room type ID as stated in the Hotel description document on WT
           type: string
-    RoomTypeWithGuestInfo:
-      type: object
-      required:
-        - guestInfo
-      allOf:
-        - $ref: '#/components/schemas/RoomTypeBase'
-        - type: object
-          properties:
-            guestInfo:
-              type: array
-              items:
-                description: Which guests will be staying in this room? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
-                type: number
-    RoomTypeWithNumberOfGuests:
-      type: object
-      required:
-        - numberOfGuests
-      allOf:
-        - $ref: '#/components/schemas/RoomTypeBase'
-        - type: object
-          properties:
-            numberOfGuests:
-              description: To how many guests does this rate plan apply?
-              type: number
-    BookingInfoBase:
+        guestInfoIds:
+          type: array
+          items:
+            description: Which guests will be staying in this room? The strings should be id fields from guestInfo, so we can match the guests and their additional information when needed.
+            type: string
+    BookingInfo:
       description: Information on the booked property
       type: object
       required:
         - arrival
         - departure
         - roomTypes
+        - guestInfo
       properties:
         arrival:
           description: At what day will the people arrive
@@ -226,61 +220,35 @@ components:
           description: At what day will the people depart
           type: string
           format: date
-    BookingInfoWithGuestInfo:
-      type: object
-      required:
-        - guestInfo
-      allOf:
-        - $ref: '#/components/schemas/BookingInfoBase'
-        - type: object
-          properties:
-            guestInfo:
-              description: Additional information on every guest when required
-              type: array
-              items:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  surname:
-                    type: string
-                  age:
-                    description: Age at the time of arrival
-                    type: number
-            roomTypes:
-              type: array
-              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
-              items:
-                $ref: '#/components/schemas/RoomTypeWithGuestInfo'
-    BookingInfoWithNumberOfGuests:
-      type: object
-      required:
-        - numberOfGuests
-      allOf:
-        - $ref: '#/components/schemas/BookingInfoBase'
-        - type: object
-          properties:
-            numberOfGuests:
-              description: How many people will take part
-              type: number
-            roomTypes:
-              type: array
-              description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
-              items:
-                $ref: '#/components/schemas/RoomTypeWithNumberOfGuests'
-    BookingInfo:
-      oneOf:
-        - $ref: '#/components/schemas/BookingInfoWithGuestInfo'
-        - $ref: '#/components/schemas/BookingInfoWithNumberOfGuests'
-    RatePlansWithGuestInfo:
+        guestInfo:
+          description: Additional information on every guest when required
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                description: Unique identifier for every guest, it can for example be a numerical ordinal. Every booking originator has to generate this data as it's used as a base for all other guest-related information (such as total number of guests).
+                type: string
+              name:
+                type: string
+              surname:
+                type: string
+              age:
+                description: Age at the time of arrival
+                type: number
+        roomTypes:
+          type: array
+          description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
+          items:
+            $ref: '#/components/schemas/RoomType'
+    RatePlans:
+      description: List of rate plans that form the total price.
       type: array
       items:
-        $ref: '#/components/schemas/RatePlanWithGuestInfo'
-    RatePlansWithNumberOfGuests:
-      type: array
-      items:
-        $ref: '#/components/schemas/RatePlanWithNumberOfGuests'
-    RatePlanBase:
+        $ref: '#/components/schemas/RatePlan'
+    RatePlan:
       type: object
       required:
         - id
@@ -288,6 +256,7 @@ components:
         - price
         - from
         - to
+        - guestInfoIds
         - subtotal
       properties:
         id:
@@ -308,34 +277,18 @@ components:
           description: The last date to which this rate plan applies.
           type: string
           format: date
+        guestInfoIds:
+          type: array
+          items:
+            description: Which guests will be staying in this room? The strings should be id fields from guestInfo, so we can match the guests and their additional information when needed.
+            type: string
         appliedModifier:
           $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
         subtotal:
           description: The amount that this rate plan with this modifier adds to the overall price.
           type: number
           format: float
-    RatePlanWithGuestInfo:
-      allOf:
-        - $ref: '#/components/schemas/RatePlanBase'
-        - type: object
-          required:
-            - guestInfo
-          properties:
-            guestInfo:
-              description: To which guests does this rate plan apply? The numbers should be indices in guestInfo, so we can match the guests and their names and age.
-              type: array
-              items:
-                type: number
-    RatePlanWithNumberOfGuests:
-      allOf:
-        - $ref: '#/components/schemas/RatePlanBase'
-        - type: object
-          required:
-            - numberOfGuests
-          properties:
-            numberOfGuests:
-              description: To how many guests does this rate plan apply?
-              type: number
+
     Error:
       title: Error
       description: Default schema for errors returned by API.
