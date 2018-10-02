@@ -71,15 +71,31 @@ class WTAdapter {
   }
 
   /**
-   * Apply availability update.
+   * Apply availability update (modifies the availability object
+   * in the process).
+   *
+   * "availability" is supposed to have the structure defined in
+   * https://github.com/windingtree/wiki/blob/master/hotel-data-swagger.yaml
+   *
+   * "update" is an object where keys are roomTypeIds and values
+   * are arrays of items with two properties: "date" and
+   * "delta".
    *
    * @param {Object} availability
    * @param {Object} update
-   * @returns {Object}
+   * @returns {undefined}
    */
   _applyUpdate (availability, update) {
-    // TODO: implement
-    return availability;
+    for (let roomTypeId in update) {
+      for (let updateItem of update[roomTypeId]) {
+        for (let availabilityItem of availability[roomTypeId]) {
+          if (availabilityItem.date === updateItem.date) {
+            availabilityItem.quantity += updateItem.delta;
+            break;
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -93,8 +109,8 @@ class WTAdapter {
   updateAvailability (update) {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
-    }).then((orig) => {
-      const availability = this._applyUpdate(orig, update);
+    }).then((availability) => {
+      this._applyUpdate(availability, update); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;

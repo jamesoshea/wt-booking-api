@@ -18,11 +18,50 @@ describe('services - adapter', function () {
       if (update === 'fail') {
         throw new Error('Failed update');
       }
-      return { count: orig.count - 1 };
+      orig.count -= 1;
     });
     sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
       wtAdapter.__availability = availability;
       return Promise.resolve();
+    });
+  });
+
+  describe('WTAdapter._applyUpdate', () => {
+    const wtAdapter = new WTAdapter('hotelId', 'htttp://readApiUrl.com',
+      'http://writeApiUrl.com', 'writeApiAccessKey', 'writeApiWalletPassword');
+    let availability;
+
+    beforeEach(() => {
+      availability = {
+        roomType1: [
+          { date: '2019-01-01', quantity: 10 },
+          { date: '2019-01-02', quantity: 10 },
+        ],
+        roomType2: [
+          { date: '2019-01-01', quantity: 5 },
+          { date: '2019-01-02', quantity: 5 },
+        ],
+      };
+    });
+
+    it('should apply the update requested update', async () => {
+      wtAdapter._applyUpdate(availability, {
+        roomType1: [
+          { date: '2019-01-01', delta: -1 },
+          { date: '2019-01-02', delta: -2 },
+        ],
+        roomType2: [{ date: '2019-01-01', delta: -3 }],
+      });
+      assert.deepEqual(availability, {
+        roomType1: [
+          { date: '2019-01-01', quantity: 9 },
+          { date: '2019-01-02', quantity: 8 },
+        ],
+        roomType2: [
+          { date: '2019-01-01', quantity: 2 },
+          { date: '2019-01-02', quantity: 5 },
+        ],
+      });
     });
   });
 
