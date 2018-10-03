@@ -2,6 +2,7 @@ const request = require('request-promise-native');
 
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
+class RestrictionsViolatedError extends Error {};
 
 const REQUIRED_FIELDS = [
   'hotelId',
@@ -89,6 +90,30 @@ class WTAdapter {
   }
 
   /**
+   * Check restrictions on arrival and departure.
+   *
+   * @param {Object} availability
+   * @param {String} arrival
+   * @param {String} departure
+   * @returns {undefined}
+   * @throws {RestrictionsViolatedError}
+   */
+  _checkRestrictions (availability, roomTypeIds, arrival, departure) {
+    for (let roomTypeId of roomTypeIds) {
+      for (let item of (availability[roomTypeId] || [])) {
+        if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
+          const msg = `Cannot arrive to ${roomTypeId} on date ${arrival}.`;
+          throw new RestrictionsViolatedError(msg);
+        }
+        if (item.date === departure && item.restrictions && item.restrictions.noDeparture) {
+          const msg = `Cannot depart from ${roomTypeId} on date ${departure}.`;
+          throw new RestrictionsViolatedError(msg);
+        }
+      }
+    }
+  }
+
+  /**
    * Apply availability update (modifies the availability object
    * in the process).
    *
@@ -134,13 +159,16 @@ class WTAdapter {
    *
    * Serializes calls internally to avoid race conditions.
    *
+   * @param {String} arrival
+   * @param {String} departure
    * @param {Object} update
    * @returns {Promise<Object>}
    */
-  updateAvailability (update) {
+  updateAvailability (arrival, departure, update) {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((availability) => {
+      this._checkRestrictions(availability, Object.keys(update), arrival, departure);
       this._applyUpdate(availability, update); // Modifies availability.
       return this._setAvailability(availability);
     });
@@ -174,6 +202,7 @@ module.exports = {
   WTAdapter,
   UpstreamError,
   InvalidUpdateError,
+  RestrictionsViolatedError,
   get,
   set,
 };
