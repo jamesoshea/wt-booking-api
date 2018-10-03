@@ -8,7 +8,7 @@ const hotelId = config.adapterOpts.hotelId.toLowerCase();
 /**
  * Create a new booking.
  */
-module.exports.book = async (req, res, next) => {
+module.exports.create = async (req, res, next) => {
   try {
     // 1. Validate request payload.
     validators.validateBooking(req.body);

@@ -15,10 +15,10 @@ describe('controllers - booking', function () {
     server.close();
   });
 
-  describe('POST /book', () => {
+  describe('POST /booking', () => {
     it('should accept the booking and return a confirmation', (done) => {
       request(server)
-        .post('/book')
+        .post('/booking')
         .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
@@ -35,7 +35,7 @@ describe('controllers - booking', function () {
 
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
-        .post('/book')
+        .post('/booking')
         .send(Object.assign({ dummy: 'dummy' }, getBooking()))
         .expect(422)
         .end(done);
@@ -43,7 +43,7 @@ describe('controllers - booking', function () {
 
     it('should return 422 if an unexpected hotelId is used', (done) => {
       request(server)
-        .post('/book')
+        .post('/booking')
         .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
         .expect(422)
         .end(done);

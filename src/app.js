@@ -9,7 +9,7 @@ const YAML = require('yamljs');
 
 const config = require('./config');
 const { version } = require('../package.json');
-const { book } = require('./controllers/booking');
+const booking = require('./controllers/booking');
 const { HttpError, HttpInternalError, Http404Error, HttpBadRequestError } = require('./errors');
 
 const app = express();
@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
 });
 
 // Booking
-app.post('/book', book);
+app.post('/booking', booking.create);
 
 // 404 handler
 app.use('*', (req, res, next) => {
