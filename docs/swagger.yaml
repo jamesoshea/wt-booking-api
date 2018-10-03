@@ -30,3 +30,216 @@ paths:
                   config:
                     type: string
                     description: Which config is the API using.
+  /booking:
+    post:
+      summary: Create booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+      responses:
+        200:
+          description: Booking was successfuly processed by the hotel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    description: Hotel reference for this particular booking
+                    type: string
+        400:
+          $ref: '#/components/responses/BadRequestError'
+        409:
+          $ref: '#/components/responses/ConflictError'
+        422:
+          $ref: '#/components/responses/UnprocessableEntityError'
+components:
+  responses:
+    BadRequestError:
+      description: The server does not understand the request (HTTP code 400)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ConflictError:
+      description: Booking cannot be executed, for example room types are not available anymore (HTTP code 409)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntityError:
+      description: Request body or params validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Booking:
+      description: Booking object passed from a customer to a hotel
+      type: object
+      required:
+        - customer
+        - hotelId
+        - booking
+        - pricing
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+        note:
+          description: Additional information passed to a hotel from a customer
+          type: string
+        hotelId:
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
+        booking:
+          $ref: '#/components/schemas/BookingInfo'
+        pricing:
+          type: object
+          required:
+            - currency
+            - total
+            - cancellationFees
+          properties:
+            currency:
+              $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
+            total:
+              description: Total price that should be paid. Including taxes - this is subject to change in the future.
+              type: number
+              format: float
+            # amenities
+            cancellationFees:
+              description: Under what conditions can this booking be cancelled and how much will it cost.
+              type: array
+              items:
+                type: object
+                required:
+                  - amount
+                properties:
+                  from:
+                    description: After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.
+                    type: string
+                    format: date
+                  to:
+                    description: Before which date does this cancellation policy apply (including). If not present, this policy applies until the time of arrival.
+                    type: string
+                    format: date
+                  amount:
+                    description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.
+                    type: number
+                    format: float
+        # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
+        # guarantee: TBD (can be for example credit card info)
+    Customer:
+      allOf:
+        - $ref: '#/components/schemas/CustomerBase'
+        - anyOf:
+          - $ref: '#/components/schemas/CustomerWithPhone'
+          - $ref: '#/components/schemas/CustomerWithEmail'
+    CustomerBase:
+      description: Person responsible for this booking who should be contacted by the hotel if needed
+      type: object
+      required:
+        - name
+        - surname
+        - address
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        address:
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+    CustomerWithPhone:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          description: Phone number (with country prefix)
+          type: string
+          maxLength: 18
+          example: +44123456789
+    CustomerWithEmail:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          description: E-mail contact
+          type: string
+          format: email
+          example: joseph.urban@example.com
+          maxLength: 150
+    Room:
+      type: object
+      required:
+        - id
+        - guestInfoIds
+      properties:
+        id:
+          description: Room type ID as stated in the Hotel description document on WT
+          type: string
+        guestInfoIds:
+          type: array
+          items:
+            description: Which guests will be staying in this room? The strings should be id fields from guestInfo, so we can match the guests and their additional information when needed.
+            type: string
+    BookingInfo:
+      description: Information on the booked property
+      type: object
+      required:
+        - arrival
+        - departure
+        - rooms
+        - guestInfo
+      properties:
+        arrival:
+          description: At what day will the people arrive
+          type: string
+          format: date
+        departure:
+          description: At what day will the people depart
+          type: string
+          format: date
+        guestInfo:
+          description: Additional information on every guest when required
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                description: Unique identifier for every guest, it can for example be a numerical ordinal. Every booking originator has to generate this data as it's used as a base for all other guest-related information (such as total number of guests).
+                type: string
+              name:
+                type: string
+              surname:
+                type: string
+              age:
+                description: Age at the time of arrival
+                type: number
+        rooms:
+          type: array
+          description: List of rooms that form this booking. If a single room type is booked more than once, it shall be present more than once.
+          items:
+            $ref: '#/components/schemas/Room'
+
+    Error:
+      title: Error
+      description: Default schema for errors returned by API.
+      properties:
+        status:
+          type: number
+          description: HTTP status
+        code:
+          type: string
+          description: Computer-readable error. Use this for comparison.
+        short:
+          type: string
+          description: Human-readable error with a short description of the error.
+        long:
+          type: string
+          description: Verbose explanation of what happened.
