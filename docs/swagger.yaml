@@ -41,7 +41,15 @@ paths:
               $ref: '#/components/schemas/Booking'
       responses:
         200:
-          description: Success
+          description: Booking was successfuly processed by the hotel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    description: Hotel reference for this particular booking
+                    type: string
         400:
           $ref: '#/components/responses/BadRequestError'
         409:
