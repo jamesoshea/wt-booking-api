@@ -4,15 +4,19 @@ const sinon = require('sinon');
 
 const { WTAdapter, InvalidUpdateError, RestrictionsViolatedError } = require('../../src/services/adapter');
 
+function _getAdapter () {
+  return new WTAdapter({
+    hotelId: 'hotelId',
+    readApiUrl: 'htttp://readApiUrl',
+    writeApiUrl: 'http://writeApiUrl',
+    writeApiAccessKey: 'writeApiAccessKey',
+    writeApiWalletPassword: 'writeApiWalletPassword',
+  });
+}
+
 describe('services - adapter', function () {
   describe('WTAdapter._applyUpdate', () => {
-    const wtAdapter = new WTAdapter({
-      hotelId: 'hotelId',
-      readApiUrl: 'htttp://readApiUrl.com',
-      writeApiUrl: 'http://writeApiUrl.com',
-      writeApiAccessKey: 'writeApiAccessKey',
-      writeApiWalletPassword: 'writeApiWalletPassword',
-    });
+    const wtAdapter = _getAdapter();
     let availability;
 
     beforeEach(() => {
@@ -68,21 +72,15 @@ describe('services - adapter', function () {
   });
 
   describe('WTAdapter._checkRestrictions', () => {
-    const wtAdapter = new WTAdapter({
-      hotelId: 'hotelId',
-      readApiUrl: 'htttp://readApiUrl.com',
-      writeApiUrl: 'http://writeApiUrl.com',
-      writeApiAccessKey: 'writeApiAccessKey',
-      writeApiWalletPassword: 'writeApiWalletPassword',
-    });
-    const availability = {
-      roomType1: [
-        { date: '2019-01-01', quantity: 10 },
-        { date: '2019-01-02', quantity: 10, restrictions: { noArrival: true } },
-        { date: '2019-01-03', quantity: 10 },
-        { date: '2019-01-04', quantity: 10, restrictions: { noDeparture: true } },
-      ],
-    };
+    const wtAdapter = _getAdapter(),
+      availability = {
+        roomType1: [
+          { date: '2019-01-01', quantity: 10 },
+          { date: '2019-01-02', quantity: 10, restrictions: { noArrival: true } },
+          { date: '2019-01-03', quantity: 10 },
+          { date: '2019-01-04', quantity: 10, restrictions: { noDeparture: true } },
+        ],
+      };
 
     it('should throw when the noArrival restriction is violated', async () => {
       assert.throws(() => {
@@ -105,13 +103,7 @@ describe('services - adapter', function () {
     let wtAdapter;
 
     beforeEach(async () => {
-      wtAdapter = new WTAdapter({
-        hotelId: 'hotelId',
-        readApiUrl: 'htttp://readApiUrl.com',
-        writeApiUrl: 'http://writeApiUrl.com',
-        writeApiAccessKey: 'writeApiAccessKey',
-        writeApiWalletPassword: 'writeApiWalletPassword',
-      });
+      wtAdapter = _getAdapter();
       wtAdapter.__availability = { count: 10 };
       sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
         return Promise.resolve(wtAdapter.__availability);
