@@ -3,13 +3,26 @@ const request = require('request-promise-native');
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
 
+const REQUIRED_FIELDS = [
+  'hotelId',
+  'readApiUrl',
+  'writeApiUrl',
+  'writeApiAccessKey',
+  'writeApiWalletPassword',
+];
+
 class WTAdapter {
-  constructor (hotelId, readApiUrl, writeApiUrl, writeApiAccessKey, writeApiWalletPassword) {
-    this.hotelId = hotelId;
-    this.readApiUrl = readApiUrl;
-    this.writeApiUrl = writeApiUrl;
-    this.writeApiAccessKey = writeApiAccessKey;
-    this.writeApiWalletPassword = writeApiWalletPassword;
+  constructor (opts) {
+    for (let field of REQUIRED_FIELDS) {
+      if (!opts[field]) {
+        throw new Error(`Missing configuration: ${field}`);
+      }
+    }
+    this.hotelId = opts.hotelId;
+    this.readApiUrl = opts.readApiUrl;
+    this.writeApiUrl = opts.writeApiUrl;
+    this.writeApiAccessKey = opts.writeApiAccessKey;
+    this.writeApiWalletPassword = opts.writeApiWalletPassword;
 
     // A promise that serves for serializing of all updates.
     this.updating = Promise.resolve();

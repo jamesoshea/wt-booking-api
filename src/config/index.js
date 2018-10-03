@@ -14,11 +14,14 @@ const config = Object.assign({
       }),
     ],
   }),
+  adapterOpts: {
+    // In your env config, replace these with suitable values.
+    readApiUrl: 'http://localhost:3000',
+    writeApiUrl: 'http://localhost:8000',
+    hotelId: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
+    writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
+    writeApiWalletPassword: 'windingtree',
+  },
 }, require(`./${env}`));
-
-if (!config.hotelId) {
-  throw new Error('No hotelId specified!');
-}
-config.hotelId = config.hotelId.toLowerCase();
 
 module.exports = config;

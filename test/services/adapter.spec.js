@@ -5,30 +5,14 @@ const sinon = require('sinon');
 const { WTAdapter, InvalidUpdateError } = require('../../src/services/adapter');
 
 describe('services - adapter', function () {
-  let wtAdapter;
-
-  beforeEach(async () => {
-    wtAdapter = new WTAdapter('hotelId', 'htttp://readApiUrl.com',
-      'http://writeApiUrl.com', 'writeApiAccessKey', 'writeApiWalletPassword');
-    wtAdapter.__availability = { count: 10 };
-    sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
-      return Promise.resolve(wtAdapter.__availability);
-    });
-    sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
-      if (update === 'fail') {
-        throw new Error('Failed update');
-      }
-      orig.count -= 1;
-    });
-    sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
-      wtAdapter.__availability = availability;
-      return Promise.resolve();
-    });
-  });
-
   describe('WTAdapter._applyUpdate', () => {
-    const wtAdapter = new WTAdapter('hotelId', 'htttp://readApiUrl.com',
-      'http://writeApiUrl.com', 'writeApiAccessKey', 'writeApiWalletPassword');
+    const wtAdapter = new WTAdapter({
+      hotelId: 'hotelId',
+      readApiUrl: 'htttp://readApiUrl.com',
+      writeApiUrl: 'http://writeApiUrl.com',
+      writeApiAccessKey: 'writeApiAccessKey',
+      writeApiWalletPassword: 'writeApiWalletPassword',
+    });
     let availability;
 
     beforeEach(() => {
@@ -84,6 +68,32 @@ describe('services - adapter', function () {
   });
 
   describe('WTAdapter.updateAvailability', () => {
+    let wtAdapter;
+
+    beforeEach(async () => {
+      wtAdapter = new WTAdapter({
+        hotelId: 'hotelId',
+        readApiUrl: 'htttp://readApiUrl.com',
+        writeApiUrl: 'http://writeApiUrl.com',
+        writeApiAccessKey: 'writeApiAccessKey',
+        writeApiWalletPassword: 'writeApiWalletPassword',
+      });
+      wtAdapter.__availability = { count: 10 };
+      sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
+        return Promise.resolve(wtAdapter.__availability);
+      });
+      sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
+        if (update === 'fail') {
+          throw new Error('Failed update');
+        }
+        orig.count -= 1;
+      });
+      sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
+        wtAdapter.__availability = availability;
+        return Promise.resolve();
+      });
+    });
+
     it('should update the availability', async () => {
       assert.deepEqual(wtAdapter.__availability, { count: 10 });
       await wtAdapter.updateAvailability({});
