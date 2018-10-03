@@ -33,6 +33,28 @@ describe('controllers - booking', function () {
         });
     });
 
+    it('should return 200 if the customer has both e-mail and phone', (done) => {
+      const booking = getBooking();
+      booking.customer.phone = '+420777777777';
+      booking.customer.email = 'sherlock.holmes@houndofthebaskervilles.net';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(200)
+        .end(done);
+    });
+
+    it('should return 422 if neither e-mail nore phone are supplied', (done) => {
+      const booking = getBooking();
+      delete booking.customer.phone;
+      delete booking.customer.email;
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
         .post('/booking')
