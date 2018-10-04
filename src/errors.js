@@ -30,6 +30,12 @@ Http404Error.defaultCode = 'notFound';
 Http404Error.defaultMsgShort = 'Page not found.';
 Http404Error.defaultMsgLong = 'This endpoint does not exist.';
 
+class HttpConflictError extends HttpError {};
+HttpConflictError.status = 409;
+HttpConflictError.defaultCode = 'conflictError';
+HttpConflictError.defaultMsgShort = 'Conflict.';
+HttpConflictError.defaultMsgLong = 'The resource cannot be updated, possibly due to an update conflict.';
+
 class HttpValidationError extends HttpError {};
 HttpValidationError.status = 422;
 HttpValidationError.defaultCode = 'validationFailed';
@@ -41,10 +47,18 @@ HttpInternalError.defaultCode = 'genericError';
 HttpInternalError.defaultMsgShort = 'Something went wrong.';
 HttpInternalError.defaultMsgLong = 'Something went wrong. Please contact the administrator.';
 
+class HttpBadGatewayError extends HttpError {};
+HttpBadGatewayError.status = 502;
+HttpBadGatewayError.defaultCode = 'badGatewayError';
+HttpBadGatewayError.defaultMsgShort = 'Bad gateway.';
+HttpBadGatewayError.defaultMsgLong = 'Invalid response from an upstream server.';
+
 module.exports = {
   HttpError,
   Http404Error,
+  HttpConflictError,
   HttpBadRequestError,
   HttpValidationError,
   HttpInternalError,
+  HttpBadGatewayError,
 };

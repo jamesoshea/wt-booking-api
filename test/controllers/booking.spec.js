@@ -1,22 +1,39 @@
 /* eslint-env mocha */
 const { assert } = require('chai');
 const request = require('supertest');
+const sinon = require('sinon');
 
 const { getBooking } = require('../utils/factories');
+const adapter = require('../../src/services/adapter');
 
 describe('controllers - booking', function () {
-  let server;
+  let server, wtAdapterOrig, wtAdapter;
 
   before(async () => {
+    wtAdapterOrig = adapter.get();
+    wtAdapter = {
+      updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
+        if (arrival === 'UpstreamError') {
+          return Promise.reject(new adapter.UpstreamError());
+        }
+        if (arrival === 'InvalidUpdateError') {
+          return Promise.reject(new adapter.InvalidUpdateError());
+        }
+        return Promise.resolve();
+      }),
+    };
+    adapter.set(wtAdapter);
     server = require('../../src/index');
   });
 
   after(() => {
+    adapter.set(wtAdapterOrig);
     server.close();
   });
 
   describe('POST /booking', () => {
-    it('should accept the booking and return a confirmation', (done) => {
+    it('should accept the booking, perform the update and return a confirmation', (done) => {
+      wtAdapter.updateAvailability.resetHistory();
       request(server)
         .post('/booking')
         .send(getBooking())
@@ -25,6 +42,9 @@ describe('controllers - booking', function () {
         .end(async (err, res) => {
           if (err) return done(err);
           try {
+            assert.deepEqual(wtAdapter.updateAvailability.args, [
+              [['single-room', 'single-room'], '2019-01-01', '2019-01-03'],
+            ]);
             assert.deepEqual(res.body, {});
             done();
           } catch (err) {
@@ -68,6 +88,26 @@ describe('controllers - booking', function () {
         .post('/booking')
         .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
         .expect(422)
+        .end(done);
+    });
+
+    it('should return 409 when booking is not possible', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = 'InvalidUpdateError';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(409)
+        .end(done);
+    });
+
+    it('should return 502 when upstream error is encountered', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = 'UpstreamError';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(502)
         .end(done);
     });
   });
