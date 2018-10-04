@@ -33,41 +33,36 @@ describe('services - adapter', function () {
     });
 
     it('should apply the requested update', async () => {
-      wtAdapter._applyUpdate(availability, {
-        roomType1: [
-          { date: '2019-01-01', subtract: 1 },
-          { date: '2019-01-02', subtract: 2 },
-        ],
-        roomType2: [{ date: '2019-01-01', subtract: 3 }],
-      }, '2019-01-01', '2019-01-03');
+      wtAdapter._applyUpdate(availability, ['roomType1', 'roomType2', 'roomType2'],
+        '2019-01-01', '2019-01-03');
       assert.deepEqual(availability, {
         roomType1: [
           { date: '2019-01-01', quantity: 9 },
-          { date: '2019-01-02', quantity: 8 },
+          { date: '2019-01-02', quantity: 9 },
         ],
         roomType2: [
-          { date: '2019-01-01', quantity: 2 },
-          { date: '2019-01-02', quantity: 5 },
+          { date: '2019-01-01', quantity: 3 },
+          { date: '2019-01-02', quantity: 3 },
         ],
       });
     });
 
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
-      assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomTypeX: [{ date: '2019-01-01', subtract: 1 }],
-      }), InvalidUpdateError);
-    }, '2019-01-01', '2019-01-02');
+      assert.throws(() => {
+        wtAdapter._applyUpdate(availability, ['roomTypeX'], '2019-01-01', '2019-01-02');
+      }, InvalidUpdateError);
+    });
 
     it('should throw InvalidUpdateError upon unknown date', async () => {
-      assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomType1: [{ date: '2021-01-01', subtract: 1 }],
-      }), InvalidUpdateError);
+      assert.throws(() => {
+        wtAdapter._applyUpdate(availability, ['roomType1'], '2021-01-01', '2021-01-02');
+      }, InvalidUpdateError);
     });
 
     it('should throw InvalidUpdateError upon overbooking', async () => {
-      assert.throws(() => wtAdapter._applyUpdate(availability, {
-        roomType1: [{ date: '2019-01-01', subtract: 100 }],
-      }), InvalidUpdateError);
+      assert.throws(() => {
+        wtAdapter._applyUpdate(availability, Array(100).fill('roomType1'), '2019-01-01', '2019-01-02');
+      }, InvalidUpdateError);
     });
   });
 
@@ -122,26 +117,26 @@ describe('services - adapter', function () {
 
     it('should update the availability', async () => {
       assert.deepEqual(wtAdapter.__availability, { count: 10 });
-      await wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {});
+      await wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02');
       assert.deepEqual(wtAdapter.__availability, { count: 9 });
     });
 
     it('should serialize updates', async () => {
       await Promise.all([
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
       ]);
       assert.deepEqual(wtAdapter.__availability, { count: 6 });
     });
 
     it('should handle single failures', async () => {
       await Promise.all([
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', 'fail').catch(() => {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
-        wtAdapter.updateAvailability('2019-01-01', '2019-01-02', {}),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability('fail', '2019-01-01', '2019-01-02').catch(() => {}),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
       ]);
       assert.deepEqual(wtAdapter.__availability, { count: 7 });
     });

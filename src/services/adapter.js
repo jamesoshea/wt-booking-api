@@ -1,3 +1,4 @@
+const dayjs = require('dayjs');
 const request = require('request-promise-native');
 
 class UpstreamError extends Error {};
@@ -98,8 +99,8 @@ class WTAdapter {
    * @returns {undefined}
    * @throws {RestrictionsViolatedError}
    */
-  _checkRestrictions (availability, roomTypeIds, arrival, departure) {
-    for (let roomTypeId of roomTypeIds) {
+  _checkRestrictions (availability, rooms, arrival, departure) {
+    for (let roomTypeId of new Set(rooms)) {
       for (let item of (availability[roomTypeId] || [])) {
         if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
           const msg = `Cannot arrive to ${roomTypeId} on date ${arrival}.`;
@@ -128,28 +129,35 @@ class WTAdapter {
    * @param {Object} update
    * @returns {undefined}
    */
-  _applyUpdate (availability, update) {
-    for (let roomTypeId in update) {
+  _applyUpdate (availability, rooms, arrival, departure) {
+    const totals = rooms.reduce((_totals, roomTypeId) => {
+      _totals[roomTypeId] = (_totals[roomTypeId] || 0) + 1;
+      return _totals;
+    }, {});
+    for (let roomTypeId in totals) {
       if (!availability[roomTypeId]) {
         throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
       }
-      for (let updateItem of update[roomTypeId]) {
+      const departureDate = dayjs(departure);
+      let currentDate = dayjs(arrival);
+      while (currentDate.isBefore(departureDate)) {
         var found = false;
         for (let availabilityItem of availability[roomTypeId]) {
-          if (availabilityItem.date === updateItem.date) {
-            if (availabilityItem.quantity - updateItem.subtract < 0) {
-              const msg = `Room type ${roomTypeId} and date ${updateItem.date} is overbooked.`;
+          if (availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
+            if (availabilityItem.quantity - totals[roomTypeId] < 0) {
+              const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
               throw new InvalidUpdateError(msg);
             }
-            availabilityItem.quantity -= updateItem.subtract;
+            availabilityItem.quantity -= totals[roomTypeId];
             found = true;
             break;
           }
         }
         if (!found) {
-          const msg = `No availability provided for room type ${roomTypeId} and date ${updateItem.date}.`;
+          const msg = `No availability provided for room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')}.`;
           throw new InvalidUpdateError(msg);
         }
+        currentDate = currentDate.add(1, 'day');
       }
     }
   }
@@ -160,16 +168,13 @@ class WTAdapter {
    * Serializes calls internally to avoid race conditions.
    *
    * @param {String} arrival
-   * @param {String} departure
-   * @param {Object} update
-   * @returns {Promise<Object>}
-   */
-  updateAvailability (arrival, departure, update) {
+   * @param {String} departure * @param {Array} rooms Array of roomTypeIds to be booked * @returns {Promise<Object>} */
+  updateAvailability (rooms, arrival, departure) {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((availability) => {
-      this._checkRestrictions(availability, Object.keys(update), arrival, departure);
-      this._applyUpdate(availability, update); // Modifies availability.
+      this._checkRestrictions(availability, rooms, arrival, departure);
+      this._applyUpdate(availability, rooms, arrival, departure); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;
