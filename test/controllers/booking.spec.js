@@ -64,10 +64,20 @@ describe('controllers - booking', function () {
         .end(done);
     });
 
-    it('should return 422 if neither e-mail nore phone are supplied', (done) => {
+    it('should return 422 if neither e-mail nor phone are supplied', (done) => {
       const booking = getBooking();
       delete booking.customer.phone;
       delete booking.customer.email;
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 if e-mail is invalid', (done) => {
+      const booking = getBooking();
+      booking.customer.email = 'huh';
       request(server)
         .post('/booking')
         .send(booking)
