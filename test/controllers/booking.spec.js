@@ -10,6 +10,7 @@ describe('controllers - booking', function () {
   let server, wtAdapterOrig, wtAdapter;
 
   before(async () => {
+    server = require('../../src/index');
     wtAdapterOrig = adapter.get();
     wtAdapter = {
       updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
@@ -23,12 +24,11 @@ describe('controllers - booking', function () {
       }),
     };
     adapter.set(wtAdapter);
-    server = require('../../src/index');
   });
 
   after(() => {
-    adapter.set(wtAdapterOrig);
     server.close();
+    adapter.set(wtAdapterOrig);
   });
 
   describe('POST /booking', () => {
