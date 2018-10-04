@@ -45,7 +45,7 @@ describe('controllers - booking', function () {
             assert.deepEqual(wtAdapter.updateAvailability.args, [
               [['single-room', 'single-room'], '2019-01-01', '2019-01-03'],
             ]);
-            assert.deepEqual(res.body, {});
+            assert.property(res.body, 'id');
             done();
           } catch (err) {
             done(err);
