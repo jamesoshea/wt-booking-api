@@ -4,6 +4,7 @@ const request = require('request-promise-native');
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
 class RestrictionsViolatedError extends Error {};
+class InvalidCancellationFeesError extends Error {};
 
 const REQUIRED_FIELDS = [
   'hotelId',
@@ -182,6 +183,96 @@ class WTAdapter {
     this.updating = this.updating.catch(() => undefined);
     return ret;
   }
+
+  /**
+   * Check if the given cancellation fee computed wrt.the
+   * specified arrival date is admissible wrt. the given
+   * policy.
+   *
+   * @param {Object} fee
+   * @param {Object} policy
+   * @param {dayjs} today
+   * @param {dayjs} arrival
+   * @return {Boolean}
+   */
+  _isAdmissible (fee, policy, today, arrival) {
+    if (fee.amount < policy.amount) {
+      return false;
+    }
+    const feeFrom = fee.from ? dayjs(fee.from) : today,
+      feeTo = fee.from ? dayjs(fee.to) : arrival,
+      policyTo = policy.to ? dayjs(policy.to) : arrival;
+    let policyFrom = policy.from ? dayjs(policy.from) : today;
+    // Take deadline into account
+    if (policy.deadline) {
+      const deadline = arrival.subtract(policy.deadline, 'day');
+      if (deadline.isAfter(policyTo)) {
+        return false;
+      }
+      if (deadline.isAfter(policyFrom)) {
+        policyFrom = deadline;
+      }
+    }
+
+    // Return result based on whether the cancellation fee interval lies
+    // within the policy interval.
+    return (!feeFrom.isBefore(policyFrom)) && (!feeTo.isAfter(policyTo));
+  }
+
+  /**
+   * Check if the array of cancellation fees is meaningful.
+   *
+   * We do not check if the fee intervals overlap or not because
+   * that is a legitimate case. (We assume that in such
+   * ambiguous cases, the consumer can choose which one of the applicable
+   * fees they want to apply.)
+   *
+   * @param {Array} fees
+   * @return {Boolean}
+   */
+  _isWellFormed (fees) {
+    for (let fee of fees) {
+      const from = fee.from && dayjs(fee.from);
+      const to = fee.to && dayjs(fee.to);
+      if (from && to && from.isAfter(to)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check price and cancellation fees.
+   *
+   * @param {String} currency
+   * @param {float} total
+   * @param {Array} cancellationFees
+   * @return {Promise<void>}
+   * @throw {InvalidCancellationFeesError}
+   */
+  async checkPrice (currency, total, cancellationFees, arrival) {
+    let fields = ['defaultCancellationAmount', 'cancellationPolicies'],
+      description = await this._getDescription(fields),
+      cancellationPolicies = (description.cancellationPolicies || []).concat([
+        description.defaultCancellationAmount,
+      ]);
+
+    // For each item, find out if it's admissible wrt. declared
+    // cancellation policies.
+    for (let fee of cancellationFees) {
+      let admissible = false;
+      for (let policy of cancellationPolicies) {
+        if (this._isAdmissible(fee, policy, arrival)) {
+          admissible = true;
+          break;
+        }
+      }
+      if (!admissible) {
+        let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
+        throw new InvalidCancellationFeesError(msg);
+      }
+    }
+  }
 }
 
 let _WTAdapter;
@@ -208,6 +299,7 @@ module.exports = {
   UpstreamError,
   InvalidUpdateError,
   RestrictionsViolatedError,
+  InvalidCancellationFeesError,
   get,
   set,
 };
