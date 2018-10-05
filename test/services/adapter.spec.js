@@ -2,7 +2,13 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 
-const { WTAdapter, InvalidUpdateError, RestrictionsViolatedError } = require('../../src/services/adapter');
+const {
+  WTAdapter,
+  InvalidUpdateError,
+  RestrictionsViolatedError,
+  IllFormedCancellationFeesError,
+  InadmissibleCancellationFeesError,
+} = require('../../src/services/adapter');
 
 function _getAdapter () {
   return new WTAdapter({
@@ -139,6 +145,87 @@ describe('services - adapter', function () {
         wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
       ]);
       assert.deepEqual(wtAdapter.__availability, { count: 7 });
+    });
+  });
+
+  describe('WTAdapter.checkPrice', () => {
+    const wtAdapter = _getAdapter();
+    sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
+      return Promise.resolve({
+        defaultCancellationAmount: 0.9,
+        cancellationPolicies: [
+          { from: '2018-01-01', to: '2018-12-31', amount: 0.29, deadline: 87 },
+          { from: '2018-01-01', to: '2018-12-31', amount: 0.49, deadline: 51 },
+          { from: '2018-01-01', to: '2018-12-31', amount: 0.74, deadline: 35 },
+
+          { from: '2019-01-01', to: '2019-12-31', amount: 0.3, deadline: 87 },
+          { from: '2019-01-01', to: '2019-12-31', amount: 0.5, deadline: 51 },
+          { from: '2019-01-01', to: '2019-12-31', amount: 0.75, deadline: 35 },
+        ],
+      });
+    });
+
+    it('should successfully return when the cancellationFees are OK', async () => {
+      const cancellationFees = [
+        { from: '2019-01-01', to: '2019-01-20', amount: 0.3 },
+        { from: '2019-01-21', to: '2019-02-20', amount: 0.5 },
+        { from: '2019-02-21', to: '2019-03-20', amount: 0.75 },
+        { amount: 0.9 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2019-03-28');
+    });
+
+    it('should successfully return when the cancellationFees are favourable for the hotel', async () => {
+      const cancellationFees = [
+        { amount: 0.99 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2019-03-28');
+    });
+
+    it('should throw an error when cancellation fees are nonsensical', async () => {
+      const cancellationFees = [
+        { from: '2019-01-01', to: '2011-01-20', amount: 0.3 },
+        { amount: 0.9 },
+      ];
+      try {
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2019-03-28');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        if (!(err instanceof IllFormedCancellationFeesError)) {
+          throw err;
+        }
+      }
+    });
+
+    it('should throw an error when last years cancellation fees are used', async () => {
+      const cancellationFees = [
+        { from: '2019-01-01', to: '2019-01-20', amount: 0.29 },
+        { from: '2019-01-21', to: '2019-02-20', amount: 0.49 },
+        { from: '2019-02-21', to: '2019-03-20', amount: 0.74 },
+        { amount: 0.9 },
+      ];
+      try {
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2019-03-28');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        if (!(err instanceof InadmissibleCancellationFeesError)) {
+          throw err;
+        }
+      }
+    });
+
+    it('should throw an error when fees are unfavourable for the hotel', async () => {
+      const cancellationFees = [
+        { amount: 0.7 },
+      ];
+      try {
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2019-03-28');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        if (!(err instanceof InadmissibleCancellationFeesError)) {
+          throw err;
+        }
+      }
     });
   });
 });

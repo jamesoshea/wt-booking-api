@@ -4,7 +4,8 @@ const request = require('request-promise-native');
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
 class RestrictionsViolatedError extends Error {};
-class InvalidCancellationFeesError extends Error {};
+class IllFormedCancellationFeesError extends Error {};
+class InadmissibleCancellationFeesError extends Error {};
 
 const REQUIRED_FIELDS = [
   'hotelId',
@@ -185,6 +186,32 @@ class WTAdapter {
   }
 
   /**
+   * Get hotel description data.
+   *
+   * @param {Array<String>} fields
+   * @returns {Promise<Object>}
+   */
+  async _getDescription (fields) {
+    fields = fields.join(',');
+    try {
+      const response = await request({
+        method: 'GET',
+        uri: `${this.readApiUrl}/hotels/${this.hotelId}?fields=${fields}`,
+        json: true,
+        simple: false,
+        resolveWithFullResponse: true,
+      });
+      if (response.statusCode <= 299) {
+        return response.body;
+      } else {
+        throw new Error(`Error ${response.statusCode}`);
+      }
+    } catch (err) {
+      throw new UpstreamError(err.message);
+    }
+  }
+
+  /**
    * Check if the given cancellation fee computed wrt.the
    * specified arrival date is admissible wrt. the given
    * policy.
@@ -228,17 +255,17 @@ class WTAdapter {
    * fees they want to apply.)
    *
    * @param {Array} fees
-   * @return {Boolean}
+   * @return {String|Boolean}
    */
-  _isWellFormed (fees) {
+  _isIllFormed (fees) {
     for (let fee of fees) {
       const from = fee.from && dayjs(fee.from);
       const to = fee.to && dayjs(fee.to);
       if (from && to && from.isAfter(to)) {
-        return false;
+        return 'Ill-formed cancellation fees: `from` comes after `to`.';
       }
     }
-    return true;
+    return false;
   }
 
   /**
@@ -248,28 +275,37 @@ class WTAdapter {
    * @param {float} total
    * @param {Array} cancellationFees
    * @return {Promise<void>}
-   * @throw {InvalidCancellationFeesError}
+   * @throw {InadmissibleCancellationFeesError}
+   * @throw {IllFormedCancellationFeesError}
    */
   async checkPrice (currency, total, cancellationFees, arrival) {
     let fields = ['defaultCancellationAmount', 'cancellationPolicies'],
       description = await this._getDescription(fields),
       cancellationPolicies = (description.cancellationPolicies || []).concat([
-        description.defaultCancellationAmount,
+        { amount: description.defaultCancellationAmount },
       ]);
 
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
+    const illFormed = this._isIllFormed(cancellationFees);
+    if (illFormed) {
+      throw new IllFormedCancellationFeesError(illFormed);
+    }
+
+    const arrivalDate = dayjs(arrival),
+      todayDate = dayjs(new Date().setHours(0, 0, 0, 0));
+
     for (let fee of cancellationFees) {
       let admissible = false;
       for (let policy of cancellationPolicies) {
-        if (this._isAdmissible(fee, policy, arrival)) {
+        if (this._isAdmissible(fee, policy, todayDate, arrivalDate)) {
           admissible = true;
           break;
         }
       }
       if (!admissible) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
-        throw new InvalidCancellationFeesError(msg);
+        throw new InadmissibleCancellationFeesError(msg);
       }
     }
   }
@@ -299,7 +335,8 @@ module.exports = {
   UpstreamError,
   InvalidUpdateError,
   RestrictionsViolatedError,
-  InvalidCancellationFeesError,
+  IllFormedCancellationFeesError,
+  InadmissibleCancellationFeesError,
   get,
   set,
 };
