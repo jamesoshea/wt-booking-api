@@ -190,7 +190,6 @@ describe('services - adapter', function () {
     it('should throw an error when cancellation fees are nonsensical', async () => {
       const cancellationFees = [
         { from: '2019-01-01', to: '2011-01-20', amount: 30 },
-        { amount: 0.9 },
       ];
       try {
         await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');

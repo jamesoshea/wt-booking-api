@@ -223,8 +223,8 @@ class WTAdapter {
    * @return {Boolean}
    */
   _isAdmissible (fee, policies, today, arrival) {
-    const feeFrom = fee.from ? dayjs(fee.from) : today,
-      feeTo = fee.from ? dayjs(fee.to) : arrival;
+    const feeFrom = dayjs(fee.from),
+      feeTo = dayjs(fee.to);
     // 1. Normalize policy descriptors.
     let normalizedPolicies = policies
       .map((p) => {
@@ -300,9 +300,7 @@ class WTAdapter {
    */
   _isIllFormed (fees) {
     for (let fee of fees) {
-      const from = fee.from && dayjs(fee.from);
-      const to = fee.to && dayjs(fee.to);
-      if (from && to && from.isAfter(to)) {
+      if (dayjs(fee.from).isAfter(dayjs(fee.to))) {
         return 'Ill-formed cancellation fees: `from` comes after `to`.';
       }
     }
