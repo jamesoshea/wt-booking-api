@@ -213,7 +213,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["amount"],
+            "required": ["from", "to", "amount"],
             "properties": {
               "from": {
                 "description": "After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.",
