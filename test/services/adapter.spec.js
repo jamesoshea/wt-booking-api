@@ -187,6 +187,28 @@ describe('services - adapter', function () {
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
+    it('should successfully return even if the cancellation policies have "holes"', async () => {
+      const wtAdapter = _getAdapter();
+      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
+        return Promise.resolve({
+          defaultCancellationAmount: 0.1,
+          cancellationPolicies: [
+            { from: '2019-01-01', to: '2019-03-20', amount: 30, deadline: 86 },
+            { from: '2019-01-01', to: '2019-03-20', amount: 50, deadline: 51 },
+            // For the last week, default cancellation amount should be used again.
+          ],
+        });
+      });
+
+      const cancellationFees = [
+        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-03-20', amount: 50 },
+        { from: '2019-03-21', to: '2019-03-28', amount: 10 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+    });
+
     it('should throw an error when cancellation fees are nonsensical', async () => {
       const cancellationFees = [
         { from: '2019-01-01', to: '2011-01-20', amount: 30 },

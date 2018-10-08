@@ -222,7 +222,7 @@ class WTAdapter {
    * @param {dayjs} arrival
    * @return {Boolean}
    */
-  _isAdmissible (fee, policies, today, arrival) {
+  _isAdmissible (fee, policies, defaultPolicy, today, arrival) {
     const feeFrom = dayjs(fee.from),
       feeTo = dayjs(fee.to);
     // 1. Normalize policy descriptors.
@@ -246,12 +246,17 @@ class WTAdapter {
         };
       });
 
-    // 2. Sort by (policyFrom, deadline) to enable cutoff by
+    // 2. Filter out irrelevant policies.
+    normalizedPolicies = normalizedPolicies.filter((policy, index) => {
+      return !policy.deadline.isAfter(policy.policyTo);
+    });
+
+    // 3. Sort by (policyFrom, deadline) to enable cutoff by
     // next-policy deadline.
     normalizedPolicies.sort((p1, p2) => {
-      if (p1.policyTo.isBefore(p2.policyTo)) {
+      if (p1.policyFrom.isBefore(p2.policyFrom)) {
         return -1;
-      } else if (p2.policyTo.isBefore(p1.policyTo)) {
+      } else if (p2.policyFrom.isBefore(p1.policyFrom)) {
         return 1;
       } else if (!p1.deadline.isSame(p2.deadline)) {
         return p1.deadline.isBefore(p2.deadline) ? -1 : 1;
@@ -259,32 +264,30 @@ class WTAdapter {
       return 0;
     });
 
-    // 3. Filter out irrelevant policies.
-    normalizedPolicies = normalizedPolicies.filter((policy, index) => {
-      if (policy.deadline.isAfter(policy.policyTo)) {
-        return false;
+    // 4. Cut off by next policy deadline (taken into account in policyFrom by now).
+    policies = normalizedPolicies.map((policy, index) => {
+      if (index < normalizedPolicies.length - 1) {
+        policy.policyTo = normalizedPolicies[index + 1].policyFrom.subtract(1, 'day');
       }
-      return true;
+      return policy;
     });
 
     // 4. Select the applicable policy from the list.
-    policies = normalizedPolicies.filter((policy, index) => {
-      if (index < normalizedPolicies.length - 1) {
-        // Cut off by next policy deadline (taken into account
-        // in policyFrom by now).
-        policy.policyTo = normalizedPolicies[index + 1].policyFrom.subtract(1, 'day');
+    const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),
+      isAfterAll = (policies.length === 0) || feeFrom.isAfter(policies[policies.length - 1].policyTo);
+    // Keep track if the fee period is covered at least partially by any single cancellation policy.
+    let covered = false;
+    policies = policies.filter((policy, index) => {
+      if (!isBeforeAny && !isAfterAll) {
+        covered = covered || (feeFrom.isBefore(policy.policyTo) || feeTo.isAfter(policy.policyFrom));
       }
-
       return (feeFrom.isSame(policy.policyFrom) && feeTo.isSame(policy.policyTo));
     });
 
-    if (!policies.length) {
-      return false;
-    }
-    const policy = policies[0];
+    const policy = policies[0] || (covered ? null : defaultPolicy);
 
-    // 3. Verify that the fee amount is admissible wrt. to the selected policy.
-    return (fee.amount >= policy.amount);
+    // 5. Verify that the fee amount is admissible wrt. to the selected policy.
+    return policy && (fee.amount >= policy.amount);
   }
 
   /**
@@ -303,7 +306,7 @@ class WTAdapter {
       };
     });
     // 1. Check if the whole period between booking and arrival is covered.
-    const msg = 'Ill-formed cancellation fees: the whole period between booking date and arrival must be covered.';
+    const msg = 'Ill-formed cancellation fees: the whole period between booking date and arrival must be covered without overlapping.';
     fees.sort((f1, f2) => {
       return (f1.from.isBefore(f2.from)) ? -1 : 1;
     });
@@ -334,6 +337,9 @@ class WTAdapter {
   /**
    * Check price and cancellation fees.
    *
+   * Note: we assume that hotel's cancellation policies are
+   * meaningfully defined; we do not validate it here.
+   *
    * @param {String} currency
    * @param {float} total
    * @param {Array} cancellationFees
@@ -346,9 +352,8 @@ class WTAdapter {
   async checkPrice (currency, total, cancellationFees, bookedAt, arrival) {
     let fields = ['defaultCancellationAmount', 'cancellationPolicies'],
       description = await this._getDescription(fields),
-      cancellationPolicies = [
-        { amount: description.defaultCancellationAmount },
-      ].concat(description.cancellationPolicies || []);
+      cancellationPolicies = description.cancellationPolicies || [],
+      defaultPolicy = { amount: description.defaultCancellationAmount };
 
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
@@ -360,7 +365,7 @@ class WTAdapter {
     const arrivalDate = dayjs(arrival),
       todayDate = dayjs(bookedAt);
     for (let fee of cancellationFees) {
-      if (!this._isAdmissible(fee, cancellationPolicies, todayDate, arrivalDate)) {
+      if (!this._isAdmissible(fee, cancellationPolicies, defaultPolicy, todayDate, arrivalDate)) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
         throw new InadmissibleCancellationFeesError(msg);
       }
