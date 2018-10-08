@@ -338,7 +338,6 @@ class WTAdapter {
     const arrivalDate = dayjs(arrival),
       todayDate = dayjs(bookedAt);
     for (let fee of cancellationFees) {
-      let admissible = false;
       if (!this._isAdmissible(fee, cancellationPolicies, todayDate, arrivalDate)) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
         throw new InadmissibleCancellationFeesError(msg);

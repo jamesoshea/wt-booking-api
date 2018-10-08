@@ -193,7 +193,7 @@ describe('services - adapter', function () {
         { amount: 0.9 },
       ];
       try {
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof IllFormedCancellationFeesError)) {
@@ -210,7 +210,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
       try {
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
@@ -226,7 +226,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 74 },
       ];
       try {
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
@@ -237,13 +237,13 @@ describe('services - adapter', function () {
 
     it('should throw an error when fees are unfavourable for the hotel', async () => {
       const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 05 },
+        { from: '2018-12-01', to: '2018-12-31', amount: 5 },
         { from: '2019-01-01', to: '2019-02-04', amount: 25 },
         { from: '2019-02-05', to: '2019-02-20', amount: 45 },
         { from: '2019-02-21', to: '2019-03-28', amount: 70 },
       ];
       try {
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
