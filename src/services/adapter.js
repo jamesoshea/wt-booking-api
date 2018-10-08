@@ -290,15 +290,39 @@ class WTAdapter {
   /**
    * Check if the array of cancellation fees is meaningful.
    *
-   * We do not check if the fee intervals overlap or not because
-   * that is a legitimate case. (We assume that in such
-   * ambiguous cases, the consumer can choose which one of the applicable
-   * fees they want to apply.)
-   *
    * @param {Array} fees
+   * @param {dayjs} bookedAt
+   * @param {dayjs} arrival
    * @return {String|Boolean}
    */
-  _isIllFormed (fees) {
+  _isIllFormed (fees, bookedAt, arrival) {
+    fees = fees.map((f) => {
+      return {
+        from: dayjs(f.from),
+        to: dayjs(f.to),
+      };
+    });
+    // 1. Check if the whole period between booking and arrival is covered.
+    const msg = 'Ill-formed cancellation fees: the whole period between booking date and arrival must be covered.';
+    fees.sort((f1, f2) => {
+      return (f1.from.isBefore(f2.from)) ? -1 : 1;
+    });
+    const period = { from: undefined, to: undefined };
+    for (let i = 0; i < fees.length; i++) {
+      if (!period.from) { // The first item.
+        period.from = fees[i].from;
+        period.to = fees[i].to;
+      } else if (fees[i].from.subtract(1, 'day').isSame(period.to)) {
+        period.to = fees[i].to;
+      } else {
+        return msg;
+      }
+    }
+    if (!period.from.isSame(bookedAt) || !period.to.isSame(arrival)) {
+      return msg;
+    }
+
+    // 2. Check if "from" is after "to".
     for (let fee of fees) {
       if (dayjs(fee.from).isAfter(dayjs(fee.to))) {
         return 'Ill-formed cancellation fees: `from` comes after `to`.';
@@ -328,7 +352,7 @@ class WTAdapter {
 
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
-    const illFormed = this._isIllFormed(cancellationFees);
+    const illFormed = this._isIllFormed(cancellationFees, bookedAt, arrival);
     if (illFormed) {
       throw new IllFormedCancellationFeesError(illFormed);
     }
