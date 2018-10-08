@@ -16,7 +16,7 @@ module.exports.getBooking = function () {
     pricing: {
       currency: 'GBP',
       total: 221,
-      cancellationFees: [{ amount: 0.5 }],
+      cancellationFees: [{ amount: 50 }],
     },
     booking: {
       arrival: '2019-01-01',

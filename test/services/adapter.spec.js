@@ -154,42 +154,42 @@ describe('services - adapter', function () {
       return Promise.resolve({
         defaultCancellationAmount: 0.1,
         cancellationPolicies: [
-          { from: '2018-01-01', to: '2018-12-31', amount: 0.29, deadline: 86 },
-          { from: '2018-01-01', to: '2018-12-31', amount: 0.49, deadline: 51 },
-          { from: '2018-01-01', to: '2018-12-31', amount: 0.74, deadline: 35 },
+          { from: '2018-01-01', to: '2018-12-31', amount: 29, deadline: 86 },
+          { from: '2018-01-01', to: '2018-12-31', amount: 49, deadline: 51 },
+          { from: '2018-01-01', to: '2018-12-31', amount: 74, deadline: 35 },
 
           // The cancellation policies are intentionally not
           // "in-order" to test robustness.
-          { from: '2019-01-01', to: '2019-12-31', amount: 0.5, deadline: 51 },
-          { from: '2019-01-01', to: '2019-12-31', amount: 0.3, deadline: 86 },
-          { from: '2019-01-01', to: '2019-12-31', amount: 0.75, deadline: 35 },
+          { from: '2019-01-01', to: '2019-12-31', amount: 50, deadline: 51 },
+          { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
+          { from: '2019-01-01', to: '2019-12-31', amount: 75, deadline: 35 },
         ],
       });
     });
 
     it('should successfully return when the cancellationFees are OK', async () => {
       const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 0.1 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 0.3 },
-        { from: '2019-02-05', to: '2019-02-20', amount: 0.5 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 0.75 },
+        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 50 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should successfully return when the cancellationFees are favourable for the hotel', async () => {
       const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 0.15 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 0.35 },
-        { from: '2019-02-05', to: '2019-02-20', amount: 0.55 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 0.85 },
+        { from: '2018-12-01', to: '2018-12-31', amount: 15 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 35 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 55 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 85 },
       ];
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should throw an error when cancellation fees are nonsensical', async () => {
       const cancellationFees = [
-        { from: '2019-01-01', to: '2011-01-20', amount: 0.3 },
+        { from: '2019-01-01', to: '2011-01-20', amount: 30 },
         { amount: 0.9 },
       ];
       try {
@@ -204,10 +204,10 @@ describe('services - adapter', function () {
 
     it('should throw an error when the deadline constraint is violated', async () => {
       const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 0.1 },
-        { from: '2019-01-01', to: '2019-02-01', amount: 0.3 },
-        { from: '2019-02-02', to: '2019-02-20', amount: 0.5 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 0.75 },
+        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+        { from: '2019-01-01', to: '2019-02-01', amount: 30 },
+        { from: '2019-02-02', to: '2019-02-20', amount: 50 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
       try {
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
@@ -221,9 +221,9 @@ describe('services - adapter', function () {
 
     it('should throw an error when last years cancellation fees are used', async () => {
       const cancellationFees = [
-        { from: '2019-01-01', to: '2019-02-04', amount: 0.29 },
-        { from: '2019-02-05', to: '2019-02-20', amount: 0.49 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 0.74 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 29 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 49 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 74 },
       ];
       try {
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
@@ -237,10 +237,10 @@ describe('services - adapter', function () {
 
     it('should throw an error when fees are unfavourable for the hotel', async () => {
       const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 0.05 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 0.25 },
-        { from: '2019-02-05', to: '2019-02-20', amount: 0.45 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 0.7 },
+        { from: '2018-12-01', to: '2018-12-31', amount: 05 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 25 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 45 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 70 },
       ];
       try {
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
