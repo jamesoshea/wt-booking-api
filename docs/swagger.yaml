@@ -110,19 +110,21 @@ components:
               format: float
             # amenities
             cancellationFees:
-              description: Under what conditions can this booking be cancelled and how much will it cost.
+              description: Under what conditions can this booking be cancelled and how much will it cost. Note that the cancellation fees should cover the whole period between the moment of booking and arrival and should be based on the hotel's cancellation policy. (Each cancellation fee should correspond to an applicable cancellation policy.)
               type: array
               items:
                 type: object
                 required:
+                  - from
+                  - to
                   - amount
                 properties:
                   from:
-                    description: After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.
+                    description: After which date does this cancellation fee apply (inclusive).
                     type: string
                     format: date
                   to:
-                    description: Before which date does this cancellation policy apply (including). If not present, this policy applies until the time of arrival.
+                    description: Until which date does this cancellation policy apply (inclusive).
                     type: string
                     format: date
                   amount:
