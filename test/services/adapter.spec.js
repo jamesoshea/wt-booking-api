@@ -1,4 +1,5 @@
 /* eslint-env mocha */
+/* eslint-disable standard/object-curly-even-spacing */
 const { assert } = require('chai');
 const sinon = require('sinon');
 
@@ -154,15 +155,16 @@ describe('services - adapter', function () {
       return Promise.resolve({
         defaultCancellationAmount: 10,
         cancellationPolicies: [
+          // Some parts are commented-out; some cancellation
+          // policies are intentionally not "in-order" to test
+          // robustness.
           { from: '2018-01-01', to: '2018-12-31', amount: 29, deadline: 86 },
-          { from: '2018-01-01', to: '2018-12-31', amount: 49, deadline: 51 },
+          { /* from: '2018-01-01', */ to: '2018-12-31', amount: 49, deadline: 51 },
           { from: '2018-01-01', to: '2018-12-31', amount: 74, deadline: 35 },
 
-          // The cancellation policies are intentionally not
-          // "in-order" to test robustness.
-          { from: '2019-01-01', to: '2019-12-31', amount: 50, deadline: 51 },
+          { from: '2019-01-01', /* to: '2019-12-31', */ amount: 50, deadline: 51 },
           { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
-          { from: '2019-01-01', to: '2019-12-31', amount: 75, deadline: 35 },
+          { from: '2019-01-01', /* to: '2019-12-31', */ amount: 75, deadline: 35 },
         ],
       });
     });
