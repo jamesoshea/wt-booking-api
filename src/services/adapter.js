@@ -228,8 +228,6 @@ class WTAdapter {
     // 1. Normalize policy descriptors.
     let normalizedPolicies = policies
       .map((p) => {
-        // TODO: je spravne posouvat policyTo a policyFrom, kdyz
-        // je to uplne mimo?
         let policyTo = p.to ? dayjs(p.to) : arrival;
         policyTo = arrival.isBefore(policyTo) ? arrival : policyTo;
         let policyFrom = p.from ? dayjs(p.from) : today;
