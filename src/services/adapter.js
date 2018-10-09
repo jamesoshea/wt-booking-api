@@ -265,12 +265,26 @@ class WTAdapter {
     });
 
     // 4. Cut off by next policy deadline (taken into account in policyFrom by now).
-    policies = normalizedPolicies.map((policy, index) => {
-      if (index < normalizedPolicies.length - 1) {
-        policy.policyTo = normalizedPolicies[index + 1].policyFrom.subtract(1, 'day');
+    policies = [];
+    for (let i = 0; i < normalizedPolicies.length; i++) {
+      const policy = normalizedPolicies[i];
+      if (i < normalizedPolicies.length - 1) {
+        const nextPolicy = normalizedPolicies[i + 1];
+        const cutoff = nextPolicy.policyFrom.subtract(1, 'day');
+        if (cutoff.isBefore(policy.policyTo)) {
+          // If we find out the next policy ends before this
+          // one, we will create an additional policy to cover
+          // the period after that.
+          if (nextPolicy.policyTo.isBefore(policy.policyTo)) {
+            const newPolicy = Object.assign({}, policy);
+            newPolicy.policyFrom = nextPolicy.policyTo.add(1, 'day');
+            normalizedPolicies.splice(i + 2, 0, newPolicy);
+          }
+          policy.policyTo = cutoff;
+        }
       }
-      return policy;
-    });
+      policies.push(policy);
+    }
 
     // 4. Select the applicable policy from the list.
     const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),

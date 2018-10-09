@@ -187,28 +187,6 @@ describe('services - adapter', function () {
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
-    it('should successfully return even if the cancellation policies have "holes"', async () => {
-      const wtAdapter = _getAdapter();
-      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
-        return Promise.resolve({
-          defaultCancellationAmount: 0.1,
-          cancellationPolicies: [
-            { from: '2019-01-01', to: '2019-03-20', amount: 30, deadline: 86 },
-            { from: '2019-01-01', to: '2019-03-20', amount: 50, deadline: 51 },
-            // For the last week, default cancellation amount should be used again.
-          ],
-        });
-      });
-
-      const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
-        { from: '2019-02-05', to: '2019-03-20', amount: 50 },
-        { from: '2019-03-21', to: '2019-03-28', amount: 10 },
-      ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
-    });
-
     it('should throw an error when cancellation fees are nonsensical', async () => {
       const cancellationFees = [
         { from: '2019-01-01', to: '2011-01-20', amount: 30 },
@@ -288,6 +266,53 @@ describe('services - adapter', function () {
           throw err;
         }
       }
+    });
+
+    it('should successfully return even if the cancellation policies have "holes"', async () => {
+      const wtAdapter = _getAdapter();
+      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
+        return Promise.resolve({
+          defaultCancellationAmount: 0.1,
+          cancellationPolicies: [
+            { from: '2019-01-01', to: '2019-03-20', amount: 30, deadline: 86 },
+            { from: '2019-01-01', to: '2019-03-20', amount: 50, deadline: 51 },
+            // For the last week, default cancellation amount should be used again.
+          ],
+        });
+      });
+
+      const cancellationFees = [
+        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-03-20', amount: 50 },
+        { from: '2019-03-21', to: '2019-03-28', amount: 10 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+    });
+
+    it('should successfully return when cancellation policies overlap', async () => {
+      const wtAdapter = _getAdapter();
+      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
+        return Promise.resolve({
+          defaultCancellationAmount: 0.1,
+          cancellationPolicies: [
+            { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
+            { from: '2019-01-01', to: '2019-12-31', amount: 50, deadline: 51 },
+            { from: '2019-02-08', to: '2019-02-10', amount: 40, deadline: 50 },
+            { from: '2019-01-01', to: '2019-12-31', amount: 75, deadline: 35 },
+          ],
+        });
+      });
+
+      const cancellationFees = [
+        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-02-07', amount: 50 },
+        { from: '2019-02-08', to: '2019-02-10', amount: 40 },
+        { from: '2019-02-11', to: '2019-02-20', amount: 50 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });
   });
 });
