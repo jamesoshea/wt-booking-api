@@ -212,19 +212,15 @@ class WTAdapter {
   }
 
   /**
-   * Check if the given cancellation fee computed with the
-   * specified arrival date is admissible wrt. the given
-   * policies.
+   * Convert policies to a normalized shape, taking into account
+   * specific booking and arrival dates.
    *
-   * @param {Object} fee
    * @param {Array} policies
    * @param {dayjs} today
    * @param {dayjs} arrival
-   * @return {Boolean}
+   * @return {Array}
    */
-  _isAdmissible (fee, policies, defaultPolicy, today, arrival) {
-    const feeFrom = dayjs(fee.from),
-      feeTo = dayjs(fee.to);
+  _normalizePolicies (policies, today, arrival) {
     // 1. Normalize policy descriptors.
     let normalizedPolicies = policies
       .map((p) => {
@@ -283,6 +279,23 @@ class WTAdapter {
       }
       policies.push(policy);
     }
+
+    return policies;
+  }
+
+  /**
+   * Check if the given cancellation fee computed with the
+   * specified arrival date is admissible wrt. the given
+   * policies.
+   *
+   * @param {Object} fee
+   * @param {Array} policies (as returned from _normalizePolicies)
+   * @param {Object} defaultPolicy
+   * @return {Boolean}
+   */
+  _isAdmissible (fee, policies, defaultPolicy) {
+    const feeFrom = dayjs(fee.from),
+      feeTo = dayjs(fee.to);
 
     // 4. Select the applicable policy from the list.
     const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),
@@ -375,9 +388,10 @@ class WTAdapter {
     }
 
     const arrivalDate = dayjs(arrival),
-      todayDate = dayjs(bookedAt);
+      todayDate = dayjs(bookedAt),
+      normalizedPolicies = this._normalizePolicies(cancellationPolicies, todayDate, arrivalDate);
     for (let fee of cancellationFees) {
-      if (!this._isAdmissible(fee, cancellationPolicies, defaultPolicy, todayDate, arrivalDate)) {
+      if (!this._isAdmissible(fee, normalizedPolicies, defaultPolicy)) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
         throw new InadmissibleCancellationFeesError(msg);
       }
