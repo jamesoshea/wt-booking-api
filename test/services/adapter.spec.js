@@ -152,7 +152,7 @@ describe('services - adapter', function () {
     const wtAdapter = _getAdapter();
     sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
       return Promise.resolve({
-        defaultCancellationAmount: 0.1,
+        defaultCancellationAmount: 10,
         cancellationPolicies: [
           { from: '2018-01-01', to: '2018-12-31', amount: 29, deadline: 86 },
           { from: '2018-01-01', to: '2018-12-31', amount: 49, deadline: 51 },
@@ -272,7 +272,7 @@ describe('services - adapter', function () {
       const wtAdapter = _getAdapter();
       sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
         return Promise.resolve({
-          defaultCancellationAmount: 0.1,
+          defaultCancellationAmount: 10,
           cancellationPolicies: [
             { from: '2019-01-01', to: '2019-03-20', amount: 30, deadline: 86 },
             { from: '2019-01-01', to: '2019-03-20', amount: 50, deadline: 51 },
@@ -294,7 +294,7 @@ describe('services - adapter', function () {
       const wtAdapter = _getAdapter();
       sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
         return Promise.resolve({
-          defaultCancellationAmount: 0.1,
+          defaultCancellationAmount: 10,
           cancellationPolicies: [
             { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
             { from: '2019-01-01', to: '2019-12-31', amount: 50, deadline: 51 },
@@ -311,6 +311,20 @@ describe('services - adapter', function () {
         { from: '2019-02-08', to: '2019-02-10', amount: 40 },
         { from: '2019-02-11', to: '2019-02-20', amount: 50 },
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
+      ];
+      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+    });
+
+    it('should successfully return when only the default cancellation policy exists', async () => {
+      const wtAdapter = _getAdapter();
+      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
+        return Promise.resolve({
+          defaultCancellationAmount: 10,
+        });
+      });
+
+      const cancellationFees = [
+        { from: '2018-12-01', to: '2019-03-28', amount: 10 },
       ];
       await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
     });

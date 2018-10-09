@@ -297,7 +297,7 @@ class WTAdapter {
     const feeFrom = dayjs(fee.from),
       feeTo = dayjs(fee.to);
 
-    // 4. Select the applicable policy from the list.
+    // 1. Select the applicable policy from the list.
     const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),
       isAfterAll = (policies.length === 0) || feeFrom.isAfter(policies[policies.length - 1].policyTo);
     // Keep track if the fee period is covered at least partially by any single cancellation policy.
@@ -311,7 +311,7 @@ class WTAdapter {
 
     const policy = policies[0] || (covered ? null : defaultPolicy);
 
-    // 5. Verify that the fee amount is admissible wrt. to the selected policy.
+    // 2. Verify that the fee amount is admissible wrt. to the selected policy.
     return policy && (fee.amount >= policy.amount);
   }
 
