@@ -192,12 +192,21 @@ function computeStayPrices (guestData, applicableRatePlans) {
     // Loop over all rate plans and find the most fitting one for that day.
     for (let j = 0; j < applicableRatePlans.length; j += 1) {
       currentRatePlan = applicableRatePlans[j];
-      const currentDailyPrice = computeDailyPrice(
-        guestData, currentDate, currentRatePlan,
-      );
 
-      if (!bestDailyPrice || currentDailyPrice.subtract(bestDailyPrice) <= 0) {
-        bestDailyPrice = currentDailyPrice;
+      let useRatePlan = true;
+      if (currentRatePlan.availableForTravel) {
+        // Deal with a rate plan ending sometimes during the stay
+        const availableForTravelFrom = dayjs(currentRatePlan.availableForTravel.from);
+        const availableForTravelTo = dayjs(currentRatePlan.availableForTravel.to);
+        useRatePlan = (!currentDate.isBefore(availableForTravelFrom) && !currentDate.isAfter(availableForTravelTo));
+      }
+      if (useRatePlan) {
+        const currentDailyPrice = computeDailyPrice(
+          guestData, currentDate, currentRatePlan,
+        );
+        if (!bestDailyPrice || currentDailyPrice.subtract(bestDailyPrice) <= 0) {
+          bestDailyPrice = currentDailyPrice;
+        }
       }
     }
     dailyPrices.push(bestDailyPrice);
