@@ -128,6 +128,27 @@ describe('services - pricing', function () {
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 140 * 10);
     });
 
+    it('should select the correct rate plan based on restrictions', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: {
+            helpers: {
+              arrivalDateDayjs: dayjs('2019-03-02'),
+              departureDateDayjs: dayjs('2019-03-12'),
+              lengthOfStay: 10,
+              numberOfGuests: 3,
+            },
+            guestAges: ['31', '32', '5'],
+          },
+        }],
+        ratePlans = [
+          { currency: 'EUR', price: 110, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 12 } } },
+          { currency: 'EUR', price: 130, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 8 } } },
+          { currency: 'EUR', price: 120, roomTypeIds: ['group'], restrictions: { bookingCutOff: { min: 360 } } },
+        ];
+      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 130 * 10);
+    });
+
     it('should correctly combine multiple rate plans for a single booking item', () => {
       const bookingData = [{
           roomType: { id: 'group' },
@@ -175,6 +196,86 @@ describe('services - pricing', function () {
           },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 10 * 100 * 2 + 10 * 100 * 1 * 0.9);
+    });
+
+    it('should correctly apply the minOccupants modifier', () => {
+      const bookingData = [
+          {
+            roomType: { id: 'group' },
+            guestData: {
+              helpers: {
+                arrivalDateDayjs: dayjs('2019-03-02'),
+                departureDateDayjs: dayjs('2019-03-12'),
+                lengthOfStay: 10,
+                numberOfGuests: 3,
+              },
+              guestAges: ['31', '32', '5'],
+            },
+          },
+          {
+            roomType: { id: 'group' },
+            guestData: {
+              helpers: {
+                arrivalDateDayjs: dayjs('2019-03-02'),
+                departureDateDayjs: dayjs('2019-03-12'),
+                lengthOfStay: 10,
+                numberOfGuests: 2,
+              },
+              guestAges: ['37', '35'],
+            },
+          }
+        ],
+        ratePlans = [
+          {
+            currency: 'EUR',
+            price: 100,
+            roomTypeIds: ['group'],
+            modifiers: [
+              {
+                conditions: { from: '2019-01-01', to: '2019-12-31', minOccupants: 3 },
+                adjustment: -20,
+              },
+            ],
+          },
+        ];
+      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 10 * 100 * 2 + 10 * 100 * 3 * 0.8);
+    });
+
+    it('should correctly apply the minLengthOfStay modifier', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: {
+            helpers: {
+              arrivalDateDayjs: dayjs('2019-03-02'),
+              departureDateDayjs: dayjs('2019-03-12'),
+              lengthOfStay: 10,
+              numberOfGuests: 3,
+            },
+            guestAges: ['31', '32', '5'],
+          },
+        }],
+        ratePlans = [
+          {
+            currency: 'EUR',
+            price: 100,
+            roomTypeIds: ['group'],
+            modifiers: [
+              {
+                conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 3 },
+                adjustment: -20,
+              },
+              {
+                conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 8 },
+                adjustment: -40,
+              },
+              {
+                conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 20 },
+                adjustment: -60,
+              },
+            ],
+          },
+        ];
+      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 10 * 100 * 3 * 0.6);
     });
   });
 });
