@@ -9,12 +9,13 @@ const {
   RestrictionsViolatedError,
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
+  InvalidPriceError,
 } = require('../../src/services/adapter');
 
 function _getAdapter () {
   return new WTAdapter({
     hotelId: 'hotelId',
-    readApiUrl: 'htttp://readApiUrl',
+    readApiUrl: 'http://readApiUrl',
     writeApiUrl: 'http://writeApiUrl',
     writeApiAccessKey: 'writeApiAccessKey',
     writeApiWalletPassword: 'writeApiWalletPassword',
@@ -149,10 +150,9 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter.checkPrice', () => {
-    const wtAdapter = _getAdapter();
-    sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
-      return Promise.resolve({
+  describe('WTAdapter._checkCancellationFees', () => {
+    const wtAdapter = _getAdapter(),
+      description = {
         defaultCancellationAmount: 10,
         cancellationPolicies: [
           // Some parts are commented-out; some cancellation
@@ -166,8 +166,7 @@ describe('services - adapter', function () {
           { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
           { from: '2019-01-01', /* to: '2019-12-31', */ amount: 75, deadline: 35 },
         ],
-      });
-    });
+      };
 
     it('should successfully return when the cancellationFees are OK', async () => {
       const cancellationFees = [
@@ -176,7 +175,7 @@ describe('services - adapter', function () {
         { from: '2019-02-05', to: '2019-02-20', amount: 50 },
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+      await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should successfully return when the cancellationFees are favourable for the hotel', async () => {
@@ -186,7 +185,7 @@ describe('services - adapter', function () {
         { from: '2019-02-05', to: '2019-02-20', amount: 55 },
         { from: '2019-02-21', to: '2019-03-28', amount: 85 },
       ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+      await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should throw an error when cancellation fees are nonsensical', async () => {
@@ -194,7 +193,7 @@ describe('services - adapter', function () {
         { from: '2019-01-01', to: '2011-01-20', amount: 30 },
       ];
       try {
-        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof IllFormedCancellationFeesError)) {
@@ -210,7 +209,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
       try {
-        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof IllFormedCancellationFeesError)) {
@@ -227,7 +226,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
       try {
-        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
@@ -244,7 +243,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 74 },
       ];
       try {
-        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
@@ -261,7 +260,7 @@ describe('services - adapter', function () {
         { from: '2019-02-21', to: '2019-03-28', amount: 70 },
       ];
       try {
-        await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
         if (!(err instanceof InadmissibleCancellationFeesError)) {
@@ -271,31 +270,25 @@ describe('services - adapter', function () {
     });
 
     it('should successfully return even if the cancellation policies have "holes"', async () => {
-      const wtAdapter = _getAdapter();
-      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
-        return Promise.resolve({
+      const description = {
           defaultCancellationAmount: 10,
           cancellationPolicies: [
             { from: '2019-01-01', to: '2019-03-20', amount: 30, deadline: 86 },
             { from: '2019-01-01', to: '2019-03-20', amount: 50, deadline: 51 },
             // For the last week, default cancellation amount should be used again.
           ],
-        });
-      });
-
-      const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
-        { from: '2019-02-05', to: '2019-03-20', amount: 50 },
-        { from: '2019-03-21', to: '2019-03-28', amount: 10 },
-      ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        },
+        cancellationFees = [
+          { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+          { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+          { from: '2019-02-05', to: '2019-03-20', amount: 50 },
+          { from: '2019-03-21', to: '2019-03-28', amount: 10 },
+        ];
+      await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should successfully return when cancellation policies overlap', async () => {
-      const wtAdapter = _getAdapter();
-      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
-        return Promise.resolve({
+      const description = {
           defaultCancellationAmount: 10,
           cancellationPolicies: [
             { from: '2019-01-01', to: '2019-12-31', amount: 30, deadline: 86 },
@@ -303,32 +296,60 @@ describe('services - adapter', function () {
             { from: '2019-02-08', to: '2019-02-10', amount: 40, deadline: 50 },
             { from: '2019-01-01', to: '2019-12-31', amount: 75, deadline: 35 },
           ],
-        });
-      });
-
-      const cancellationFees = [
-        { from: '2018-12-01', to: '2018-12-31', amount: 10 },
-        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
-        { from: '2019-02-05', to: '2019-02-07', amount: 50 },
-        { from: '2019-02-08', to: '2019-02-10', amount: 40 },
-        { from: '2019-02-11', to: '2019-02-20', amount: 50 },
-        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
-      ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+        },
+        cancellationFees = [
+          { from: '2018-12-01', to: '2018-12-31', amount: 10 },
+          { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+          { from: '2019-02-05', to: '2019-02-07', amount: 50 },
+          { from: '2019-02-08', to: '2019-02-10', amount: 40 },
+          { from: '2019-02-11', to: '2019-02-20', amount: 50 },
+          { from: '2019-02-21', to: '2019-03-28', amount: 75 },
+        ];
+      await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
     });
 
     it('should successfully return when only the default cancellation policy exists', async () => {
-      const wtAdapter = _getAdapter();
-      sinon.stub(wtAdapter, '_getDescription').callsFake(() => {
-        return Promise.resolve({
+      const description = {
           defaultCancellationAmount: 10,
-        });
-      });
+        },
+        cancellationFees = [
+          { from: '2018-12-01', to: '2019-03-28', amount: 10 },
+        ];
+      await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
+    });
+  });
 
-      const cancellationFees = [
-        { from: '2018-12-01', to: '2019-03-28', amount: 10 },
-      ];
-      await wtAdapter.checkPrice('GBP', 100, cancellationFees, '2018-12-01', '2019-03-28');
+  describe('WTAdapter._checkTotal', () => {
+    // NOTE: Most of the testing is done within the pricing.spec.js test suite.
+    const wtAdapter = _getAdapter(),
+      description = { currency: 'EUR' },
+      ratePlans = {
+        'plan1': {
+          roomTypeIds: ['room1'],
+          price: 10,
+        },
+      },
+      bookingInfo = {
+        arrival: '2019-03-20',
+        departure: '2019-03-28',
+        guestInfo: [{ id: 1 }],
+        rooms: [{
+          id: 'room1',
+          guestInfoIds: [1],
+        }],
+      };
+
+    it('should successfully return when the total is OK', async () => {
+      await wtAdapter._checkTotal(description, ratePlans, bookingInfo, 'EUR', 8 * 10, '2018-12-01');
+    });
+
+    it('should throw InvalidPriceError when the total is too low', async () => {
+      try {
+        await wtAdapter._checkTotal(description, ratePlans, bookingInfo, 'EUR', 60, '2018-12-01');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        assert.instanceOf(err, InvalidPriceError);
+      }
     });
   });
 });

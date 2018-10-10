@@ -1,11 +1,14 @@
 const dayjs = require('dayjs');
 const request = require('request-promise-native');
 
+const { computePrice } = require('./pricing');
+
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
 class RestrictionsViolatedError extends Error {};
 class IllFormedCancellationFeesError extends Error {};
 class InadmissibleCancellationFeesError extends Error {};
+class InvalidPriceError extends Error {};
 
 const REQUIRED_FIELDS = [
   'hotelId',
@@ -360,13 +363,12 @@ class WTAdapter {
   }
 
   /**
-   * Check price and cancellation fees.
+   * Check cancellation fees.
    *
    * Note: we assume that hotel's cancellation policies are
    * meaningfully defined; we do not validate it here.
    *
-   * @param {String} currency
-   * @param {float} total
+   * @param {Object} hotelDescription
    * @param {Array} cancellationFees
    * @param {String} bookedAt
    * @param {String} arrival
@@ -374,11 +376,9 @@ class WTAdapter {
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
    */
-  async checkPrice (currency, total, cancellationFees, bookedAt, arrival) {
-    let fields = ['defaultCancellationAmount', 'cancellationPolicies'],
-      description = await this._getDescription(fields),
-      cancellationPolicies = description.cancellationPolicies || [],
-      defaultPolicy = { amount: description.defaultCancellationAmount };
+  async _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
+    let cancellationPolicies = hotelDescription.cancellationPolicies || [],
+      defaultPolicy = { amount: hotelDescription.defaultCancellationAmount };
 
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
@@ -395,6 +395,47 @@ class WTAdapter {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
         throw new InadmissibleCancellationFeesError(msg);
       }
+    }
+  }
+
+  /**
+   * Check price.
+   *
+   * @param {Object} hotelDescription
+   * @param {Object} ratePlans
+   * @param {Object} bookingInfo
+   * @param {String} currency
+   * @param {float} total
+   * @return {Promise<void>}
+   * @throw {InvalidPriceError}
+   */
+  async _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
+    ratePlans = Object.values(ratePlans);
+    const arrivalDate = dayjs(bookingInfo.arrival),
+      departureDate = dayjs(bookingInfo.departure),
+      guestInfo = {};
+
+    for (let item of bookingInfo.guestInfo) {
+      guestInfo[item.id] = item;
+    }
+    const bookingData = bookingInfo.rooms.map((room) => {
+        return {
+          roomType: { id: room.id },
+          guestData: {
+            guestAges: room.guestInfoIds.map((gid) => guestInfo[gid].age),
+            helpers: {
+              arrivalDateDayjs: arrivalDate,
+              departureDateDayJs: departureDate,
+              lengthOfStay: departureDate.diff(arrivalDate, 'days'),
+              numberOfGuests: room.guestInfoIds.length,
+            },
+          },
+        };
+      }),
+      price = computePrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
+
+    if (total < price) {
+      throw new InvalidPriceError(`The total is too low, expected ${price}.`);
     }
   }
 }
@@ -425,6 +466,7 @@ module.exports = {
   RestrictionsViolatedError,
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
+  InvalidPriceError,
   get,
   set,
 };

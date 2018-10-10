@@ -123,7 +123,7 @@ describe('services - pricing', function () {
           {
             roomType: { id: 'group' },
             guestData: _getGuestData(['31', '32', '5']),
-          }
+          },
         ],
         ratePlans = [{ currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2020-01-01' } }];
       assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), NoRatePlanError);
