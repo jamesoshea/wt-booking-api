@@ -4,20 +4,24 @@ const dayjs = require('dayjs');
 
 const { computePrice } = require('../../src/services/pricing');
 
+function _getGuestData (guestAges) {
+  return {
+    helpers: {
+      arrivalDateDayjs: dayjs('2019-03-02'),
+      departureDateDayjs: dayjs('2019-03-12'),
+      lengthOfStay: 10,
+      numberOfGuests: guestAges.length,
+    },
+    guestAges: guestAges,
+  };
+};
+
 describe('services - pricing', function () {
   describe('computePrice', () => {
     it('should correctly compute the price for the simple case', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [{ currency: 'EUR', price: 100, roomTypeIds: ['group'] }];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10);
@@ -27,27 +31,11 @@ describe('services - pricing', function () {
       const bookingData = [
           {
             roomType: { id: 'group' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 3,
-              },
-              guestAges: ['31', '32', '5'],
-            },
+            guestData: _getGuestData(['31', '32', '5']),
           },
           {
             roomType: { id: 'group' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 2,
-              },
-              guestAges: ['47', '47'],
-            },
+            guestData: _getGuestData(['47', '47']),
           },
         ],
         ratePlans = [{ currency: 'EUR', price: 100, roomTypeIds: ['group'] }];
@@ -58,27 +46,11 @@ describe('services - pricing', function () {
       const bookingData = [
           {
             roomType: { id: 'group' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 3,
-              },
-              guestAges: ['31', '32', '5'],
-            },
+            guestData: _getGuestData(['31', '32', '5']),
           },
           {
             roomType: { id: 'single' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 1,
-              },
-              guestAges: ['55'],
-            },
+            guestData: _getGuestData(['55']),
           },
         ],
         ratePlans = [
@@ -91,15 +63,7 @@ describe('services - pricing', function () {
     it('should select the correct rate plan based on availableForTravel', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2018-01-01', to: '2018-12-31' } },
@@ -111,15 +75,7 @@ describe('services - pricing', function () {
     it('should select the correct rate plan based on availableForReservation', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           { currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2018-01-01', to: '2018-12-31' } },
@@ -131,15 +87,7 @@ describe('services - pricing', function () {
     it('should select the correct rate plan based on restrictions', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           { currency: 'EUR', price: 110, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 12 } } },
@@ -152,15 +100,7 @@ describe('services - pricing', function () {
     it('should correctly combine multiple rate plans for a single booking item', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
@@ -172,15 +112,7 @@ describe('services - pricing', function () {
     it('should correctly apply the maxAge modifier', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           {
@@ -202,28 +134,12 @@ describe('services - pricing', function () {
       const bookingData = [
           {
             roomType: { id: 'group' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 3,
-              },
-              guestAges: ['31', '32', '5'],
-            },
+            guestData: _getGuestData(['31', '32', '5']),
           },
           {
             roomType: { id: 'group' },
-            guestData: {
-              helpers: {
-                arrivalDateDayjs: dayjs('2019-03-02'),
-                departureDateDayjs: dayjs('2019-03-12'),
-                lengthOfStay: 10,
-                numberOfGuests: 2,
-              },
-              guestAges: ['37', '35'],
-            },
-          }
+            guestData: _getGuestData(['37', '35']),
+          },
         ],
         ratePlans = [
           {
@@ -244,15 +160,7 @@ describe('services - pricing', function () {
     it('should correctly apply the minLengthOfStay modifier', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: {
-            helpers: {
-              arrivalDateDayjs: dayjs('2019-03-02'),
-              departureDateDayjs: dayjs('2019-03-12'),
-              lengthOfStay: 10,
-              numberOfGuests: 3,
-            },
-            guestAges: ['31', '32', '5'],
-          },
+          guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
           {
