@@ -27,6 +27,42 @@ describe('services - pricing', function () {
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10);
     });
 
+    it('should select the correct curency', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: _getGuestData(['31', '32', '5']),
+        }],
+        ratePlans = [
+          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { currency: 'GBP', price: 70, roomTypeIds: ['group'] },
+        ];
+      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10);
+    });
+
+    it('should throw if no rate plan is available for the requested currency', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: _getGuestData(['31', '32', '5']),
+        }],
+        ratePlans = [
+          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { price: 200, roomTypeIds: ['group'] },
+        ];
+      assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'GBP', 'CHF'), NoRatePlanError);
+    });
+
+    it('should correctly assume the default currency for rate plans', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: _getGuestData(['31', '32', '5']),
+        }],
+        ratePlans = [
+          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { price: 70, roomTypeIds: ['group'] },
+        ];
+      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'GBP', 'GBP'), 3 * 70 * 10);
+    });
+
     it('should work with multiple booking items across several rooms', () => {
       const bookingData = [
           {
