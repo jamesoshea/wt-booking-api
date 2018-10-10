@@ -5,7 +5,9 @@
 const dayjs = require('dayjs'),
   currencyjs = require('currency.js');
 
-function selectApplicableModifiers (guestData, modifiers, dateDayjs) {
+class NoRatePlanError extends Error {};
+
+function _selectApplicableModifiers (guestData, modifiers, dateDayjs) {
   if (!modifiers || !modifiers.length) {
     return [];
   }
@@ -61,7 +63,7 @@ function selectApplicableModifiers (guestData, modifiers, dateDayjs) {
   return applicableModifiers.filter(mod => elementsToDrop.indexOf(mod) === -1);
 }
 
-function selectBestGuestModifier (modifiers, age) {
+function _selectBestGuestModifier (modifiers, age) {
   const ageModifiers = modifiers.filter(mod => mod.conditions.maxAge !== undefined);
   const selectedAgeModifier = ageModifiers.reduce((best, current) => {
     if (current.conditions.maxAge >= age && ( // guest is under the bar
@@ -87,7 +89,7 @@ function selectBestGuestModifier (modifiers, age) {
   return genericModifiers[0];
 }
 
-function getApplicableRatePlans (guestData, roomType, ratePlans, bookingDate, currency, hotelCurrency) {
+function _getApplicableRatePlans (guestData, roomType, ratePlans, bookingDate, currency, hotelCurrency) {
   return ratePlans.filter((rp) => {
     // Rate plan is not tied to this room type
     if (rp.roomTypeIds.indexOf(roomType.id) === -1) {
@@ -158,8 +160,8 @@ function getApplicableRatePlans (guestData, roomType, ratePlans, bookingDate, cu
   });
 }
 
-function computeDailyPrice (guestData, dateDayjs, ratePlan) {
-  const applicableModifiers = selectApplicableModifiers(
+function _computeDailyPrice (guestData, dateDayjs, ratePlan) {
+  const applicableModifiers = _selectApplicableModifiers(
     guestData, ratePlan.modifiers, dateDayjs,
   );
   if (!applicableModifiers.length) {
@@ -172,7 +174,7 @@ function computeDailyPrice (guestData, dateDayjs, ratePlan) {
   for (let i = 0; i < guestData.guestAges.length; i += 1) {
     adjustment = 0;
     // Pick the best modifier for each guest and adjust the price
-    selectedModifier = selectBestGuestModifier(applicableModifiers, guestData.guestAges[i]);
+    selectedModifier = _selectBestGuestModifier(applicableModifiers, guestData.guestAges[i]);
     if (selectedModifier) {
       adjustment = (selectedModifier.adjustment / 100) * ratePlan.price;
     }
@@ -181,7 +183,7 @@ function computeDailyPrice (guestData, dateDayjs, ratePlan) {
   return guestPrices.reduce((a, b) => a.add(currencyjs(b)), currencyjs(0));
 }
 
-function computeStayPrices (guestData, applicableRatePlans) {
+function _computeStayPrices (guestData, applicableRatePlans) {
   const dailyPrices = [];
   let currentDate = dayjs(guestData.helpers.arrivalDateDayjs);
   // Find an appropriate rate plan for every day
@@ -201,7 +203,7 @@ function computeStayPrices (guestData, applicableRatePlans) {
         useRatePlan = (!currentDate.isBefore(availableForTravelFrom) && !currentDate.isAfter(availableForTravelTo));
       }
       if (useRatePlan) {
-        const currentDailyPrice = computeDailyPrice(
+        const currentDailyPrice = _computeDailyPrice(
           guestData, currentDate, currentRatePlan,
         );
         if (!bestDailyPrice || currentDailyPrice.subtract(bestDailyPrice) <= 0) {
@@ -213,24 +215,29 @@ function computeStayPrices (guestData, applicableRatePlans) {
     currentDate = currentDate.add(1, 'day');
   }
   if (dailyPrices.length < guestData.helpers.lengthOfStay || dailyPrices.indexOf(undefined) > -1) {
-    throw new Error('The whole stay cannot be covered'); // TODO: throw a specific error class
+    throw new NoRatePlanError('The whole stay cannot be covered by any combination of rate plans.');
   }
   return dailyPrices;
 }
 
-module.exports.computePrice = function (bookingData, ratePlans, bookingDate, currency, hotelCurrency) {
+function computePrice (bookingData, ratePlans, bookingDate, currency, hotelCurrency) {
   bookingDate = dayjs(bookingDate);
   let total = currencyjs(0);
   for (let bookingItem of bookingData) {
-    const applicableRatePlans = getApplicableRatePlans(
+    const applicableRatePlans = _getApplicableRatePlans(
       bookingItem.guestData, bookingItem.roomType, ratePlans, bookingDate, currency, hotelCurrency,
     );
     if (applicableRatePlans.length === 0) {
-      throw new Error('No available plan'); // TODO throw a specific error class
+      throw new NoRatePlanError('No applicable rate plan.');
     }
-    const dailyPrices = computeStayPrices(bookingItem.guestData, applicableRatePlans),
+    const dailyPrices = _computeStayPrices(bookingItem.guestData, applicableRatePlans),
       itemPrice = dailyPrices.reduce((a, b) => a.add(currencyjs(b)), currencyjs(0));
     total = total.add(itemPrice);
   }
   return total;
+};
+
+module.exports = {
+  computePrice,
+  NoRatePlanError,
 };

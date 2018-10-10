@@ -2,7 +2,7 @@
 const { assert } = require('chai');
 const dayjs = require('dayjs');
 
-const { computePrice } = require('../../src/services/pricing');
+const { computePrice, NoRatePlanError } = require('../../src/services/pricing');
 
 function _getGuestData (guestAges) {
   return {
@@ -25,21 +25,6 @@ describe('services - pricing', function () {
         }],
         ratePlans = [{ currency: 'EUR', price: 100, roomTypeIds: ['group'] }];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10);
-    });
-
-    it('should work with multiple booking items across the same room', () => {
-      const bookingData = [
-          {
-            roomType: { id: 'group' },
-            guestData: _getGuestData(['31', '32', '5']),
-          },
-          {
-            roomType: { id: 'group' },
-            guestData: _getGuestData(['47', '47']),
-          },
-        ],
-        ratePlans = [{ currency: 'EUR', price: 100, roomTypeIds: ['group'] }];
-      assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 5 * 100 * 10);
     });
 
     it('should work with multiple booking items across several rooms', () => {
@@ -97,6 +82,17 @@ describe('services - pricing', function () {
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 130 * 10);
     });
 
+    it('should throw NoRatePlanError when no applicable rate plan is available', () => {
+      const bookingData = [
+          {
+            roomType: { id: 'group' },
+            guestData: _getGuestData(['31', '32', '5']),
+          }
+        ],
+        ratePlans = [{ currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2020-01-01' } }];
+      assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), NoRatePlanError);
+    });
+
     it('should correctly combine multiple rate plans for a single booking item', () => {
       const bookingData = [{
           roomType: { id: 'group' },
@@ -107,6 +103,18 @@ describe('services - pricing', function () {
           { currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-12-31' } },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 110 * 4 + 3 * 120 * 6);
+    });
+
+    it('should throw NoRatePlanError when rate plans cannot be combined to cover the whole stay', () => {
+      const bookingData = [{
+          roomType: { id: 'group' },
+          guestData: _getGuestData(['31', '32', '5']),
+        }],
+        ratePlans = [
+          { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
+          { currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-03-07', to: '2019-12-31' } },
+        ];
+      assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), NoRatePlanError);
     });
 
     it('should correctly apply the maxAge modifier', () => {
