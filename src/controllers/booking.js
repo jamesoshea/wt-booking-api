@@ -40,13 +40,18 @@ module.exports.create = async (req, res, next) => {
     if (err instanceof adapter.UpstreamError) {
       return next(new HttpBadGatewayError('badGatewayError', err.message));
     }
-    if ((err instanceof adapter.InvalidUpdateError) || (err instanceof adapter.RestrictionsViolatedError)) {
+    if (err instanceof adapter.InvalidUpdateError) {
       return next(new HttpConflictError('conflictError', err.message));
     }
-    if ((err instanceof adapter.InvalidPriceError) ||
-      (err instanceof adapter.InadmissibleCancellationFeesError) ||
+    if (err instanceof adapter.RestrictionsViolatedError) {
+      return next(new HttpConflictError('restrictionsViolated', err.message));
+    }
+    if (err instanceof adapter.InvalidPriceError) {
+      return next(new HttpValidationError('invalidPrice', err.message));
+    }
+    if ((err instanceof adapter.InadmissibleCancellationFeesError) ||
       (err instanceof adapter.IllFormedCancellationFeesError)) {
-      return next(new HttpValidationError('validationFailed', err.message));
+      return next(new HttpValidationError('invalidCancellationFees', err.message));
     }
     next(err);
   }
