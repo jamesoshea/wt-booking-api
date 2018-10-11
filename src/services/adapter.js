@@ -18,6 +18,9 @@ const REQUIRED_FIELDS = [
   'writeApiWalletPassword',
 ];
 
+// Tolerance against numerical errors in floating-point price & fee computation.
+const EPSILON = 1e-4;
+
 class WTAdapter {
   constructor (opts) {
     for (let field of REQUIRED_FIELDS) {
@@ -315,7 +318,7 @@ class WTAdapter {
     const policy = policies[0] || (covered ? null : defaultPolicy);
 
     // 2. Verify that the fee amount is admissible wrt. to the selected policy.
-    return policy && (fee.amount >= policy.amount);
+    return policy && (fee.amount >= (policy.amount - EPSILON));
   }
 
   /**
@@ -434,7 +437,7 @@ class WTAdapter {
       }),
       price = computePrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
 
-    if (total < price) {
+    if (total < (price - EPSILON)) {
       throw new InvalidPriceError(`The total is too low, expected ${price}.`);
     }
   }
