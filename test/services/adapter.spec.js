@@ -352,4 +352,26 @@ describe('services - adapter', function () {
       }
     });
   });
+
+  describe('WTAdapter.checkAdmissibility', () => {
+    const hotelData = { dummy: true, ratePlans: 'ratePlans' },
+      wtAdapter = _getAdapter();
+    sinon.stub(wtAdapter, '_getHotelData').callsFake(() => {
+      return Promise.resolve(hotelData);
+    });
+    sinon.stub(wtAdapter, '_checkCancellationFees').returns(undefined);
+    sinon.stub(wtAdapter, '_checkTotal').returns(undefined);
+    const bookingInfo = { arrival: 'arrival' };
+
+    it('should call all the checking functions', async () => {
+      await wtAdapter.checkAdmissibility(bookingInfo, 'cancellationFees', 'currency', 'total', 'bookedAt');
+      assert.equal(wtAdapter._getHotelData.callCount, 1);
+      assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
+      assert.deepEqual(wtAdapter._checkCancellationFees.args[0],
+        [hotelData, 'cancellationFees', 'bookedAt', 'arrival']);
+      assert.equal(wtAdapter._checkTotal.callCount, 1);
+      assert.deepEqual(wtAdapter._checkTotal.args[0],
+        [hotelData, 'ratePlans', bookingInfo, 'currency', 'total', 'bookedAt']);
+    });
+  });
 });

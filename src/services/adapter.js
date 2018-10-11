@@ -189,12 +189,12 @@ class WTAdapter {
   }
 
   /**
-   * Get hotel description data.
+   * Get hotel data.
    *
    * @param {Array<String>} fields
    * @returns {Promise<Object>}
    */
-  async _getDescription (fields) {
+  async _getHotelData (fields) {
     fields = fields.join(',');
     try {
       const response = await request({
@@ -376,7 +376,7 @@ class WTAdapter {
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
    */
-  async _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
+  _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
     let cancellationPolicies = hotelDescription.cancellationPolicies || [],
       defaultPolicy = { amount: hotelDescription.defaultCancellationAmount };
 
@@ -409,7 +409,7 @@ class WTAdapter {
    * @return {Promise<void>}
    * @throw {InvalidPriceError}
    */
-  async _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
+  _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
     ratePlans = Object.values(ratePlans);
     const arrivalDate = dayjs(bookingInfo.arrival),
       departureDate = dayjs(bookingInfo.departure),
@@ -437,6 +437,24 @@ class WTAdapter {
     if (total < price) {
       throw new InvalidPriceError(`The total is too low, expected ${price}.`);
     }
+  }
+
+  /**
+   * Check admissibility wrt. the suggested price and cancellation fees.
+   *
+   * @param {Object} bookingInfo
+   * @param {String} currency
+   * @param {float} total
+   * @return {Promise<void>}
+   * @throw {InvalidPriceError}
+   * @throw {InadmissibleCancellationFeesError}
+   * @throw {IllFormedCancellationFeesError}
+   */
+  async checkAdmissibility (bookingInfo, cancellationFees, currency, total, bookedAt) {
+    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans'],
+      hotel = await this._getHotelData(fields);
+    this._checkCancellationFees(hotel, cancellationFees, bookedAt, bookingInfo.arrival);
+    this._checkTotal(hotel, hotel.ratePlans, bookingInfo, currency, total, bookedAt);
   }
 }
 

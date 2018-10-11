@@ -156,7 +156,7 @@ describe('services - pricing', function () {
     it('should correctly apply the maxAge modifier', () => {
       const bookingData = [{
           roomType: { id: 'group' },
-          guestData: _getGuestData(['31', '32', '5']),
+          guestData: _getGuestData(['31', undefined, '5']),
         }],
         ratePlans = [
           {
