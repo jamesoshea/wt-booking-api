@@ -361,10 +361,11 @@ describe('services - adapter', function () {
     });
     sinon.stub(wtAdapter, '_checkCancellationFees').returns(undefined);
     sinon.stub(wtAdapter, '_checkTotal').returns(undefined);
-    const bookingInfo = { arrival: 'arrival' };
+    const bookingInfo = { arrival: 'arrival' },
+      pricing = { cancellationFees: 'cancellationFees', total: 'total', currency: 'currency' };
 
     it('should call all the checking functions', async () => {
-      await wtAdapter.checkAdmissibility(bookingInfo, 'cancellationFees', 'currency', 'total', 'bookedAt');
+      await wtAdapter.checkAdmissibility(bookingInfo, pricing, 'bookedAt');
       assert.equal(wtAdapter._getHotelData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
       assert.deepEqual(wtAdapter._checkCancellationFees.args[0],

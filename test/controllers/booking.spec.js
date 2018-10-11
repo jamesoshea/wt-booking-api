@@ -22,6 +22,12 @@ describe('controllers - booking', function () {
         }
         return Promise.resolve();
       }),
+      checkAdmissibility: sinon.stub().callsFake((booking) => {
+        if (booking.arrival === 'InvalidPriceError') {
+          return Promise.reject(new adapter.InvalidPriceError());
+        }
+        return Promise.resolve();
+      }),
     };
     adapter.set(wtAdapter);
   });
@@ -97,6 +103,16 @@ describe('controllers - booking', function () {
       request(server)
         .post('/booking')
         .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 when the price is not right', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = 'InvalidPriceError';
+      request(server)
+        .post('/booking')
+        .send(booking)
         .expect(422)
         .end(done);
     });

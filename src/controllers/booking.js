@@ -1,3 +1,4 @@
+const dayjs = require('dayjs');
 const shortid = require('shortid');
 
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError } = require('../errors');
@@ -21,7 +22,10 @@ module.exports.create = async (req, res, next) => {
     // 3. Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
-      booking = req.body.booking;
+      booking = req.body.booking,
+      pricing = req.body.pricing,
+      today = dayjs().format('YYYY-MM-DD');
+    await wtAdapter.checkAdmissibility(booking, pricing, today);
     await wtAdapter.updateAvailability(booking.rooms.map((x) => x.id),
       booking.arrival, booking.departure);
     // 4. Return confirmation.
@@ -40,6 +44,11 @@ module.exports.create = async (req, res, next) => {
     }
     if ((err instanceof adapter.InvalidUpdateError) || (err instanceof adapter.RestrictionsViolatedError)) {
       return next(new HttpConflictError('conflictError', err.message));
+    }
+    if ((err instanceof adapter.InvalidPriceError) ||
+      (err instanceof adapter.InadmissibleCancellationFeesError) ||
+      (err instanceof adapter.IllFormedCancellationFeesError)) {
+      return next(new HttpValidationError('validationFailed', err.message));
     }
     next(err);
   }

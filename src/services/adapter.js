@@ -450,11 +450,11 @@ class WTAdapter {
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
    */
-  async checkAdmissibility (bookingInfo, cancellationFees, currency, total, bookedAt) {
+  async checkAdmissibility (bookingInfo, pricing, bookedAt) {
     const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans'],
       hotel = await this._getHotelData(fields);
-    this._checkCancellationFees(hotel, cancellationFees, bookedAt, bookingInfo.arrival);
-    this._checkTotal(hotel, hotel.ratePlans, bookingInfo, currency, total, bookedAt);
+    this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
+    this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
   }
 }
 
