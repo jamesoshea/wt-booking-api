@@ -1,5 +1,6 @@
 const dayjs = require('dayjs');
 const request = require('request-promise-native');
+const moment = require('moment-timezone');
 
 const { computePrice } = require('./pricing');
 
@@ -306,7 +307,7 @@ class WTAdapter {
     // 1. Select the applicable policy from the list.
     const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),
       isAfterAll = (policies.length === 0) || feeFrom.isAfter(policies[policies.length - 1].policyTo);
-    // Keep track if the fee period is covered at least partially by any single cancellation policy.
+    // Keep track if the fee period is covered by any single cancellation policy.
     let covered = false;
     policies = policies.filter((policy, index) => {
       if (!isBeforeAny && !isAfterAll) {
@@ -446,16 +447,19 @@ class WTAdapter {
    * Check admissibility wrt. the suggested price and cancellation fees.
    *
    * @param {Object} bookingInfo
-   * @param {String} currency
-   * @param {float} total
+   * @param {Object} pricing
+   * @param {Date} bookedAt
    * @return {Promise<void>}
    * @throw {InvalidPriceError}
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
    */
-  async checkAdmissibility (bookingInfo, pricing, bookedAt) {
-    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans'],
-      hotel = await this._getHotelData(fields);
+  async checkAdmissibility (bookingInfo, pricing, bookingDate) {
+    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone'],
+      hotel = await this._getHotelData(fields),
+      // Convert booking date to hotel's timezone and continue
+      // all computation in hotel timezone.
+      bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
     this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
     this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
   }

@@ -1,4 +1,3 @@
-const dayjs = require('dayjs');
 const shortid = require('shortid');
 
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError } = require('../errors');
@@ -23,9 +22,8 @@ module.exports.create = async (req, res, next) => {
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = req.body.booking,
-      pricing = req.body.pricing,
-      today = dayjs().format('YYYY-MM-DD');
-    await wtAdapter.checkAdmissibility(booking, pricing, today);
+      pricing = req.body.pricing;
+    await wtAdapter.checkAdmissibility(booking, pricing, new Date());
     await wtAdapter.updateAvailability(booking.rooms.map((x) => x.id),
       booking.arrival, booking.departure);
     // 4. Return confirmation.
