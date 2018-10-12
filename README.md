@@ -22,7 +22,7 @@ booking data to hotel managers as we expect the mechanism of
 such a relay to be generally different for different hotels. 
 
 ## Requirements
-- Nodejs 10.10.x
+- Nodejs 10.x
 
 ## Getting started
 In order to install and run tests, we must:
