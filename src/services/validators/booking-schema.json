@@ -44,13 +44,14 @@
         }
       }
     },
-    "CustomerBase": {
+    "Customer": {
       "description": "Person responsible for this booking who should be contacted by the hotel if needed",
       "type": "object",
       "required": [
         "name",
         "surname",
-        "address"
+        "address",
+        "email"
       ],
       "properties": {
         "name": {
@@ -61,24 +62,12 @@
         },
         "address": {
           "$ref": "#/definitions/Address"
-        }
-      }
-    },
-    "CustomerWithPhone": {
-      "type": "object",
-      "required": ["phone"],
-      "properties": {
+        },
         "phone": {
           "description": "Phone number (with country prefix)",
           "type": "string",
           "maxLength": 18
-        }
-      }
-    },
-    "CustomerWithEmail": {
-      "type": "object",
-      "required": ["email"],
-      "properties": {
+        },
         "email": {
           "description": "E-mail contact",
           "type": "string",
@@ -86,17 +75,6 @@
           "maxLength": 150
         }
       }
-    },
-    "Customer": {
-      "allOf": [
-        {"$ref": "#/definitions/CustomerBase"},
-        {
-          "anyOf": [
-            {"$ref": "#/definitions/CustomerWithPhone"},
-            {"$ref": "#/definitions/CustomerWithEmail"}
-          ]
-        }
-      ]
     },
     "Room": {
       "type": "object",

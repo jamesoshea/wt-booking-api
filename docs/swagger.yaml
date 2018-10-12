@@ -134,18 +134,13 @@ components:
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
     Customer:
-      allOf:
-        - $ref: '#/components/schemas/CustomerBase'
-        - anyOf:
-          - $ref: '#/components/schemas/CustomerWithPhone'
-          - $ref: '#/components/schemas/CustomerWithEmail'
-    CustomerBase:
       description: Person responsible for this booking who should be contacted by the hotel if needed
       type: object
       required:
         - name
         - surname
         - address
+        - email
       properties:
         name:
           type: string
@@ -153,27 +148,17 @@ components:
           type: string
         address:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
-    CustomerWithPhone:
-      type: object
-      required:
-        - phone
-      properties:
-        phone:
-          description: Phone number (with country prefix)
-          type: string
-          maxLength: 18
-          example: +44123456789
-    CustomerWithEmail:
-      type: object
-      required:
-        - email
-      properties:
         email:
           description: E-mail contact
           type: string
           format: email
           example: joseph.urban@example.com
           maxLength: 150
+        phone:
+          description: Phone number (with country prefix)
+          type: string
+          maxLength: 18
+          example: +44123456789
     Room:
       type: object
       required:
