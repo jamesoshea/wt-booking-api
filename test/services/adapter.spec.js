@@ -109,7 +109,7 @@ describe('services - adapter', function () {
       wtAdapter = _getAdapter();
       wtAdapter.__availability = { count: 10 };
       sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
-        return Promise.resolve(wtAdapter.__availability);
+        return Promise.resolve({ availability: wtAdapter.__availability });
       });
       sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
         if (update === 'fail') {
@@ -118,7 +118,7 @@ describe('services - adapter', function () {
         orig.count -= 1;
       });
       sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
-        wtAdapter.__availability = availability;
+        wtAdapter.__availability = availability.availability;
         return Promise.resolve();
       });
     });

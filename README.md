@@ -73,7 +73,7 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
     "address": {
       "line1": "221B Baker Street",
       "city": "London",
-      "country": "GB",
+      "country": "GB"
     },
     "email": "sherlock.holmes@houndofthebaskervilles.net"
   },

@@ -2,7 +2,7 @@ const dayjs = require('dayjs');
 const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
-const { computePrice } = require('./pricing');
+const { computePrice, NoRatePlanError } = require('./pricing');
 
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
@@ -76,11 +76,13 @@ class WTAdapter {
   async _setAvailability (availability) {
     try {
       const response = await request({
-        method: 'POST',
+        method: 'PATCH',
         uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
         json: true,
         body: {
-          availability,
+          availability: {
+            latestSnapshot: availability,
+          },
         },
         headers: {
           'X-Access-Key': this.writeApiAccessKey,
@@ -182,8 +184,8 @@ class WTAdapter {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((availability) => {
-      this._checkRestrictions(availability, rooms, arrival, departure);
-      this._applyUpdate(availability, rooms, arrival, departure); // Modifies availability.
+      this._checkRestrictions(availability.availability, rooms, arrival, departure);
+      this._applyUpdate(availability.availability, rooms, arrival, departure); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;
@@ -423,20 +425,28 @@ class WTAdapter {
       guestInfo[item.id] = item;
     }
     const bookingData = bookingInfo.rooms.map((room) => {
-        return {
-          roomType: { id: room.id },
-          guestData: {
-            guestAges: room.guestInfoIds.map((gid) => guestInfo[gid].age),
-            helpers: {
-              arrivalDateDayjs: arrivalDate,
-              departureDateDayJs: departureDate,
-              lengthOfStay: departureDate.diff(arrivalDate, 'days'),
-              numberOfGuests: room.guestInfoIds.length,
-            },
+      return {
+        roomType: { id: room.id },
+        guestData: {
+          guestAges: room.guestInfoIds.map((gid) => guestInfo[gid].age),
+          helpers: {
+            arrivalDateDayjs: arrivalDate,
+            departureDateDayJs: departureDate,
+            lengthOfStay: departureDate.diff(arrivalDate, 'days'),
+            numberOfGuests: room.guestInfoIds.length,
           },
-        };
-      }),
+        },
+      };
+    });
+    let price;
+    try {
       price = computePrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
+    } catch (err) {
+      if (err instanceof NoRatePlanError) {
+        throw new InvalidPriceError(err.message);
+      }
+      throw err;
+    }
 
     if (total < (price - EPSILON)) {
       throw new InvalidPriceError(`The total is too low, expected ${price}.`);
