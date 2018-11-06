@@ -6,7 +6,7 @@ This server is assumed to handle booking requests for a single
 hotel. Within this scope, it:
 
 - validates booking requests against hotel data in WT (rate plans,
-  cancellation policies, available tooms)
+  cancellation policies, available rooms)
 
 - performs the necessary bookkeeping directly in the WT platform
   (i.e. it updates availability data based on accepted booking

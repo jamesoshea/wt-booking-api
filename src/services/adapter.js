@@ -56,7 +56,7 @@ class WTAdapter {
         resolveWithFullResponse: true,
       });
       if (response.statusCode <= 299) {
-        return response.body;
+        return response.body.roomTypes;
       } else {
         throw new Error(`Error ${response.statusCode}`);
       }
@@ -80,9 +80,7 @@ class WTAdapter {
         uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
         json: true,
         body: {
-          availability: {
-            latestSnapshot: availability,
-          },
+          availability: { roomTypes: availability },
         },
         headers: {
           'X-Access-Key': this.writeApiAccessKey,
@@ -184,8 +182,8 @@ class WTAdapter {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((availability) => {
-      this._checkRestrictions(availability.availability, rooms, arrival, departure);
-      this._applyUpdate(availability.availability, rooms, arrival, departure); // Modifies availability.
+      this._checkRestrictions(availability, rooms, arrival, departure);
+      this._applyUpdate(availability, rooms, arrival, departure); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;
