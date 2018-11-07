@@ -39,6 +39,7 @@ To run the server, you need to go through the following steps:
 
 1. Make sure you have access to a running instance of [wt-read-api](https://github.com/windingtree/wt-read-api) and
    [wt-write-api](https://github.com/windingtree/wt-write-api).
+   Currently, version 0.8.x of wt-read-api is assumed.
 2. If you do not have one yet, create an account in the write API
    (see the [README](https://github.com/windingtree/wt-write-api) for instructions).
 3. If you have not done that yet, register your hotel in WT
