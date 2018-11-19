@@ -20,7 +20,6 @@ app.disable('x-powered-by');
 // Swagger docs.
 const swaggerDocument = YAML.load(path.resolve('./docs/swagger.yaml'));
 swaggerDocument.servers = [{ url: config.baseUrl }];
-swaggerDocument.info.version = version;
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(cors());
@@ -47,6 +46,7 @@ app.get('/', (req, res) => {
     docs: `${config.baseUrl}/docs/`,
     info: 'https://github.com/windingtree/wt-booking-api/blob/master/README.md',
     version,
+    formatVersion: '0.0.1',
     config: process.env.WT_CONFIG,
   });
 });
