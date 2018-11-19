@@ -23,7 +23,6 @@ describe('API', function () {
           expect(res.body).to.have.property('info');
           expect(res.body).to.have.property('version');
           expect(res.body).to.have.property('config');
-          expect(res.body).to.have.property('formatVersion');
         });
     });
 

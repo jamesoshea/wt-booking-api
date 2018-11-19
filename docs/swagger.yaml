@@ -4,7 +4,7 @@ servers:
     url: 'http://localhost:8935'
 info:
   description: Interface for hotel booking within Winding Tree.
-  version: '0.0.1'
+  version: 'will-be-set-at-runtime'
   title: WT booking API
 paths:
   /:
@@ -18,7 +18,7 @@ paths:
               schema:
                 type: object
                 required:
-                  - formatVersion
+                  - version
                 properties:
                   docs:
                     type: string
@@ -29,9 +29,6 @@ paths:
                   version:
                     type: string
                     description: Deployed API version number.
-                  formatVersion:
-                    type: string
-                    description: Version of the implemented booking interface.
                   config:
                     type: string
                     description: Which config is the API using.
