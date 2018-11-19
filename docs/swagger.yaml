@@ -17,6 +17,8 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - version
                 properties:
                   docs:
                     type: string
