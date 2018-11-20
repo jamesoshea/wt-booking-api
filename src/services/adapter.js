@@ -177,7 +177,10 @@ class WTAdapter {
    * Serializes calls internally to avoid race conditions.
    *
    * @param {String} arrival
-   * @param {String} departure * @param {Array} rooms Array of roomTypeIds to be booked * @returns {Promise<Object>} */
+   * @param {String} departure
+   * @param {Array} rooms Array of roomTypeIds to be booked
+   * @returns {Promise<Object>}
+   */
   updateAvailability (rooms, arrival, departure) {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
