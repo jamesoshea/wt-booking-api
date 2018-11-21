@@ -56,6 +56,32 @@ To run the server, you need to go through the following steps:
    WT_CONFIG=prod node src/index.js
    ```
 
+### Running the server in a hosted docker-based environment
+
+- You can use this API as a parametrized docker image in your setup:
+
+baseUrl: process.env.WT_API_BASE_URL,
+    readApiUrl: process.env.READ_API_URL,
+    writeApiUrl: process.env.WRITE_API_URL,
+    hotelId: process.env.HOTEL_ID,
+    writeApiAccessKey: process.env.WRITE_API_KEY,
+    writeApiWalletPassword: process.env.WALLET_PASSWORD,
+
+
+```sh
+$ docker build -t windingtree/wt-booking-api .
+$ docker run -p 8080:8935 \
+  -e WT_CONFIG=deployment \
+  -e NODE_ENV=production \
+  -e WT_API_BASE_URL=https://booking.example.com \
+  -e READ_API_URL=https://read-api.example.com \
+  -e WRITE_API_URL=https://write-api.example.com \
+  -e HOTEL_ID=0x123456 \
+  -e WRITE_API_KEY=werdfs12 \
+  -e WALLET_PASSWORD=windingtree windingtree/wt-booking-api
+```
+- After that you can access the wt-booking-api on local port `8080`
+
 ## Examples
 
 ### Book rooms

@@ -1,9 +1,2 @@
-npm-debug.log*
-coverage
-.nyc_output
-node_modules/
-.npm
-.eslintcache
-*.tgz
-.idea/
-*.sqlite
+node_modules
+npm-debug.log
