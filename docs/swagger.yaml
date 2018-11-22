@@ -48,16 +48,51 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - id
+                  - status
                 properties:
                   id:
-                    description: Hotel reference for this particular booking
+                    description: Hotel reference for this particular booking.
                     type: string
+                  status:
+                    description: |
+                      Status of the created booking. Can be one of the following:
+                        - `pending` - Hotel system has accepted the
+                          booking request and saved it to be
+                          confirmed or rejected later on. The
+                          customer can be notified about the
+                          final result by e-mail.
+                        - `confirmed` - The booking request has
+                          been accepted and confirmed by the
+                          hotel right away.
+                    type: string
+                    enum:
+                      - pending
+                      - confirmed
         400:
           $ref: '#/components/responses/BadRequestError'
         409:
           $ref: '#/components/responses/ConflictError'
         422:
           $ref: '#/components/responses/UnprocessableEntityError'
+  '/booking/{bookingId}':
+    parameters:
+      - name: bookingId
+        required: true
+        in: path
+        description: Booking ID as returned by POST /booking
+        schema:
+          type: string
+    delete:
+      summary: Cancel booking
+      responses:
+        204:
+          description: Booking was cancelled.
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        409:
+          $ref: '#/components/responses/ConflictError'
 components:
   responses:
     BadRequestError:
@@ -74,6 +109,12 @@ components:
             $ref: '#/components/schemas/Error'
     UnprocessableEntityError:
       description: Request body or params validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFoundError:
+      description: Resource not found.
       content:
         application/json:
           schema:
