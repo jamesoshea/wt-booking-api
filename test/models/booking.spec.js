@@ -8,7 +8,7 @@ const Booking = require('../../src/models/booking');
 
 describe('models - booking', () => {
   beforeEach(async () => {
-    await resetDB;
+    await resetDB();
   });
 
   describe('create', () => {

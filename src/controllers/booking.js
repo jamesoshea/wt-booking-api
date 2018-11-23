@@ -1,9 +1,8 @@
-const shortid = require('shortid');
-
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
 const adapter = require('../services/adapter');
+const Booking = require('../models/booking');
 
 const hotelId = config.adapterOpts.hotelId.toLowerCase();
 
@@ -26,12 +25,13 @@ module.exports.create = async (req, res, next) => {
     await wtAdapter.checkAdmissibility(booking, pricing, new Date());
     await wtAdapter.updateAvailability(booking.rooms.map((x) => x.id),
       booking.arrival, booking.departure);
+    const bookingRecord = await Booking.create(booking, Booking.STATUS.CONFIRMED);
     // 4. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
       // would probably come from the hotel's property
       // management system.
-      id: shortid.generate(),
+      id: bookingRecord.id,
     });
   } catch (err) {
     if (err instanceof validators.ValidationError) {

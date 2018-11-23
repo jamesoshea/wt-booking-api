@@ -5,6 +5,7 @@ const sinon = require('sinon');
 
 const { getBooking } = require('../utils/factories');
 const adapter = require('../../src/services/adapter');
+const Booking = require('../../src/models/booking');
 
 describe('controllers - booking', function () {
   let server, wtAdapterOrig, wtAdapter;
@@ -38,7 +39,7 @@ describe('controllers - booking', function () {
   });
 
   describe('POST /booking', () => {
-    it('should accept the booking, perform the update and return a confirmation', (done) => {
+    it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
       wtAdapter.updateAvailability.resetHistory();
       request(server)
         .post('/booking')
@@ -52,6 +53,10 @@ describe('controllers - booking', function () {
               [['single-room', 'single-room'], '2019-01-01', '2019-01-03'],
             ]);
             assert.property(res.body, 'id');
+            const booking = await Booking.get(res.body.id);
+            assert.isDefined(booking);
+            assert.propertyVal(booking, 'id', res.body.id);
+            assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
             done();
           } catch (err) {
             done(err);
