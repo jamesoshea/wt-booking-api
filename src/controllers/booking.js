@@ -77,6 +77,13 @@ module.exports.cancel = async (req, res, next) => {
       const msg = `Booking ${bookingId} already cancelled.`;
       throw new HttpConflictError('conflictError', msg);
     }
+
+    // Restore the availability.
+    const { rooms, arrival, departure } = booking.rawData,
+      wtAdapter = adapter.get();
+    await wtAdapter.updateAvailability(rooms, arrival, departure, true);
+
+    // Mark the booking as cancelled.
     await Booking.cancel(bookingId);
     return res.sendStatus(204);
   } catch (err) {

@@ -150,8 +150,13 @@ describe('controllers - booking', function () {
   });
 
   describe('DELETE /booking/:id', () => {
-    it('should mark an existing booking as cancelled', (done) => {
-      Booking.create({ data: 'dummy' }, Booking.STATUS.CONFIRMED).then((booking) => {
+    it('should mark an existing booking as cancelled and restore the availability', (done) => {
+      wtAdapter.updateAvailability.resetHistory();
+      Booking.create({
+        arrival: '2019-01-01',
+        departure: '2019-01-03',
+        rooms: ['single-room', 'single-room'],
+      }, Booking.STATUS.CONFIRMED).then((booking) => {
         request(server)
           .delete(`/booking/${booking.id}`)
           .expect(204)
@@ -160,6 +165,9 @@ describe('controllers - booking', function () {
             try {
               booking = await Booking.get(booking.id);
               assert.equal(booking.status, Booking.STATUS.CANCELLED);
+              assert.deepEqual(wtAdapter.updateAvailability.args, [
+                [['single-room', 'single-room'], '2019-01-01', '2019-01-03', true],
+              ]);
               done();
             } catch (err) {
               done(err);
