@@ -75,7 +75,7 @@ module.exports.cancel = async (req, res, next) => {
     }
     if (booking.status === Booking.STATUS.CANCELLED) {
       const msg = `Booking ${bookingId} already cancelled.`;
-      throw new HttpConflictError('conflictError', msg);
+      throw new HttpConflictError('alreadyCancelled', msg);
     }
 
     // Restore the availability.
@@ -87,6 +87,12 @@ module.exports.cancel = async (req, res, next) => {
     await Booking.cancel(bookingId);
     return res.sendStatus(204);
   } catch (err) {
+    if (err instanceof adapter.InvalidUpdateError) {
+      // This happens when availability data have changed so
+      // much since the booking that it cannot be restored any
+      // more.
+      return next(new HttpConflictError('cannotCancel', err.message));
+    }
     next(err);
   }
 };
