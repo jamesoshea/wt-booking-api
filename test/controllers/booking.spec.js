@@ -58,6 +58,11 @@ describe('controllers - booking', function () {
             assert.isDefined(booking);
             assert.propertyVal(booking, 'id', res.body.id);
             assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
+            assert.deepEqual(booking.rawData, {
+              arrival: '2019-01-01',
+              departure: '2019-01-03',
+              rooms: ['single-room', 'single-room'],
+            });
             done();
           } catch (err) {
             done(err);

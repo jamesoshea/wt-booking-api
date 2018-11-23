@@ -21,11 +21,16 @@ module.exports.create = async (req, res, next) => {
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = req.body.booking,
-      pricing = req.body.pricing;
+      pricing = req.body.pricing,
+      rooms = booking.rooms.map((x) => x.id);
     await wtAdapter.checkAdmissibility(booking, pricing, new Date());
-    await wtAdapter.updateAvailability(booking.rooms.map((x) => x.id),
-      booking.arrival, booking.departure);
-    const bookingRecord = await Booking.create(booking, Booking.STATUS.CONFIRMED);
+    await wtAdapter.updateAvailability(rooms, booking.arrival, booking.departure);
+    const bookingData = {
+        arrival: booking.arrival,
+        departure: booking.departure,
+        rooms,
+      },
+      bookingRecord = await Booking.create(bookingData, Booking.STATUS.CONFIRMED);
     // 4. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
