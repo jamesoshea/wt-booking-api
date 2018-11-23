@@ -1,4 +1,5 @@
 /* eslint-env mocha */
+/* eslint-disable promise/no-callback-in-promise */
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
@@ -140,6 +141,40 @@ describe('controllers - booking', function () {
         .send(booking)
         .expect(502)
         .end(done);
+    });
+  });
+
+  describe('DELETE /booking/:id', () => {
+    it('should mark an existing booking as cancelled', (done) => {
+      Booking.create({ data: 'dummy' }, Booking.STATUS.CONFIRMED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(204)
+          .end(async (err, res) => {
+            if (err) return done(err);
+            try {
+              booking = await Booking.get(booking.id);
+              assert.equal(booking.status, Booking.STATUS.CANCELLED);
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+      }).catch(done);
+    });
+
+    it('should return 409 if the booking has already been cancelled', (done) => {
+      Booking.create({ data: 'dummy' }, Booking.STATUS.CANCELLED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(409, done);
+      }).catch(done);
+    });
+
+    it('should return 404 if the booking does not exist', (done) => {
+      request(server)
+        .delete('/booking/nonexistent')
+        .expect(404, done);
     });
   });
 });

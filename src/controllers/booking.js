@@ -1,4 +1,4 @@
-const { HttpValidationError, HttpBadGatewayError, HttpConflictError } = require('../errors');
+const { HttpValidationError, HttpBadGatewayError, HttpConflictError, Http404Error } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
 const adapter = require('../services/adapter');
@@ -53,6 +53,28 @@ module.exports.create = async (req, res, next) => {
       (err instanceof adapter.IllFormedCancellationFeesError)) {
       return next(new HttpValidationError('invalidCancellationFees', err.message));
     }
+    next(err);
+  }
+};
+
+/**
+ * Cancel an existing booking.
+ */
+module.exports.cancel = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id,
+      booking = await Booking.get(bookingId);
+    if (!booking) {
+      const msg = `Booking ${bookingId} does not exist.`;
+      throw new Http404Error('notFound', msg);
+    }
+    if (booking.status === Booking.STATUS.CANCELLED) {
+      const msg = `Booking ${bookingId} already cancelled.`;
+      throw new HttpConflictError('conflictError', msg);
+    }
+    await Booking.cancel(bookingId);
+    return res.sendStatus(204);
+  } catch (err) {
     next(err);
   }
 };
