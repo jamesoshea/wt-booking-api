@@ -55,6 +55,21 @@ describe('services - adapter', function () {
       });
     });
 
+    it('should restore availability instead of reducing it if requested', async () => {
+      wtAdapter._applyUpdate(availability, ['roomType1', 'roomType2', 'roomType2'],
+        '2019-01-01', '2019-01-03', true);
+      assert.deepEqual(availability, {
+        roomType1: [
+          { date: '2019-01-01', quantity: 11 },
+          { date: '2019-01-02', quantity: 11 },
+        ],
+        roomType2: [
+          { date: '2019-01-01', quantity: 7 },
+          { date: '2019-01-02', quantity: 7 },
+        ],
+      });
+    });
+
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
       assert.throws(() => {
         wtAdapter._applyUpdate(availability, ['roomTypeX'], '2019-01-01', '2019-01-02');
@@ -111,11 +126,11 @@ describe('services - adapter', function () {
       sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
         return Promise.resolve(wtAdapter.__availability);
       });
-      sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
-        if (update === 'fail') {
+      sinon.stub(wtAdapter, '_applyUpdate').callsFake((availability, rooms, arrival, departure, restore) => {
+        if (rooms === 'fail') {
           throw new Error('Failed update');
         }
-        orig.count -= 1;
+        availability.count += (restore ? 1 : -1);
       });
       sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
         wtAdapter.__availability = availability;
@@ -127,6 +142,12 @@ describe('services - adapter', function () {
       assert.deepEqual(wtAdapter.__availability, { count: 10 });
       await wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02');
       assert.deepEqual(wtAdapter.__availability, { count: 9 });
+    });
+
+    it('should restore the availability if requested', async () => {
+      assert.deepEqual(wtAdapter.__availability, { count: 10 });
+      await wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02', true);
+      assert.deepEqual(wtAdapter.__availability, { count: 11 });
     });
 
     it('should serialize updates', async () => {
