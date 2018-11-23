@@ -53,8 +53,7 @@ paths:
                   - status
                 properties:
                   id:
-                    description: Hotel reference for this particular booking.
-                    type: string
+                    $ref: '#/components/schemas/BookingId'
                   status:
                     description: |
                       Status of the created booking. Can be one of the following:
@@ -83,7 +82,7 @@ paths:
         in: path
         description: Booking ID as returned by POST /booking
         schema:
-          type: string
+          $ref: '#/components/schemas/BookingId'
     delete:
       summary: Cancel booking
       responses:
@@ -120,6 +119,10 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    BookingId:
+      description: Hotel reference for this particular booking.
+      type: string
+      maxLength: 255
     Booking:
       description: Booking object passed from a customer to a hotel
       type: object
