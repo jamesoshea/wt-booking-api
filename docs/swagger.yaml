@@ -93,7 +93,24 @@ paths:
         404:
           $ref: '#/components/responses/NotFoundError'
         409:
-          $ref: '#/components/responses/ConflictError'
+          description: Booking cannot be cancelled.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    description: Booking has already been cancelled.
+                    properties:
+                      code:
+                        enum:
+                          - alreadyCancelled
+                  - type: object
+                    description: Cannot cancel booking due to conflicts in availability data.
+                    properties:
+                      code:
+                        enum:
+                          - cannotCancel
 components:
   responses:
     BadRequestError:
