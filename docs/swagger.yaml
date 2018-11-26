@@ -93,7 +93,7 @@ paths:
         404:
           $ref: '#/components/responses/NotFoundError'
         409:
-          description: Booking cannot be cancelled.
+          description: Booking cannot be cancelled due to a data conflict.
           content:
             application/json:
               schema:
