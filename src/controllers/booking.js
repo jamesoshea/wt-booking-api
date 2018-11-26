@@ -1,4 +1,5 @@
-const { HttpValidationError, HttpBadGatewayError, HttpConflictError, Http404Error } = require('../errors');
+const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
+  Http404Error, HttpForbiddenError } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
 const adapter = require('../services/adapter');
@@ -76,6 +77,10 @@ module.exports.cancel = async (req, res, next) => {
     if (booking.status === Booking.STATUS.CANCELLED) {
       const msg = `Booking ${bookingId} already cancelled.`;
       throw new HttpConflictError('alreadyCancelled', msg);
+    }
+    if (!config.allowCancel) {
+      const msg = 'Booking cancellation is not allowed.';
+      throw new HttpForbiddenError('forbidden', msg);
     }
 
     // Restore the availability.

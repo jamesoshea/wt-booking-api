@@ -88,6 +88,8 @@ paths:
       responses:
         204:
           description: Booking was cancelled.
+        403:
+          $ref: '#/components/responses/ForbiddenError'
         404:
           $ref: '#/components/responses/NotFoundError'
         409:
@@ -102,6 +104,12 @@ components:
             $ref: '#/components/schemas/Error'
     ConflictError:
       description: Booking cannot be executed, for example room types are not available anymore (HTTP code 409)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ForbiddenError:
+      description: The requested action is forbidden.
       content:
         application/json:
           schema:

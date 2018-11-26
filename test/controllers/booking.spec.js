@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
 
+const config = require('../../src/config');
 const { getBooking } = require('../utils/factories');
 const adapter = require('../../src/services/adapter');
 const Booking = require('../../src/models/booking');
@@ -188,6 +189,23 @@ describe('controllers - booking', function () {
       request(server)
         .delete('/booking/nonexistent')
         .expect(404, done);
+    });
+
+    it('should return 403 if booking cancellation is disallowed', (done) => {
+      const orig = config.allowCancel;
+      config.allowCancel = false;
+      Booking.create({ data: 'dummy' }, Booking.STATUS.CONFIRMED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(403)
+          .end((err) => {
+            config.allowCancel = orig;
+            done(err);
+          });
+      }).catch((err) => {
+        config.allowCancel = orig;
+        done(err);
+      });
     });
   });
 });
