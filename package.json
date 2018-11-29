@@ -8,6 +8,8 @@
     "test": "WT_CONFIG=test ./node_modules/.bin/nyc --reporter=text ./node_modules/mocha/bin/mocha --recursive --timeout 20000",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "start": "node src/index.js",
+    "createdb-dev": "WT_CONFIG=dev node management/createdb.js",
+    "createdb": "node management/createdb.js",
     "dev": "WT_CONFIG=dev node src/index.js"
   },
   "repository": {
