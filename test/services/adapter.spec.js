@@ -212,6 +212,41 @@ describe('services - adapter', function () {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
+        assert.match(err.message, /the whole period between/);
+        if (!(err instanceof IllFormedCancellationFeesError)) {
+          throw err;
+        }
+      }
+    });
+
+    it('should throw an error when cancellation fees start before booking date', async () => {
+      const cancellationFees = [
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 50 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
+      ];
+      try {
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2019-02-01', '2019-03-28');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        assert.match(err.message, /is before the booking date/);
+        if (!(err instanceof IllFormedCancellationFeesError)) {
+          throw err;
+        }
+      }
+    });
+
+    it('should throw an error when cancellation fees end after arrival date', async () => {
+      const cancellationFees = [
+        { from: '2019-01-01', to: '2019-02-04', amount: 30 },
+        { from: '2019-02-05', to: '2019-02-20', amount: 50 },
+        { from: '2019-02-21', to: '2019-03-28', amount: 75 },
+      ];
+      try {
+        await wtAdapter._checkCancellationFees(description, cancellationFees, '2019-01-01', '2019-02-28');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        assert.match(err.message, /is after the arrival date/);
         if (!(err instanceof IllFormedCancellationFeesError)) {
           throw err;
         }

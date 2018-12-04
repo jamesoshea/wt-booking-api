@@ -341,7 +341,6 @@ class WTAdapter {
       };
     });
     // 1. Check if the whole period between booking and arrival is covered.
-    const msg = 'Ill-formed cancellation fees: the whole period between booking date and arrival must be covered without overlapping.';
     fees.sort((f1, f2) => {
       return (f1.from.isBefore(f2.from)) ? -1 : 1;
     });
@@ -353,11 +352,20 @@ class WTAdapter {
       } else if (fees[i].from.subtract(1, 'day').isSame(period.to)) {
         period.to = fees[i].to;
       } else {
-        return msg;
+        return 'Ill-formed cancellation fees: the whole period between booking date and arrival must be covered without overlapping.';
       }
     }
+
+    if (period.from.isBefore(bookedAt)) {
+      return 'Ill-formed cancellation fees: `from` is before the booking date.';
+    }
+
+    if (period.to.isAfter(arrival)) {
+      return 'Ill-formed cancellation fees: `to` is after the arrival date.';
+    }
+
     if (!period.from.isSame(bookedAt) || !period.to.isSame(arrival)) {
-      return msg;
+      return 'Ill-formed cancellation fees: the whole period between booking date and arrival is not covered.';
     }
 
     // 2. Check if "from" is after "to".
