@@ -145,10 +145,7 @@ class WTAdapter {
       return _totals;
     }, {});
     for (let roomTypeId in totals) {
-      let typeAvailability = availability.filter((a) => { return a.roomTypeId === roomTypeId });
-      if (!typeAvailability) {
-        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
-      }
+      this._checkAvailabilityForTypeExists(availability, roomTypeId);
       const departureDate = dayjs(departure);
       let currentDate = dayjs(arrival);
       while (currentDate.isBefore(departureDate)) {
@@ -173,6 +170,20 @@ class WTAdapter {
         currentDate = currentDate.add(1, 'day');
       }
     }
+  }
+
+  /**
+   * Check if availability exists for given room type
+   *
+   * @param availability
+   * @param roomTypeId
+   * @private
+   */
+  _checkAvailabilityForTypeExists(availability, roomTypeId) {
+    for (let item of availability) {
+      if (item.roomTypeId === roomTypeId) return;
+    }
+    throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
   }
 
   /**
