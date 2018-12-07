@@ -103,20 +103,21 @@ class WTAdapter {
    * Check restrictions on arrival and departure.
    *
    * @param {Object} availability
+   * @param {Array} roomTypes
    * @param {String} arrival
    * @param {String} departure
    * @returns {undefined}
    * @throws {RestrictionsViolatedError}
    */
-  _checkRestrictions (availability, rooms, arrival, departure) {
-    for (let roomTypeId of new Set(rooms)) {
-      for (let item of (availability[roomTypeId] || [])) {
+  _checkRestrictions (availability, roomTypes, arrival, departure) {
+    for (let item of availability) {
+      if (roomTypes.indexOf(item.roomTypeId) !== -1) {
         if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
-          const msg = `Cannot arrive to ${roomTypeId} on date ${arrival}.`;
+          const msg = `Cannot arrive to ${item.roomTypeId} on date ${arrival}.`;
           throw new RestrictionsViolatedError(msg);
         }
         if (item.date === departure && item.restrictions && item.restrictions.noDeparture) {
-          const msg = `Cannot depart from ${roomTypeId} on date ${departure}.`;
+          const msg = `Cannot depart from ${item.roomTypeId} on date ${departure}.`;
           throw new RestrictionsViolatedError(msg);
         }
       }
@@ -144,22 +145,25 @@ class WTAdapter {
       return _totals;
     }, {});
     for (let roomTypeId in totals) {
-      if (!availability[roomTypeId]) {
+      let typeAvailability = availability.filter((a) => { return a.roomTypeId === roomTypeId });
+      if (!typeAvailability) {
         throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
       }
       const departureDate = dayjs(departure);
       let currentDate = dayjs(arrival);
       while (currentDate.isBefore(departureDate)) {
-        var found = false;
-        for (let availabilityItem of availability[roomTypeId]) {
-          if (availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
-            if (availabilityItem.quantity - totals[roomTypeId] < 0) {
-              const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
-              throw new InvalidUpdateError(msg);
+        let found = false;
+        for (let availabilityItem of availability) {
+          if (availabilityItem.roomTypeId === roomTypeId) {
+            if (availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
+              if (availabilityItem.quantity - totals[roomTypeId] < 0) {
+                const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
+                throw new InvalidUpdateError(msg);
+              }
+              availabilityItem.quantity -= totals[roomTypeId];
+              found = true;
+              break;
             }
-            availabilityItem.quantity -= totals[roomTypeId];
-            found = true;
-            break;
           }
         }
         if (!found) {
@@ -440,7 +444,7 @@ class WTAdapter {
           guestAges: room.guestInfoIds.map((gid) => guestInfo[gid].age),
           helpers: {
             arrivalDateDayjs: arrivalDate,
-            departureDateDayJs: departureDate,
+            departureDateDayjs: departureDate,
             lengthOfStay: departureDate.diff(arrivalDate, 'days'),
             numberOfGuests: room.guestInfoIds.length,
           },

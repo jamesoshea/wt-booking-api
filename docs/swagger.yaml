@@ -94,7 +94,7 @@ components:
           description: Additional information passed to a hotel from a customer
           type: string
         hotelId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
         booking:
           $ref: '#/components/schemas/BookingInfo'
         pricing:
@@ -105,7 +105,7 @@ components:
             - cancellationFees
           properties:
             currency:
-              $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
+              $ref: 'https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
             total:
               description: Total price that should be paid. Including taxes - this is subject to change in the future.
               type: number
@@ -149,7 +149,7 @@ components:
         surname:
           type: string
         address:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/ac6c33d38a9f91aa4b951a00acacf11905208550/hotel-data-swagger.yaml#/components/schemas/Address
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/Address
         email:
           description: E-mail contact
           type: string

@@ -28,31 +28,23 @@ describe('services - adapter', function () {
     let availability;
 
     beforeEach(() => {
-      availability = {
-        roomType1: [
-          { date: '2019-01-01', quantity: 10 },
-          { date: '2019-01-02', quantity: 10 },
-        ],
-        roomType2: [
-          { date: '2019-01-01', quantity: 5 },
-          { date: '2019-01-02', quantity: 5 },
-        ],
-      };
+      availability = [
+        { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 10 },
+        { roomTypeId: 'roomType2', date: '2019-01-01', quantity: 5 },
+        { roomTypeId: 'roomType2', date: '2019-01-02', quantity: 5 },
+      ];
     });
 
     it('should apply the requested update', async () => {
       wtAdapter._applyUpdate(availability, ['roomType1', 'roomType2', 'roomType2'],
         '2019-01-01', '2019-01-03');
-      assert.deepEqual(availability, {
-        roomType1: [
-          { date: '2019-01-01', quantity: 9 },
-          { date: '2019-01-02', quantity: 9 },
-        ],
-        roomType2: [
-          { date: '2019-01-01', quantity: 3 },
-          { date: '2019-01-02', quantity: 3 },
-        ],
-      });
+      assert.deepEqual(availability, [
+        { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 9 },
+        { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 9 },
+        { roomTypeId: 'roomType2', date: '2019-01-01', quantity: 3 },
+        { roomTypeId: 'roomType2', date: '2019-01-02', quantity: 3 },
+      ]);
     });
 
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
@@ -76,14 +68,12 @@ describe('services - adapter', function () {
 
   describe('WTAdapter._checkRestrictions', () => {
     const wtAdapter = _getAdapter(),
-      availability = {
-        roomType1: [
-          { date: '2019-01-01', quantity: 10 },
-          { date: '2019-01-02', quantity: 10, restrictions: { noArrival: true } },
-          { date: '2019-01-03', quantity: 10 },
-          { date: '2019-01-04', quantity: 10, restrictions: { noDeparture: true } },
-        ],
-      };
+      availability = [
+        { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 10, restrictions: { noArrival: true } },
+        { roomTypeId: 'roomType1', date: '2019-01-03', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-04', quantity: 10, restrictions: { noDeparture: true } },
+      ];
 
     it('should throw when the noArrival restriction is violated', async () => {
       assert.throws(() => {
@@ -107,15 +97,15 @@ describe('services - adapter', function () {
 
     beforeEach(async () => {
       wtAdapter = _getAdapter();
-      wtAdapter.__availability = { count: 10 };
+      wtAdapter.__availability = [{ roomTypeId: 'roomType1', quantity: 10, date: '2019-01-01' }];
       sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
         return Promise.resolve(wtAdapter.__availability);
       });
-      sinon.stub(wtAdapter, '_applyUpdate').callsFake((orig, update) => {
-        if (update === 'fail') {
+      sinon.stub(wtAdapter, '_applyUpdate').callsFake((availability, roomTypes) => {
+        if (roomTypes[0] === 'fail') {
           throw new Error('Failed update');
         }
-        orig.count -= 1;
+        availability[0].quantity -= 1;
       });
       sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
         wtAdapter.__availability = availability;
@@ -124,29 +114,29 @@ describe('services - adapter', function () {
     });
 
     it('should update the availability', async () => {
-      assert.deepEqual(wtAdapter.__availability, { count: 10 });
-      await wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02');
-      assert.deepEqual(wtAdapter.__availability, { count: 9 });
+      assert.equal(wtAdapter.__availability[0].quantity, 10);
+      await wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02');
+      assert.equal(wtAdapter.__availability[0].quantity, 9);
     });
 
     it('should serialize updates', async () => {
       await Promise.all([
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
       ]);
-      assert.deepEqual(wtAdapter.__availability, { count: 6 });
+      assert.equal(wtAdapter.__availability[0].quantity, 6);
     });
 
     it('should handle single failures', async () => {
       await Promise.all([
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability('fail', '2019-01-01', '2019-01-02').catch(() => {}),
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['fail'], '2019-01-01', '2019-01-02').catch(() => {}),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
       ]);
-      assert.deepEqual(wtAdapter.__availability, { count: 7 });
+      assert.equal(wtAdapter.__availability[0].quantity, 7);
     });
   });
 
@@ -358,12 +348,13 @@ describe('services - adapter', function () {
     // NOTE: Most of the testing is done within the pricing.spec.js test suite.
     const wtAdapter = _getAdapter(),
       description = { currency: 'EUR' },
-      ratePlans = {
-        'plan1': {
+      ratePlans = [
+        {
+          id: 'plan1',
           roomTypeIds: ['room1'],
           price: 10,
         },
-      },
+      ],
       bookingInfo = {
         arrival: '2019-03-20',
         departure: '2019-03-28',
