@@ -5,12 +5,13 @@ A sample implementation of the WT booking API specification in node.js.
 This server is assumed to handle booking requests for a single
 hotel. Within this scope, it:
 
-- validates booking requests against hotel data in WT (rate plans,
+- Validates booking requests against hotel data in WT (rate plans,
   cancellation policies, available rooms)
 
-- performs the necessary bookkeeping directly in the WT platform
+- Performs the necessary bookkeeping directly in the WT platform
   (i.e. it updates availability data based on accepted booking
-   requests)
+  requests). This implementation does not change availability
+  for the date of departure.
 
 Note: we do not expect this API implementation to be run in
 production "as is"; instead, we assume that it should serve more
