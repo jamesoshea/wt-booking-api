@@ -61,20 +61,20 @@ To run the server, you need to go through the following steps:
 
 - You can use this API as a parametrized docker image in your setup:
 
-baseUrl: process.env.WT_API_BASE_URL,
-    readApiUrl: process.env.READ_API_URL,
-    writeApiUrl: process.env.WRITE_API_URL,
-    hotelId: process.env.HOTEL_ID,
-    writeApiAccessKey: process.env.WRITE_API_KEY,
-    writeApiWalletPassword: process.env.WALLET_PASSWORD,
+- `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`
+- `READ_API_URL` - URL of [wt-read-api](https://github.com/windingtree/wt-read-api) instance
+- `WRITE_API_URL` - URL of [wt-write-api](https://github.com/windingtree/wt-write-api) instance
+- `HOTEL_ID` - On-chain Address of the hotel
+- `WRITE_API_KEY` - Access Key for wt-write-api instance
+- `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key
 
 
 ```sh
 $ docker build -t windingtree/wt-booking-api .
 $ docker run -p 8080:8935 \
-  -e WT_CONFIG=deployment \
+  -e WT_CONFIG=envvar \
   -e NODE_ENV=production \
-  -e WT_API_BASE_URL=https://booking.example.com \
+  -e BASE_URL=https://booking.example.com \
   -e READ_API_URL=https://read-api.example.com \
   -e WRITE_API_URL=https://write-api.example.com \
   -e HOTEL_ID=0x123456 \
