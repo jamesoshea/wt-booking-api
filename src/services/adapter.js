@@ -179,7 +179,7 @@ class WTAdapter {
    * @param roomTypeId
    * @private
    */
-  _checkAvailabilityForTypeExists(availability, roomTypeId) {
+  _checkAvailabilityForTypeExists (availability, roomTypeId) {
     for (let item of availability) {
       if (item.roomTypeId === roomTypeId) return;
     }
