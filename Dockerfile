@@ -9,6 +9,10 @@ RUN npm ci
 
 COPY . .
 
+ARG WT_CONFIG
+
+RUN npm run createdb
+
 CMD ["npm", "start"]
 
 EXPOSE 8935

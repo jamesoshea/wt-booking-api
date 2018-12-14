@@ -47,6 +47,17 @@ describe('services - adapter', function () {
       ]);
     });
 
+    it('should restore availability instead of reducing it if requested', async () => {
+      wtAdapter._applyUpdate(availability, ['roomType1', 'roomType2', 'roomType2'],
+        '2019-01-01', '2019-01-03', true);
+      assert.deepEqual(availability, [
+        { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 11 },
+        { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 11 },
+        { roomTypeId: 'roomType2', date: '2019-01-01', quantity: 7 },
+        { roomTypeId: 'roomType2', date: '2019-01-02', quantity: 7 },
+      ]);
+    });
+
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
       assert.throws(() => {
         wtAdapter._applyUpdate(availability, ['roomTypeX'], '2019-01-01', '2019-01-02');
@@ -101,11 +112,11 @@ describe('services - adapter', function () {
       sinon.stub(wtAdapter, '_getAvailability').callsFake(() => {
         return Promise.resolve(wtAdapter.__availability);
       });
-      sinon.stub(wtAdapter, '_applyUpdate').callsFake((availability, roomTypes) => {
+      sinon.stub(wtAdapter, '_applyUpdate').callsFake((availability, roomTypes, arrival, departure, restore) => {
         if (roomTypes[0] === 'fail') {
           throw new Error('Failed update');
         }
-        availability[0].quantity -= 1;
+        availability[0].quantity += (restore ? 1 : -1);
       });
       sinon.stub(wtAdapter, '_setAvailability').callsFake((availability) => {
         wtAdapter.__availability = availability;
@@ -117,6 +128,12 @@ describe('services - adapter', function () {
       assert.equal(wtAdapter.__availability[0].quantity, 10);
       await wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02');
       assert.equal(wtAdapter.__availability[0].quantity, 9);
+    });
+
+    it('should restore the availability if requested', async () => {
+      assert.deepEqual(wtAdapter.__availability[0].quantity, 10);
+      await wtAdapter.updateAvailability([], '2019-01-01', '2019-01-02', true);
+      assert.deepEqual(wtAdapter.__availability[0].quantity, 11);
     });
 
     it('should serialize updates', async () => {

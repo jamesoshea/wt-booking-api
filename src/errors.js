@@ -24,6 +24,12 @@ HttpBadRequestError.status = 400;
 HttpBadRequestError.defaultCode = 'badRequest';
 HttpBadRequestError.defaultMsgShort = 'Bad request.';
 
+class HttpForbiddenError extends HttpError {};
+HttpForbiddenError.status = 403;
+HttpForbiddenError.defaultCode = 'forbidden';
+HttpForbiddenError.defaultMsgShort = 'Forbidden.';
+HttpForbiddenError.defaultMsgLong = 'The requested action is forbidden.';
+
 class Http404Error extends HttpError {};
 Http404Error.status = 404;
 Http404Error.defaultCode = 'notFound';
@@ -56,6 +62,7 @@ HttpBadGatewayError.defaultMsgLong = 'Invalid response from an upstream server.'
 module.exports = {
   HttpError,
   Http404Error,
+  HttpForbiddenError,
   HttpConflictError,
   HttpBadRequestError,
   HttpValidationError,

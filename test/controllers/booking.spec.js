@@ -1,10 +1,13 @@
 /* eslint-env mocha */
+/* eslint-disable promise/no-callback-in-promise */
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
 
+const config = require('../../src/config');
 const { getBooking } = require('../utils/factories');
 const adapter = require('../../src/services/adapter');
+const Booking = require('../../src/models/booking');
 
 describe('controllers - booking', function () {
   let server, wtAdapterOrig, wtAdapter;
@@ -38,7 +41,7 @@ describe('controllers - booking', function () {
   });
 
   describe('POST /booking', () => {
-    it('should accept the booking, perform the update and return a confirmation', (done) => {
+    it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
       wtAdapter.updateAvailability.resetHistory();
       request(server)
         .post('/booking')
@@ -52,6 +55,15 @@ describe('controllers - booking', function () {
               [['single-room', 'single-room'], '2019-01-01', '2019-01-03'],
             ]);
             assert.property(res.body, 'id');
+            const booking = await Booking.get(res.body.id);
+            assert.isDefined(booking);
+            assert.propertyVal(booking, 'id', res.body.id);
+            assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
+            assert.deepEqual(booking.rawData, {
+              arrival: '2019-01-01',
+              departure: '2019-01-03',
+              rooms: ['single-room', 'single-room'],
+            });
             done();
           } catch (err) {
             done(err);
@@ -135,6 +147,65 @@ describe('controllers - booking', function () {
         .send(booking)
         .expect(502)
         .end(done);
+    });
+  });
+
+  describe('DELETE /booking/:id', () => {
+    it('should mark an existing booking as cancelled and restore the availability', (done) => {
+      wtAdapter.updateAvailability.resetHistory();
+      Booking.create({
+        arrival: '2019-01-01',
+        departure: '2019-01-03',
+        rooms: ['single-room', 'single-room'],
+      }, Booking.STATUS.CONFIRMED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(204)
+          .end(async (err, res) => {
+            if (err) return done(err);
+            try {
+              booking = await Booking.get(booking.id);
+              assert.equal(booking.status, Booking.STATUS.CANCELLED);
+              assert.deepEqual(wtAdapter.updateAvailability.args, [
+                [['single-room', 'single-room'], '2019-01-01', '2019-01-03', true],
+              ]);
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+      }).catch(done);
+    });
+
+    it('should return 409 if the booking has already been cancelled', (done) => {
+      Booking.create({ data: 'dummy' }, Booking.STATUS.CANCELLED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(409, done);
+      }).catch(done);
+    });
+
+    it('should return 404 if the booking does not exist', (done) => {
+      request(server)
+        .delete('/booking/nonexistent')
+        .expect(404, done);
+    });
+
+    it('should return 403 if booking cancellation is disallowed', (done) => {
+      const orig = config.allowCancel;
+      config.allowCancel = false;
+      Booking.create({ data: 'dummy' }, Booking.STATUS.CONFIRMED).then((booking) => {
+        request(server)
+          .delete(`/booking/${booking.id}`)
+          .expect(403)
+          .end((err) => {
+            config.allowCancel = orig;
+            done(err);
+          });
+      }).catch((err) => {
+        config.allowCancel = orig;
+        done(err);
+      });
     });
   });
 });

@@ -53,6 +53,7 @@ app.get('/', (req, res) => {
 
 // Booking
 app.post('/booking', booking.create);
+app.delete('/booking/:id', booking.cancel);
 
 // 404 handler
 app.use('*', (req, res, next) => {

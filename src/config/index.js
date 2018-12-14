@@ -22,6 +22,7 @@ const config = Object.assign({
     writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
     writeApiWalletPassword: 'windingtree',
   },
+  allowCancel: true, // If false, booking cancellation is not allowed.
 }, require(`./${env}`));
 
 module.exports = config;

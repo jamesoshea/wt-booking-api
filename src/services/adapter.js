@@ -135,11 +135,15 @@ class WTAdapter {
    * are arrays of items with two properties: "date" and
    * "subtract".
    *
-   * @param {Object} availability
-   * @param {Object} update
+   * @param {Object} availability The original availability object.
+   * @param {Array} rooms List of booked rooms.
+   * @param {String} arrival
+   * @param {String} departure
+   * @param {Boolean} restore (optional) If true, the
+   *     availability is restored rather than removed.
    * @returns {undefined}
    */
-  _applyUpdate (availability, rooms, arrival, departure) {
+  _applyUpdate (availability, rooms, arrival, departure, restore) {
     const totals = rooms.reduce((_totals, roomTypeId) => {
       _totals[roomTypeId] = (_totals[roomTypeId] || 0) + 1;
       return _totals;
@@ -157,7 +161,11 @@ class WTAdapter {
                 const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
                 throw new InvalidUpdateError(msg);
               }
-              availabilityItem.quantity -= totals[roomTypeId];
+              if (restore) {
+                availabilityItem.quantity += totals[roomTypeId];
+              } else {
+                availabilityItem.quantity -= totals[roomTypeId];
+              }
               found = true;
               break;
             }
@@ -191,17 +199,25 @@ class WTAdapter {
    *
    * Serializes calls internally to avoid race conditions.
    *
+   * @param {Array} rooms Array of roomTypeIds to be booked
    * @param {String} arrival
    * @param {String} departure
-   * @param {Array} rooms Array of roomTypeIds to be booked
+   * @param {Boolean} restore (optional) If true, the
+   *     availability is restored rather than removed.
    * @returns {Promise<Object>}
    */
-  updateAvailability (rooms, arrival, departure) {
+  updateAvailability (rooms, arrival, departure, restore) {
     this.updating = this.updating.then(() => {
       return this._getAvailability();
     }).then((availability) => {
-      this._checkRestrictions(availability, rooms, arrival, departure);
-      this._applyUpdate(availability, rooms, arrival, departure); // Modifies availability.
+      // If availability is restored, we assume it is done based
+      // on a cancelled booking, whose validity has been
+      // previously checked - therefore, we do not check it
+      // again.
+      if (!restore) {
+        this._checkRestrictions(availability, rooms, arrival, departure);
+      }
+      this._applyUpdate(availability, rooms, arrival, departure, restore); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;
