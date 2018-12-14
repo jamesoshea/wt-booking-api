@@ -33,8 +33,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
-          { currency: 'GBP', price: 70, roomTypeIds: ['group'] },
+          { id: 'rp-1', currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { id: 'rp-2', currency: 'GBP', price: 70, roomTypeIds: ['group'] },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10);
     });
@@ -45,8 +45,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
-          { price: 200, roomTypeIds: ['group'] },
+          { id: 'rp-1', currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { id: 'rp-2', price: 200, roomTypeIds: ['group'] },
         ];
       assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'GBP', 'CHF'), NoRatePlanError);
     });
@@ -57,8 +57,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
-          { price: 70, roomTypeIds: ['group'] },
+          { id: 'rp-1', currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { id: 'rp-2', price: 70, roomTypeIds: ['group'] },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'GBP', 'GBP'), 3 * 70 * 10);
     });
@@ -75,8 +75,8 @@ describe('services - pricing', function () {
           },
         ],
         ratePlans = [
-          { currency: 'EUR', price: 100, roomTypeIds: ['group'] },
-          { currency: 'EUR', price: 70, roomTypeIds: ['single'] },
+          { id: 'rp-1', currency: 'EUR', price: 100, roomTypeIds: ['group'] },
+          { id: 'rp-2', currency: 'EUR', price: 70, roomTypeIds: ['single'] },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 100 * 10 + 70 * 10);
     });
@@ -87,8 +87,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2018-01-01', to: '2018-12-31' } },
-          { currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-12-31' } },
+          { id: 'rp-1', currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2018-01-01', to: '2018-12-31' } },
+          { id: 'rp-2', currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-12-31' } },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 120 * 10);
     });
@@ -99,8 +99,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2018-01-01', to: '2018-12-31' } },
-          { currency: 'EUR', price: 100, roomTypeIds: ['group'], availableForReservation: { from: '2019-01-01', to: '2019-12-31' } },
+          { id: 'rp-1', currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2018-01-01', to: '2018-12-31' } },
+          { id: 'rp-2', currency: 'EUR', price: 100, roomTypeIds: ['group'], availableForReservation: { from: '2019-01-01', to: '2019-12-31' } },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 140 * 10);
     });
@@ -111,9 +111,9 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 110, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 12 } } },
-          { currency: 'EUR', price: 130, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 8 } } },
-          { currency: 'EUR', price: 120, roomTypeIds: ['group'], restrictions: { bookingCutOff: { min: 360 } } },
+          { id: 'rp-1', currency: 'EUR', price: 110, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 12 } } },
+          { id: 'rp-2', currency: 'EUR', price: 130, roomTypeIds: ['group'], restrictions: { lengthOfStay: { min: 8 } } },
+          { id: 'rp-3', currency: 'EUR', price: 120, roomTypeIds: ['group'], restrictions: { bookingCutOff: { min: 360 } } },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 130 * 10);
     });
@@ -125,7 +125,7 @@ describe('services - pricing', function () {
             guestData: _getGuestData(['31', '32', '5']),
           },
         ],
-        ratePlans = [{ currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2020-01-01' } }];
+        ratePlans = [{ id: 'rp-1', currency: 'EUR', price: 140, roomTypeIds: ['group'], availableForReservation: { from: '2020-01-01' } }];
       assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), NoRatePlanError);
     });
 
@@ -135,8 +135,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
-          { currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-12-31' } },
+          { id: 'rp-1', currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
+          { id: 'rp-2', currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-12-31' } },
         ];
       assert.equal(computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), 3 * 110 * 4 + 3 * 120 * 6);
     });
@@ -147,8 +147,8 @@ describe('services - pricing', function () {
           guestData: _getGuestData(['31', '32', '5']),
         }],
         ratePlans = [
-          { currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
-          { currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-03-07', to: '2019-12-31' } },
+          { id: 'rp-1', currency: 'EUR', price: 110, roomTypeIds: ['group'], availableForTravel: { from: '2019-01-01', to: '2019-03-05' } },
+          { id: 'rp-2', currency: 'EUR', price: 120, roomTypeIds: ['group'], availableForTravel: { from: '2019-03-07', to: '2019-12-31' } },
         ];
       assert.throws(() => computePrice(bookingData, ratePlans, '2018-12-01', 'EUR', 'EUR'), NoRatePlanError);
     });
@@ -160,6 +160,7 @@ describe('services - pricing', function () {
         }],
         ratePlans = [
           {
+            id: 'rp-1',
             currency: 'EUR',
             price: 100,
             roomTypeIds: ['group'],
@@ -187,6 +188,7 @@ describe('services - pricing', function () {
         ],
         ratePlans = [
           {
+            id: 'rp-1',
             currency: 'EUR',
             price: 100,
             roomTypeIds: ['group'],
@@ -208,6 +210,7 @@ describe('services - pricing', function () {
         }],
         ratePlans = [
           {
+            id: 'rp-1',
             currency: 'EUR',
             price: 100,
             roomTypeIds: ['group'],
