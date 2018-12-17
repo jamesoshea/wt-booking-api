@@ -62,6 +62,8 @@ To run the server, you need to go through the following steps:
 - You can use this API as a parametrized docker image in your setup:
 
 - `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`
+- `DB_CLIENT` - [Knex](https://knexjs.org/) database client name, for example `sqlite3`.
+- `DB_CLIENT_OPTIONS` - [Knex](https://knexjs.org/) database client options as JSON string, for example `{"filename": "./envvar.sqlite"}`.
 - `READ_API_URL` - URL of [wt-read-api](https://github.com/windingtree/wt-read-api) instance
 - `WRITE_API_URL` - URL of [wt-write-api](https://github.com/windingtree/wt-write-api) instance
 - `HOTEL_ID` - On-chain Address of the hotel
@@ -72,6 +74,8 @@ To run the server, you need to go through the following steps:
 ```sh
 $ docker build -t windingtree/wt-booking-api .
 $ docker run -p 8080:8935 \
+  -e DB_CLIENT_OPTIONS='{"filename": "./envvar.sqlite"}' \
+  -e DB_CLIENT=sqlite3 \
   -e WT_CONFIG=envvar \
   -e NODE_ENV=production \
   -e BASE_URL=https://booking.example.com \
@@ -81,7 +85,9 @@ $ docker run -p 8080:8935 \
   -e WRITE_API_KEY=werdfs12 \
   -e WALLET_PASSWORD=windingtree windingtree/wt-booking-api
 ```
-- After that you can access the wt-booking-api on local port `8080`
+- After that you can access the wt-booking-api on local port `8080`.
+Database will also be setup during the container startup in the current setup.
+You can skip this with `SKIP_DB_SETUP` environment variable.
 
 ## Examples
 

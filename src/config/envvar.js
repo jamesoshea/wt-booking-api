@@ -2,10 +2,8 @@ const knex = require('knex');
 
 module.exports = {
   db: knex({
-    client: 'sqlite3',
-    connection: {
-      filename: './.db.sqlite',
-    },
+    client: process.env.DB_CLIENT,
+    connection: JSON.parse(process.env.DB_CLIENT_OPTIONS),
     useNullAsDefault: true,
   }),
   adapterOpts: {

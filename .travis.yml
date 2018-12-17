@@ -22,7 +22,8 @@ jobs:
     - pip install --user awscli
     - export PATH=$PATH:$HOME/.local/bin
     - eval $(aws ecr get-login --no-include-email --region eu-west-1)
-    - docker build --build-arg WT_CONFIG=deployment -t wt-booking-api:$TRAVIS_BRANCH .
+    - echo "Building docker image"
+    - docker build -t wt-booking-api:$TRAVIS_BRANCH .
     - docker tag wt-booking-api:$TRAVIS_BRANCH 029479441096.dkr.ecr.eu-west-1.amazonaws.com/wt-booking-api:$TRAVIS_BRANCH
     - docker push 029479441096.dkr.ecr.eu-west-1.amazonaws.com/wt-booking-api:$TRAVIS_BRANCH
 env:
