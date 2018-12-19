@@ -55,6 +55,7 @@ describe('controllers - booking', function () {
               [['single-room', 'single-room'], '2019-01-01', '2019-01-03'],
             ]);
             assert.property(res.body, 'id');
+            assert.property(res.body, 'status');
             const booking = await Booking.get(res.body.id);
             assert.isDefined(booking);
             assert.propertyVal(booking, 'id', res.body.id);

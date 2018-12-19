@@ -38,6 +38,7 @@ module.exports.create = async (req, res, next) => {
       // would probably come from the hotel's property
       // management system.
       id: bookingRecord.id,
+      status: bookingRecord.status,
     });
   } catch (err) {
     if (err instanceof validators.ValidationError) {
