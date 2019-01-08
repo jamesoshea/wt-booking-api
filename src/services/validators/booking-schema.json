@@ -50,7 +50,6 @@
       "required": [
         "name",
         "surname",
-        "address",
         "email"
       ],
       "properties": {

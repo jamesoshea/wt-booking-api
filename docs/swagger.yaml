@@ -210,7 +210,6 @@ components:
       required:
         - name
         - surname
-        - address
         - email
       properties:
         name:
