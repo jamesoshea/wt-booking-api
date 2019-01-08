@@ -12,14 +12,12 @@ function computePrice (bookingData, ratePlans, bookingDate, currency, hotelCurre
   bookingDate = dayjs(bookingDate);
   let total = currencyjs(0);
   for (let bookingItem of bookingData) {
-    const item = wtpas.prices.computePrices(
+    const computer = new wtpas.prices.PriceComputer([bookingItem.roomType], ratePlans, hotelCurrency);
+    const item = computer.getBestPrice(
       bookingDate,
       bookingItem.guestData.helpers.arrivalDateDayjs,
       bookingItem.guestData.helpers.departureDateDayjs,
       bookingItem.guestData.guestAges.map((a) => ({ age: a })),
-      [bookingItem.roomType],
-      ratePlans,
-      hotelCurrency,
       currency
     );
 
