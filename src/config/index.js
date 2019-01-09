@@ -22,6 +22,17 @@ const config = Object.assign({
     writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
     writeApiWalletPassword: 'windingtree',
   },
+  // These options are good for testing or APIs that actually pass
+  // data to humans that are responsible for data validation. These
+  // should never be turned off in fully automated production-like
+  // environment
+  checkOpts: {
+    availability: true, // If false, no restrictions and no room quantity is checked. This may lead to overbooking.
+    cancellationFees: true, // If false, passed cancellation fees are not validated. This may lead to conditions unfavourable for a hotel
+    totalPrice: true, // If false, the price is not validated against ratePlans. This may lead to conditions unfavourable for a hotel
+  },
+  defaultBookingState: 'confirmed', // Or 'pending'
+  updateAvailability: true, // If false, availability is not updated in data stored in WT platform
   allowCancel: true, // If false, booking cancellation is not allowed.
 }, require(`./${env}`));
 

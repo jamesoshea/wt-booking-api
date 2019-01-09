@@ -3,7 +3,10 @@ const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
 const { computePrice, NoRatePlanError } = require('./pricing');
-const { cancellationFees: cancellationFeesLibrary, availability: availabilityLibrary } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
+const {
+  cancellationFees: cancellationFeesLibrary,
+  availability: availabilityLibrary,
+} = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
 
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
@@ -425,28 +428,48 @@ class WTAdapter {
   }
 
   /**
-   * Check admissibility wrt. the suggested price and cancellation fees.
+   * Check admissibility wrt. the suggested price,
+   * room availability and cancellation fees.
+   *
+   * Every component of the validation can be turned off with
+   * `checkOpts` parameter.
    *
    * @param {Object} bookingInfo
    * @param {Object} pricing
    * @param {Date} bookedAt
+   * @param {Object} checkOpts {availability, cancellationFees, totalPrice}
    * @return {Promise<void>}
    * @throw {InvalidPriceError}
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
+   * @throw {RoomUnavailableError}
    */
-  async checkAdmissibility (bookingInfo, pricing, bookingDate) {
-    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
-      hotel = await this._getHotelData(fields),
-      // Convert booking date to hotel's timezone and continue
-      // all computation in hotel timezone.
-      bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
-    // check the room availability
-    this._checkAvailability(hotel.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
-    // check cancellation fees
-    this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
-    // check final price
-    this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
+  async checkAdmissibility (bookingInfo, pricing, bookingDate, checkOpts) {
+    checkOpts = checkOpts || {
+      availability: true,
+      cancellationFees: true,
+      totalPrice: true,
+    };
+    if (Object.values(checkOpts).filter((v) => v).length > 0) {
+      const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
+        hotel = await this._getHotelData(fields),
+        // Convert booking date to hotel's timezone and continue
+        // all computation in hotel timezone.
+        bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
+      
+      // check the room availability
+      if (checkOpts.availability) {
+        this._checkAvailability(hotel.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
+      }
+      // check cancellation fees
+      if (checkOpts.cancellationFees) {
+        this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
+      }
+      // check final price
+      if (checkOpts.totalPrice) {
+        this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
+      }
+    }
   }
 }
 

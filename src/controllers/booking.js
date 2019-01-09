@@ -23,14 +23,18 @@ module.exports.create = async (req, res, next) => {
     const wtAdapter = adapter.get(),
       booking = req.body.booking,
       pricing = req.body.pricing;
-    await wtAdapter.checkAdmissibility(booking, pricing, new Date());
-    await wtAdapter.updateAvailability(booking.rooms, booking.arrival, booking.departure);
+
+    await wtAdapter.checkAdmissibility(booking, pricing, new Date(), config.checkOpts);
+    if (config.updateAvailability) {
+      await wtAdapter.updateAvailability(booking.rooms, booking.arrival, booking.departure);
+    }
+
     const bookingData = {
         arrival: booking.arrival,
         departure: booking.departure,
         rooms: booking.rooms.map((r) => (r.id)),
       },
-      bookingRecord = await Booking.create(bookingData, Booking.STATUS.CONFIRMED);
+      bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
     // 4. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID

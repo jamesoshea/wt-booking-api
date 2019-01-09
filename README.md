@@ -61,15 +61,36 @@ To run the server, you need to go through the following steps:
 
 - You can use this API as a parametrized docker image in your setup:
 
-- `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`
+- `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`.
 - `DB_CLIENT` - [Knex](https://knexjs.org/) database client name, for example `sqlite3`.
-- `DB_CLIENT_OPTIONS` - [Knex](https://knexjs.org/) database client options as JSON string, for example `{"filename": "./envvar.sqlite"}`.
-- `READ_API_URL` - URL of [wt-read-api](https://github.com/windingtree/wt-read-api) instance
-- `WRITE_API_URL` - URL of [wt-write-api](https://github.com/windingtree/wt-write-api) instance
-- `HOTEL_ID` - On-chain Address of the hotel
-- `WRITE_API_KEY` - Access Key for wt-write-api instance
-- `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key
+- `DB_CLIENT_OPTIONS` - [Knex](https://knexjs.org/) database client options as JSON string, for
+example `{"filename": "./envvar.sqlite"}`.
+- `READ_API_URL` - URL of [wt-read-api](https://github.com/windingtree/wt-read-api) instance.
+- `WRITE_API_URL` - URL of [wt-write-api](https://github.com/windingtree/wt-write-api) instance.
+- `HOTEL_ID` - On-chain Address of the hotel.
+- `WRITE_API_KEY` - Access Key for wt-write-api instance.
+- `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key.
 
+The following options are optional.
+
+- `CHECK_AVAILABILITY` - If false, no restrictions and no room quantity is checked. This may lead
+to overbooking. Defaults to true.
+- `CHECK_CANCELLATION_FEES` - If false, passed cancellation fees are not validated. This may lead
+to conditions unfavourable for a hotel. Defaults to true.
+- `CHECK_TOTAL_PRICE` - If false, the price is not validated against ratePlans. This may lead
+to conditions unfavourable for a hotel. Defaults to true.
+- `DEFAULT_BOOKING_STATE` - This state is assigned to every accepted booking. Can be `confirmed`
+or `pending`. Defaults to `confirmed`.
+- `UPDATE_AVAILABILITY` - If false, availability is not updated in data stored in WT platform. This
+makes sense with using `DEFAULT_BOOKING_STATE` with `pending` value when you have to process the
+booking manually anyway. Defaults to true.
+- `ALLOW_CANCELLATION` - If false, booking cancellation is not allowed. Defaults to true.
+
+For boolean flags, any of '1', '0', 'true', 'false', 'yes', 'no' should work (case insensitive).
+
+**The `CHECK_*` options are good for testing or APIs that actually pass data to humans that are
+responsible for data validation. These should never be turned off in fully automated production-like
+environment as they may lead to unexpected and inconsistent results.**
 
 ```sh
 $ docker build -t windingtree/wt-booking-api .

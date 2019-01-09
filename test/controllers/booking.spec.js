@@ -67,7 +67,7 @@ describe('controllers - booking', function () {
               ],
             ]);
             assert.property(res.body, 'id');
-            assert.property(res.body, 'status');
+            assert.propertyVal(res.body, 'status', Booking.STATUS.CONFIRMED);
             const booking = await Booking.get(res.body.id);
             assert.isDefined(booking);
             assert.propertyVal(booking, 'id', res.body.id);
@@ -79,6 +79,81 @@ describe('controllers - booking', function () {
             });
             done();
           } catch (err) {
+            done(err);
+          }
+        });
+    });
+
+    it('should accept the booking, store it, perform the update and return a confirmation with pending state if configured', (done) => {
+      wtAdapter.updateAvailability.resetHistory();
+      const orig = config.defaultBookingState;
+      config.defaultBookingState = Booking.STATUS.PENDING;
+      request(server)
+        .post('/booking')
+        .send(getBooking())
+        .expect(200)
+        .expect('content-type', /application\/json/)
+        .end(async (err, res) => {
+          if (err) return done(err);
+          try {
+            assert.deepEqual(wtAdapter.updateAvailability.args, [
+              [
+                [
+                  {
+                    'guestInfoIds': ['1'],
+                    'id': 'single-room',
+                  },
+                  {
+                    'guestInfoIds': ['2'],
+                    'id': 'single-room',
+                  },
+                ],
+                '2019-01-01', '2019-01-03',
+              ],
+            ]);
+            assert.property(res.body, 'id');
+            assert.propertyVal(res.body, 'status', Booking.STATUS.PENDING);
+            const booking = await Booking.get(res.body.id);
+            assert.isDefined(booking);
+            assert.propertyVal(booking, 'id', res.body.id);
+            assert.propertyVal(booking, 'status', Booking.STATUS.PENDING);
+            config.defaultBookingState = orig;
+            done();
+          } catch (err) {
+            config.defaultBookingState = orig;
+            done(err);
+          }
+        });
+    });
+
+    it('should accept the booking, store it, and return a confirmation without doing an update if configured', (done) => {
+      wtAdapter.updateAvailability.resetHistory();
+      const orig = config.updateAvailability;
+      config.updateAvailability = false;
+      request(server)
+        .post('/booking')
+        .send(getBooking())
+        .expect(200)
+        .expect('content-type', /application\/json/)
+        .end(async (err, res) => {
+          if (err) return done(err);
+          try {
+            assert.equal(wtAdapter.updateAvailability.callCount, 0);
+            assert.property(res.body, 'id');
+            assert.propertyVal(res.body, 'status', Booking.STATUS.CONFIRMED);
+            const booking = await Booking.get(res.body.id);
+            assert.isDefined(booking);
+            assert.propertyVal(booking, 'id', res.body.id);
+            assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
+            assert.deepEqual(booking.rawData, {
+              arrival: '2019-01-01',
+              departure: '2019-01-03',
+              rooms: ['single-room', 'single-room'],
+            });
+            config.updateAvailability = orig;
+            done();
+          } catch (err) {
+            config.updateAvailability = orig;
             done(err);
           }
         });
