@@ -7,6 +7,7 @@ const {
   WTAdapter,
   InvalidUpdateError,
   RestrictionsViolatedError,
+  RoomUnavailableError,
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
   InvalidPriceError,
@@ -103,6 +104,36 @@ describe('services - adapter', function () {
     });
   });
 
+  describe('WTAdapter._checkAvailability', () => {
+    const wtAdapter = _getAdapter();
+    it('should throw when the room is not available', async () => {
+      assert.throws(() => {
+        wtAdapter._checkAvailability([
+          { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 0 },
+          { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 0 },
+          { roomTypeId: 'roomType1', date: '2019-01-03', quantity: 0 },
+          { roomTypeId: 'roomType1', date: '2019-01-04', quantity: 0 },
+        ],
+        [{ 'guestInfoIds': ['1'], 'id': 'roomType1' }], '2019-01-02', '2019-01-03');
+      }, RoomUnavailableError);
+    });
+
+    it('should throw when the room availability is undefined', async () => {
+      assert.throws(() => {
+        wtAdapter._checkAvailability([], [{ 'guestInfoIds': ['1'], 'id': 'roomType1' }], '2019-01-01', '2019-01-04');
+      }, RoomUnavailableError);
+    });
+
+    it('should not throw if room is available', async () => {
+      wtAdapter._checkAvailability([
+        { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-02', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-03', quantity: 10 },
+        { roomTypeId: 'roomType1', date: '2019-01-04', quantity: 10 },
+      ], [{ 'guestInfoIds': ['1'], 'id': 'roomType1' }], '2019-01-01', '2019-01-03');
+    });
+  });
+
   describe('WTAdapter.updateAvailability', () => {
     let wtAdapter;
 
@@ -137,21 +168,33 @@ describe('services - adapter', function () {
     });
 
     it('should serialize updates', async () => {
+      const rooms = [
+        {
+          'guestInfoIds': ['1'],
+          'id': 'roomType1',
+        },
+      ];
       await Promise.all([
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
       ]);
       assert.equal(wtAdapter.__availability[0].quantity, 6);
     });
 
     it('should handle single failures', async () => {
+      const rooms = [
+        {
+          'guestInfoIds': ['1'],
+          'id': 'roomType1',
+        },
+      ];
       await Promise.all([
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability(['fail'], '2019-01-01', '2019-01-02').catch(() => {}),
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
-        wtAdapter.updateAvailability(['roomType1'], '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability([{ id: 'fail' }], '2019-01-01', '2019-01-02').catch(() => {}),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
+        wtAdapter.updateAvailability(rooms, '2019-01-01', '2019-01-02'),
       ]);
       assert.equal(wtAdapter.__availability[0].quantity, 7);
     });
@@ -395,14 +438,32 @@ describe('services - adapter', function () {
   });
 
   describe('WTAdapter.checkAdmissibility', () => {
-    const hotelData = { dummy: true, ratePlans: 'ratePlans', timezone: 'Europe/Prague' },
+    const hotelData = { dummy: true,
+        ratePlans: 'ratePlans',
+        timezone: 'Europe/Prague',
+        availability: [{ roomTypeId: 'single-room', quantity: 10, date: '2019-01-01' }],
+      },
       wtAdapter = _getAdapter();
     sinon.stub(wtAdapter, '_getHotelData').callsFake(() => {
       return Promise.resolve(hotelData);
     });
     sinon.stub(wtAdapter, '_checkCancellationFees').returns(undefined);
     sinon.stub(wtAdapter, '_checkTotal').returns(undefined);
-    const bookingInfo = { arrival: 'arrival' },
+    sinon.stub(wtAdapter, '_checkAvailability').returns(undefined);
+    const bookingInfo = {
+        arrival: 'arrival',
+        departure: '2019-01-02',
+        rooms: [
+          {
+            'guestInfoIds': ['1'],
+            'id': 'single-room',
+          },
+          {
+            'guestInfoIds': ['2'],
+            'id': 'single-room',
+          },
+        ],
+      },
       pricing = { cancellationFees: 'cancellationFees', total: 'total', currency: 'currency' },
       today = '2018-12-01';
 
@@ -415,6 +476,9 @@ describe('services - adapter', function () {
       assert.equal(wtAdapter._checkTotal.callCount, 1);
       assert.deepEqual(wtAdapter._checkTotal.args[0],
         [hotelData, 'ratePlans', bookingInfo, 'currency', 'total', today]);
+      assert.equal(wtAdapter._checkAvailability.callCount, 1);
+      assert.deepEqual(wtAdapter._checkAvailability.args[0],
+        [hotelData.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure]);
     });
   });
 });

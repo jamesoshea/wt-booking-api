@@ -3,11 +3,12 @@ const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
 const { computePrice, NoRatePlanError } = require('./pricing');
-const { cancellationFees: cancellationFeesLibrary } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
+const { cancellationFees: cancellationFeesLibrary, availability: availabilityLibrary } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
 
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
 class RestrictionsViolatedError extends Error {};
+class RoomUnavailableError extends Error {};
 class IllFormedCancellationFeesError extends Error {};
 class InadmissibleCancellationFeesError extends Error {};
 class InvalidPriceError extends Error {};
@@ -150,26 +151,27 @@ class WTAdapter {
       return _totals;
     }, {});
     for (let roomTypeId in totals) {
-      this._checkAvailabilityForTypeExists(availability, roomTypeId);
+      if (!availability.find((a) => a.roomTypeId === roomTypeId)) {
+        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
+      }
       const departureDate = dayjs(departure);
       let currentDate = dayjs(arrival);
       while (currentDate.isBefore(departureDate)) {
         let found = false;
         for (let availabilityItem of availability) {
-          if (availabilityItem.roomTypeId === roomTypeId) {
-            if (availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
-              if (availabilityItem.quantity - totals[roomTypeId] < 0) {
-                const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
-                throw new InvalidUpdateError(msg);
-              }
-              if (restore) {
-                availabilityItem.quantity += totals[roomTypeId];
-              } else {
-                availabilityItem.quantity -= totals[roomTypeId];
-              }
-              found = true;
-              break;
+          if (availabilityItem.roomTypeId === roomTypeId &&
+            availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
+            if (availabilityItem.quantity - totals[roomTypeId] < 0) {
+              const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
+              throw new InvalidUpdateError(msg);
             }
+            if (restore) {
+              availabilityItem.quantity += totals[roomTypeId];
+            } else {
+              availabilityItem.quantity -= totals[roomTypeId];
+            }
+            found = true;
+            break;
           }
         }
         if (!found) {
@@ -179,20 +181,6 @@ class WTAdapter {
         currentDate = currentDate.add(1, 'day');
       }
     }
-  }
-
-  /**
-   * Check if availability exists for given room type
-   *
-   * @param availability
-   * @param roomTypeId
-   * @private
-   */
-  _checkAvailabilityForTypeExists (availability, roomTypeId) {
-    for (let item of availability) {
-      if (item.roomTypeId === roomTypeId) return;
-    }
-    throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
   }
 
   /**
@@ -216,15 +204,39 @@ class WTAdapter {
       // previously checked - therefore, we do not check it
       // again.
       if (!restore) {
-        this._checkRestrictions(availability, rooms, arrival, departure);
+        // Only a soft check here, hard check follows in _applyUpdate
+        this._checkRestrictions(availability, arrival, departure);
       }
-      this._applyUpdate(availability, rooms, arrival, departure, restore); // Modifies availability.
+      this._applyUpdate(availability, rooms.map((x) => x.id), arrival, departure, restore); // Modifies availability.
       return this._setAvailability(availability);
     });
     const ret = this.updating;
     // Do not propagate errors further;
     this.updating = this.updating.catch(() => undefined);
     return ret;
+  }
+
+  /**
+   * Checks if rooms are actually available for given dates.
+   *
+   * @param {Object} availability The original availability object.
+   * @param {Array} rooms List of booked rooms.
+   * @param {String} arrival
+   * @param {String} departure
+   * @returns {undefined}
+   * @throws {RoomUnavailableError}
+   */
+  _checkAvailability (availabilityData, rooms, arrival, departure) {
+    this._checkRestrictions(availabilityData, rooms.map((r) => r.id), arrival, departure);
+    const indexedAvailability = availabilityLibrary.indexAvailability(availabilityData);
+    for (let i = 0; i < rooms.length; i += 1) {
+      const numberOfGuests = rooms[i].guestInfoIds ? rooms[i].guestInfoIds.length : undefined;
+      const result = availabilityLibrary.computeAvailability(arrival, departure, numberOfGuests, [rooms[i]], indexedAvailability);
+      const roomResult = result.find((r) => r.roomTypeId === rooms[i].id);
+      if (!roomResult || !roomResult.quantity) {
+        throw new RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
+      }
+    }
   }
 
   /**
@@ -424,11 +436,13 @@ class WTAdapter {
    * @throw {IllFormedCancellationFeesError}
    */
   async checkAdmissibility (bookingInfo, pricing, bookingDate) {
-    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone'],
+    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
       hotel = await this._getHotelData(fields),
       // Convert booking date to hotel's timezone and continue
       // all computation in hotel timezone.
       bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
+    // check the room availability
+    this._checkAvailability(hotel.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
     // check cancellation fees
     this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
     // check final price
@@ -459,6 +473,7 @@ module.exports = {
   WTAdapter,
   UpstreamError,
   InvalidUpdateError,
+  RoomUnavailableError,
   RestrictionsViolatedError,
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
