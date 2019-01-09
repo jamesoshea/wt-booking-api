@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "eslint src test",
     "test": "WT_CONFIG=test ./node_modules/.bin/nyc --reporter=text ./node_modules/mocha/bin/mocha --recursive --timeout 20000",
+    "test-watch": "WT_CONFIG=test ./node_modules/mocha/bin/mocha --recursive --timeout 20000 --watch",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "start": "node src/index.js",
     "docker-start": "npm run createdb && npm start",

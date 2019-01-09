@@ -1,7 +1,3 @@
-/*
- * Taken from WT hotel explorer and adapted slightly.
- */
-
 const dayjs = require('dayjs'),
   currencyjs = require('currency.js'),
   wtpas = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
@@ -15,9 +11,9 @@ function computePrice (bookingData, ratePlans, bookingDate, currency, hotelCurre
     const computer = new wtpas.prices.PriceComputer([bookingItem.roomType], ratePlans, hotelCurrency);
     const item = computer.getBestPrice(
       bookingDate,
-      bookingItem.guestData.helpers.arrivalDateDayjs,
-      bookingItem.guestData.helpers.departureDateDayjs,
-      bookingItem.guestData.guestAges.map((a) => ({ age: a })),
+      bookingItem.arrival,
+      bookingItem.departure,
+      bookingItem.guests,
       currency
     );
 

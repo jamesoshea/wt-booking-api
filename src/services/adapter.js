@@ -423,6 +423,7 @@ class WTAdapter {
    * @throw {IllFormedCancellationFeesError}
    */
   _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
+    // TODO check with wt-pricing-alorithms implementation
     let cancellationPolicies = hotelDescription.cancellationPolicies || [],
       defaultPolicy = { amount: hotelDescription.defaultCancellationAmount };
 
@@ -457,25 +458,16 @@ class WTAdapter {
    */
   _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
     ratePlans = Object.values(ratePlans);
-    const arrivalDate = dayjs(bookingInfo.arrival),
-      departureDate = dayjs(bookingInfo.departure),
-      guestInfo = {};
-
+    const guestInfo = {};
     for (let item of bookingInfo.guestInfo) {
       guestInfo[item.id] = item;
     }
     const bookingData = bookingInfo.rooms.map((room) => {
       return {
         roomType: { id: room.id },
-        guestData: {
-          guestAges: room.guestInfoIds.map((gid) => guestInfo[gid].age),
-          helpers: {
-            arrivalDateDayjs: arrivalDate,
-            departureDateDayjs: departureDate,
-            lengthOfStay: departureDate.diff(arrivalDate, 'days'),
-            numberOfGuests: room.guestInfoIds.length,
-          },
-        },
+        arrival: bookingInfo.arrival,
+        departure: bookingInfo.departure,
+        guests: room.guestInfoIds.map((gid) => guestInfo[gid]),
       };
     });
     let price;
@@ -510,6 +502,7 @@ class WTAdapter {
       // Convert booking date to hotel's timezone and continue
       // all computation in hotel timezone.
       bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
+    // TODO where is availability checked?
     this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
     this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
   }
