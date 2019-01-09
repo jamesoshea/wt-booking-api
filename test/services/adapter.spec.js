@@ -342,9 +342,7 @@ describe('services - adapter', function () {
         cancellationFees = [
           { from: '2018-12-01', to: '2018-12-31', amount: 10 },
           { from: '2019-01-01', to: '2019-02-04', amount: 30 },
-          { from: '2019-02-05', to: '2019-02-07', amount: 50 },
-          { from: '2019-02-08', to: '2019-02-10', amount: 40 },
-          { from: '2019-02-11', to: '2019-02-20', amount: 50 },
+          { from: '2019-02-05', to: '2019-02-20', amount: 50 },
           { from: '2019-02-21', to: '2019-03-28', amount: 75 },
         ];
       await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');

@@ -3,6 +3,7 @@ const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
 const { computePrice, NoRatePlanError } = require('./pricing');
+const { cancellationFees: cancellationFeesLibrary } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
 
 class UpstreamError extends Error {};
 class InvalidUpdateError extends Error {};
@@ -253,84 +254,12 @@ class WTAdapter {
   }
 
   /**
-   * Convert policies to a normalized shape, taking into account
-   * specific booking and arrival dates.
-   *
-   * @param {Array} policies
-   * @param {dayjs} today
-   * @param {dayjs} arrival
-   * @return {Array}
-   */
-  _normalizePolicies (policies, today, arrival) {
-    // 1. Normalize policy descriptors.
-    let normalizedPolicies = policies
-      .map((p) => {
-        let policyTo = p.to ? dayjs(p.to) : arrival;
-        policyTo = arrival.isBefore(policyTo) ? arrival : policyTo;
-        let policyFrom = p.from ? dayjs(p.from) : today;
-        policyFrom = today.isAfter(policyFrom) ? today : policyFrom;
-        const deadline = p.deadline ? arrival.subtract(p.deadline, 'day') : dayjs('1970-01-01');
-        if (deadline.isAfter(policyFrom)) {
-          policyFrom = deadline;
-        }
-        return {
-          amount: p.amount,
-          policyTo: policyTo,
-          policyFrom: policyFrom,
-          deadline: deadline,
-        };
-      });
-
-    // 2. Filter out irrelevant policies.
-    normalizedPolicies = normalizedPolicies.filter((policy, index) => {
-      return !policy.deadline.isAfter(policy.policyTo);
-    });
-
-    // 3. Sort by (policyFrom, deadline) to enable cutoff by
-    // next-policy deadline.
-    normalizedPolicies.sort((p1, p2) => {
-      if (p1.policyFrom.isBefore(p2.policyFrom)) {
-        return -1;
-      } else if (p2.policyFrom.isBefore(p1.policyFrom)) {
-        return 1;
-      } else if (!p1.deadline.isSame(p2.deadline)) {
-        return p1.deadline.isBefore(p2.deadline) ? -1 : 1;
-      }
-      return 0;
-    });
-
-    // 4. Cut off by next policy deadline (taken into account in policyFrom by now).
-    policies = [];
-    for (let i = 0; i < normalizedPolicies.length; i++) {
-      const policy = normalizedPolicies[i];
-      if (i < normalizedPolicies.length - 1) {
-        const nextPolicy = normalizedPolicies[i + 1];
-        const cutoff = nextPolicy.policyFrom.subtract(1, 'day');
-        if (cutoff.isBefore(policy.policyTo)) {
-          // If we find out the next policy ends before this
-          // one, we will create an additional policy to cover
-          // the period after that.
-          if (nextPolicy.policyTo.isBefore(policy.policyTo)) {
-            const newPolicy = Object.assign({}, policy);
-            newPolicy.policyFrom = nextPolicy.policyTo.add(1, 'day');
-            normalizedPolicies.splice(i + 2, 0, newPolicy);
-          }
-          policy.policyTo = cutoff;
-        }
-      }
-      policies.push(policy);
-    }
-
-    return policies;
-  }
-
-  /**
    * Check if the given cancellation fee computed with the
    * specified arrival date is admissible wrt. the given
    * policies.
    *
    * @param {Object} fee
-   * @param {Array} policies (as returned from _normalizePolicies)
+   * @param {Array} policies (as returned by @windingtree/wt-pricing-algorithms' computeCancellationFees)
    * @param {Object} defaultPolicy
    * @return {Boolean}
    */
@@ -340,14 +269,14 @@ class WTAdapter {
 
     // 1. Select the applicable policy from the list.
     const isBeforeAny = (policies.length === 0) || feeTo.isBefore(policies[0].policyFrom),
-      isAfterAll = (policies.length === 0) || feeFrom.isAfter(policies[policies.length - 1].policyTo);
+      isAfterAll = (policies.length === 0) || feeFrom.isAfter(policies[policies.length - 1].to);
     // Keep track if the fee period is covered by any single cancellation policy.
     let covered = false;
     policies = policies.filter((policy, index) => {
       if (!isBeforeAny && !isAfterAll) {
-        covered = covered || (feeFrom.isBefore(policy.policyTo) || feeTo.isAfter(policy.policyFrom));
+        covered = covered || (feeFrom.isBefore(policy.to) || feeTo.isAfter(policy.from));
       }
-      return (feeFrom.isSame(policy.policyFrom) && feeTo.isSame(policy.policyTo));
+      return (feeFrom.isSame(policy.from) && feeTo.isSame(policy.to));
     });
 
     const policy = policies[0] || (covered ? null : defaultPolicy);
@@ -423,22 +352,20 @@ class WTAdapter {
    * @throw {IllFormedCancellationFeesError}
    */
   _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
-    // TODO check with wt-pricing-alorithms implementation
-    let cancellationPolicies = hotelDescription.cancellationPolicies || [],
-      defaultPolicy = { amount: hotelDescription.defaultCancellationAmount };
-
-    // For each item, find out if it's admissible wrt. declared
-    // cancellation policies.
     const illFormed = this._isIllFormed(cancellationFees, bookedAt, arrival);
     if (illFormed) {
       throw new IllFormedCancellationFeesError(illFormed);
     }
-
-    const arrivalDate = dayjs(arrival),
-      todayDate = dayjs(bookedAt),
-      normalizedPolicies = this._normalizePolicies(cancellationPolicies, todayDate, arrivalDate);
+    // For each item, find out if it's admissible wrt. declared
+    // cancellation policies.
+    const normalizedPolicies = cancellationFeesLibrary.computeCancellationFees(
+      bookedAt,
+      arrival,
+      hotelDescription.cancellationPolicies,
+      hotelDescription.defaultCancellationAmount
+    );
     for (let fee of cancellationFees) {
-      if (!this._isAdmissible(fee, normalizedPolicies, defaultPolicy)) {
+      if (!this._isAdmissible(fee, normalizedPolicies, { amount: hotelDescription.defaultCancellationAmount })) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
         throw new InadmissibleCancellationFeesError(msg);
       }
@@ -502,8 +429,9 @@ class WTAdapter {
       // Convert booking date to hotel's timezone and continue
       // all computation in hotel timezone.
       bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
-    // TODO where is availability checked?
+    // check cancellation fees
     this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
+    // check final price
     this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
   }
 }
