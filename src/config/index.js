@@ -34,6 +34,10 @@ const config = Object.assign({
   defaultBookingState: 'confirmed', // Or 'pending'
   updateAvailability: true, // If false, availability is not updated in data stored in WT platform
   allowCancel: true, // If false, booking cancellation is not allowed.
+  mailerOpts: {
+    provider: undefined, // dummy, ses, sendgrid, mailgun, mailchimp
+    providerOpts: {},
+  },
 }, require(`./${env}`));
 
 module.exports = config;

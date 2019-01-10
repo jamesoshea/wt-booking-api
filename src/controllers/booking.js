@@ -29,13 +29,16 @@ module.exports.create = async (req, res, next) => {
       await wtAdapter.updateAvailability(booking.rooms, booking.arrival, booking.departure);
     }
 
+    // TODO decide on personal data
     const bookingData = {
         arrival: booking.arrival,
         departure: booking.departure,
         rooms: booking.rooms.map((r) => (r.id)),
       },
       bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
-    // 4. Return confirmation.
+    // 4. E-mail confirmations
+    
+    // 5. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
       // would probably come from the hotel's property
