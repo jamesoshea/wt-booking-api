@@ -31,6 +31,7 @@
   },
   "homepage": "https://github.com/windingtree/wt-booking-api#readme",
   "dependencies": {
+    "@sendgrid/mail": "^6.3.1",
     "@windingtree/wt-pricing-algorithms": "^0.4.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.4",

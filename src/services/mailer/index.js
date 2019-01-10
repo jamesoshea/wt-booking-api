@@ -1,4 +1,5 @@
 class MailerInitializationError extends Error {};
+class MailerSendError extends Error {};
 
 class Mailer {
   constructor (provider, providerOpts) {
@@ -10,7 +11,7 @@ class Mailer {
         providerModule.initialize(providerOpts);
         this._provider = providerModule;
       } catch (e) {
-        throw new MailerInitializationError(`Unknown provider ${provider}`);
+        throw new MailerInitializationError(`Cannot initialize '${provider}': ${e.message}`);
       }
     }
   }
@@ -19,7 +20,6 @@ class Mailer {
     if (this._provider) {
       return this._provider.sendMail(opts);
     }
-    // TODO figure out proper response
     return Promise.resolve();
   }
 }
@@ -46,6 +46,7 @@ function set (mailer) {
 module.exports = {
   Mailer,
   MailerInitializationError,
+  MailerSendError,
   get,
   set,
 };
