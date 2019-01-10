@@ -3,9 +3,25 @@ const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
 const config = require('../config');
 const validators = require('../services/validators');
 const adapter = require('../services/adapter');
+const mailComposer = require('../services/mailComposer');
+const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
 const hotelId = config.adapterOpts.hotelId.toLowerCase();
+
+const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
+  return {
+    customer: bookingBody.customer,
+    note: bookingBody.note,
+    hotel: await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']),
+    arrival: bookingBody.arrival,
+    departure: bookingBody.departure,
+    // TODO transform roomlist+guestlist to a decent traversable data structure
+    pricing: bookingBody.pricing,
+    id: bookingRecord.id,
+    status: bookingRecord.status,
+  };
+};
 
 /**
  * Create a new booking.
@@ -29,7 +45,7 @@ module.exports.create = async (req, res, next) => {
       await wtAdapter.updateAvailability(booking.rooms, booking.arrival, booking.departure);
     }
 
-    // TODO decide on personal data
+    // We are not storing any personal information
     const bookingData = {
         arrival: booking.arrival,
         departure: booking.departure,
@@ -37,7 +53,26 @@ module.exports.create = async (req, res, next) => {
       },
       bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
     // 4. E-mail confirmations
-    
+    const mailer = mailerService.get();
+    const mailInformation = ((config.mailing.sendHotel && config.mailing.hotelAddress) || config.mailing.sendCustomer)
+      ? await prepareDataForConfirmationMail(req.body, bookingRecord, wtAdapter)
+      : {};
+    // hotel
+    if (config.mailing.sendHotel && config.mailing.hotelAddress) {
+      // no need to wait for result
+      mailer.sendMail({
+        to: config.mailing.hotelAddress,
+        ...mailComposer.renderHotel(mailInformation),
+      });
+    }
+    // customer
+    if (config.mailing.sendCustomer) {
+      // no need to wait for result
+      mailer.sendMail({
+        to: req.body.customer.email,
+        ...mailComposer.renderCustomer(mailInformation),
+      });
+    }
     // 5. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID

@@ -248,7 +248,7 @@ class WTAdapter {
    * @param {Array<String>} fields
    * @returns {Promise<Object>}
    */
-  async _getHotelData (fields) {
+  async getHotelData (fields) {
     fields = fields.join(',');
     try {
       const response = await request({
@@ -452,7 +452,7 @@ class WTAdapter {
     };
     if (Object.values(checkOpts).filter((v) => v).length > 0) {
       const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
-        hotel = await this._getHotelData(fields),
+        hotel = await this.getHotelData(fields),
         // Convert booking date to hotel's timezone and continue
         // all computation in hotel timezone.
         bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
