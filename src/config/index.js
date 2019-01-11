@@ -40,7 +40,7 @@ const config = Object.assign({
     hotelAddress: undefined,
   },
   mailerOpts: {
-    provider: undefined, // dummy, ses, sendgrid, mailgun, mailchimp
+    provider: undefined, // dummy, sendgrid (or other if implemented)
     providerOpts: {
       from: 'booking-noreply@windingtree.com', // E-mail originator
     },

@@ -25,7 +25,7 @@ if (process.env.DEFAULT_BOOKING_STATE && process.env.DEFAULT_BOOKING_STATE !== '
 module.exports = {
   db: knex({
     client: process.env.DB_CLIENT,
-    connection: JSON.parse(process.env.DB_CLIENT_OPTIONS),
+    connection: JSON.parse(process.env.DB_CLIENT_OPTIONS) || {},
     useNullAsDefault: true,
   }),
   adapterOpts: {
@@ -44,4 +44,13 @@ module.exports = {
   defaultBookingState: process.env.DEFAULT_BOOKING_STATE || 'confirmed',
   updateAvailability: convertEnvVarToBoolean(process.env.UPDATE_AVAILABILITY, true),
   allowCancel: convertEnvVarToBoolean(process.env.ALLOW_CANCELLATION, true),
+  mailing: {
+    sendHotel: convertEnvVarToBoolean(process.env.MAIL_HOTEL_CONFIRMATION_SEND, false),
+    sendCustomer: convertEnvVarToBoolean(process.env.MAIL_CUSTOMER_CONFIRMATION_SEND, false),
+    hotelAddress: convertEnvVarToBoolean(process.env.MAIL_HOTEL_CONFIRMATION_ADDRESS, undefined),
+  },
+  mailerOpts: {
+    provider: process.env.MAIL_PROVIDER || undefined, // dummy, sendgrid
+    providerOpts: JSON.parse(process.env.MAIL_PROVIDER_OPTIONS) || {},
+  },
 };

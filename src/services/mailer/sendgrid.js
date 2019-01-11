@@ -4,6 +4,10 @@ const { MailerSendError } = require('./index');
 class SendgridMailerError extends Error {};
 
 let _opts;
+/**
+ *
+ * @param  {Object} opts Requires `from` and `apiKey`
+ */
 const initialize = (opts) => {
   _opts = opts;
   if (!opts.apiKey) {
@@ -15,6 +19,12 @@ const initialize = (opts) => {
   sendgridApi.setApiKey(opts.apiKey);
 };
 
+/**
+ * Sends e-mail via sendgrid service.
+ * @param  {Object} params Requires keys `to`, `subject`,
+ * `text` and `html`.
+ * @return {Promise}
+ */
 const sendMail = (params) => {
   const required = ['to', 'subject', 'text', 'html'];
   for (let i = 0; i < required.length; i++) {
