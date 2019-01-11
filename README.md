@@ -70,6 +70,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `HOTEL_ID` - On-chain Address of the hotel.
 - `WRITE_API_KEY` - Access Key for wt-write-api instance.
 - `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key.
+- `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
 
 The following options are optional.
 

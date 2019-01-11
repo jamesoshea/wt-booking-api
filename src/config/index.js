@@ -6,7 +6,7 @@ const config = Object.assign({
   port: 8935,
   baseUrl: process.env.BASE_URL || 'http://localhost:8935',
   logger: winston.createLogger({
-    level: 'info',
+    level: process.env.LOG_LEVEL || 'info',
     transports: [
       new winston.transports.Console({
         format: winston.format.simple(),
