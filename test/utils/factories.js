@@ -1,5 +1,56 @@
 const config = require('../../src/config');
 
+module.exports.getHotelData = function () {
+  return {
+    name: 'Hotel Mazurka',
+    contacts: {
+      general: {
+        email: 'info@hotel-mazurka.com',
+        phone: '004078965423',
+        url: 'https://www.hotel-mazurka.com',
+      },
+    },
+    address: {
+      line1: 'Transylvania Road 789',
+      line2: '',
+      postalCode: '33312',
+      city: 'Dragolm',
+      country: 'RO',
+    },
+    roomTypes: [
+      {
+        name: 'Single room - standard',
+        description: 'Standard single-bed room with a private bathroom.',
+        totalQuantity: 6,
+        occupancy: {
+          min: 1,
+          max: 1,
+        },
+        amenities: [
+          'TV',
+        ],
+        id: 'single-room',
+        updatedAt: '2019-01-02T11:41:47.537Z',
+      },
+      {
+        name: 'Double room',
+        description: 'Room with a double bed',
+        totalQuantity: 4,
+        occupancy: {
+          min: 1,
+          max: 2,
+        },
+        amenities: [
+          'TV',
+        ],
+        id: 'double-room',
+        updatedAt: '2019-01-02T11:41:47.537Z',
+      },
+    ],
+    id: '0xD8b8aF90986174d5c5558aAC0905AA1DB2Ee41ce',
+  };
+};
+
 module.exports.getBooking = function () {
   return {
     hotelId: config.adapterOpts.hotelId,

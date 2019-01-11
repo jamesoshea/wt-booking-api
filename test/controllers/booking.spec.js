@@ -5,7 +5,7 @@ const request = require('supertest');
 const sinon = require('sinon');
 
 const config = require('../../src/config');
-const { getBooking } = require('../utils/factories');
+const { getBooking, getHotelData } = require('../utils/factories');
 const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapter');
 const Booking = require('../../src/models/booking');
@@ -20,7 +20,7 @@ describe('controllers - booking', function () {
     mailerOrig = mailerService.get();
     wtAdapter = {
       getHotelData: sinon.stub().callsFake((fields) => {
-        return Promise.resolve({});
+        return Promise.resolve(getHotelData());
       }),
       updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
         if (arrival === 'UpstreamError') {

@@ -10,13 +10,20 @@ const Booking = require('../models/booking');
 const hotelId = config.adapterOpts.hotelId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
+  const hotelData = await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']);
+  const roomList = bookingBody.booking.rooms.map((r) => {
+    return {
+      roomType: hotelData.roomTypes.find((rt) => rt.id === r.id),
+      guests: r.guestInfoIds.map((gid) => bookingBody.booking.guestInfo.find((gi) => gi.id === gid)),
+    };
+  });
   return {
     customer: bookingBody.customer,
     note: bookingBody.note,
-    hotel: await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']),
+    hotel: hotelData,
     arrival: bookingBody.arrival,
     departure: bookingBody.departure,
-    // TODO transform roomlist+guestlist to a decent traversable data structure
+    roomList,
     pricing: bookingBody.pricing,
     id: bookingRecord.id,
     status: bookingRecord.status,
