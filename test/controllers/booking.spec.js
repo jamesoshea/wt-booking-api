@@ -5,17 +5,23 @@ const request = require('supertest');
 const sinon = require('sinon');
 
 const config = require('../../src/config');
-const { getBooking } = require('../utils/factories');
+const { getBooking, getHotelData } = require('../utils/factories');
+const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapter');
 const Booking = require('../../src/models/booking');
 
 describe('controllers - booking', function () {
-  let server, wtAdapterOrig, wtAdapter;
+  let server, wtAdapterOrig, wtAdapter,
+    mailerOrig, mailer;
 
   before(async () => {
     server = require('../../src/index');
     wtAdapterOrig = adapter.get();
+    mailerOrig = mailerService.get();
     wtAdapter = {
+      getHotelData: sinon.stub().callsFake((fields) => {
+        return Promise.resolve(getHotelData());
+      }),
       updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
         if (arrival === 'UpstreamError') {
           return Promise.reject(new adapter.UpstreamError());
@@ -32,17 +38,27 @@ describe('controllers - booking', function () {
         return Promise.resolve();
       }),
     };
+    mailer = {
+      sendMail: sinon.stub().resolves(true),
+    };
+    mailerService.set(mailer);
     adapter.set(wtAdapter);
+  });
+
+  beforeEach(() => {
+    wtAdapter.updateAvailability.resetHistory();
+    wtAdapter.checkAdmissibility.resetHistory();
+    mailer.sendMail.resetHistory();
   });
 
   after(() => {
     server.close();
     adapter.set(wtAdapterOrig);
+    mailerService.set(mailerOrig);
   });
 
   describe('POST /booking', () => {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
-      wtAdapter.updateAvailability.resetHistory();
       request(server)
         .post('/booking')
         .send(getBooking())
@@ -85,7 +101,6 @@ describe('controllers - booking', function () {
     });
 
     it('should accept the booking, store it, perform the update and return a confirmation with pending state if configured', (done) => {
-      wtAdapter.updateAvailability.resetHistory();
       const orig = config.defaultBookingState;
       config.defaultBookingState = Booking.STATUS.PENDING;
       request(server)
@@ -126,8 +141,7 @@ describe('controllers - booking', function () {
         });
     });
 
-    it('should accept the booking, store it, and return a confirmation without doing an update if configured', (done) => {
-      wtAdapter.updateAvailability.resetHistory();
+    it('should not do an update if configured', (done) => {
       const orig = config.updateAvailability;
       config.updateAvailability = false;
       request(server)
@@ -139,21 +153,98 @@ describe('controllers - booking', function () {
           if (err) return done(err);
           try {
             assert.equal(wtAdapter.updateAvailability.callCount, 0);
-            assert.property(res.body, 'id');
-            assert.propertyVal(res.body, 'status', Booking.STATUS.CONFIRMED);
-            const booking = await Booking.get(res.body.id);
-            assert.isDefined(booking);
-            assert.propertyVal(booking, 'id', res.body.id);
-            assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
-            assert.deepEqual(booking.rawData, {
-              arrival: '2019-01-01',
-              departure: '2019-01-03',
-              rooms: ['single-room', 'single-room'],
-            });
             config.updateAvailability = orig;
             done();
           } catch (err) {
             config.updateAvailability = orig;
+            done(err);
+          }
+        });
+    });
+
+    it('should send email to hotel if configured', (done) => {
+      const origMailerOpts = config.mailerOpts;
+      const origMailing = config.mailing;
+      config.mailerOpts = { provider: 'dummy' };
+      config.mailing = {
+        sendHotel: true,
+        hotelAddress: 'hotel@example.com',
+      };
+      request(server)
+        .post('/booking')
+        .send(getBooking())
+        .expect(200)
+        .expect('content-type', /application\/json/)
+        .end(async (err, res) => {
+          if (err) return done(err);
+          try {
+            assert.equal(mailer.sendMail.callCount, 1);
+            assert.equal(mailer.sendMail.firstCall.args[0].to, 'hotel@example.com');
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
+            done();
+          } catch (err) {
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
+            done(err);
+          }
+        });
+    });
+
+    it('should send email to customer if configured', (done) => {
+      const origMailerOpts = config.mailerOpts;
+      const origMailing = config.mailing;
+      config.mailerOpts = { provider: 'dummy' };
+      config.mailing = {
+        sendCustomer: true,
+      };
+      request(server)
+        .post('/booking')
+        .send(getBooking())
+        .expect(200)
+        .expect('content-type', /application\/json/)
+        .end(async (err, res) => {
+          if (err) return done(err);
+          try {
+            assert.equal(mailer.sendMail.callCount, 1);
+            assert.equal(mailer.sendMail.firstCall.args[0].to, 'sherlock.holmes@houndofthebaskervilles.net');
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
+            done();
+          } catch (err) {
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
+            done(err);
+          }
+        });
+    });
+
+    it('should send email to hotel and customer if configured', (done) => {
+      const origMailerOpts = config.mailerOpts;
+      const origMailing = config.mailing;
+      config.mailerOpts = { provider: 'dummy' };
+      config.mailing = {
+        sendCustomer: true,
+        sendHotel: true,
+        hotelAddress: 'hotel@example.com',
+      };
+      request(server)
+        .post('/booking')
+        .send(getBooking())
+        .expect(200)
+        .expect('content-type', /application\/json/)
+        .end(async (err, res) => {
+          if (err) return done(err);
+          try {
+            assert.equal(mailer.sendMail.callCount, 2);
+            assert.equal(mailer.sendMail.firstCall.args[0].to, 'hotel@example.com');
+            assert.equal(mailer.sendMail.secondCall.args[0].to, 'sherlock.holmes@houndofthebaskervilles.net');
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
+            done();
+          } catch (err) {
+            config.mailerOpts = origMailerOpts;
+            config.mailing = origMailing;
             done(err);
           }
         });
@@ -240,7 +331,6 @@ describe('controllers - booking', function () {
 
   describe('DELETE /booking/:id', () => {
     it('should mark an existing booking as cancelled and restore the availability', (done) => {
-      wtAdapter.updateAvailability.resetHistory();
       Booking.create({
         arrival: '2019-01-01',
         departure: '2019-01-03',

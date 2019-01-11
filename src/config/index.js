@@ -34,6 +34,17 @@ const config = Object.assign({
   defaultBookingState: 'confirmed', // Or 'pending'
   updateAvailability: true, // If false, availability is not updated in data stored in WT platform
   allowCancel: true, // If false, booking cancellation is not allowed.
+  mailing: {
+    sendHotel: false, // If true, a summary of each accepted booking is sent to hotelAddress. Requires configured mailer.
+    sendCustomer: false, // If true, a summary of each accepted booking is sent to the customer. Requires configured mailer.
+    hotelAddress: undefined,
+  },
+  mailerOpts: {
+    provider: undefined, // dummy, sendgrid (or other if implemented)
+    providerOpts: {
+      from: 'booking-noreply@windingtree.com', // E-mail originator
+    },
+  },
 }, require(`./${env}`));
 
 module.exports = config;

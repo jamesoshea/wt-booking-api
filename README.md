@@ -73,6 +73,8 @@ example `{"filename": "./envvar.sqlite"}`.
 
 The following options are optional.
 
+#### Checking
+
 - `CHECK_AVAILABILITY` - If false, no restrictions and no room quantity is checked. This may lead
 to overbooking. Defaults to true.
 - `CHECK_CANCELLATION_FEES` - If false, passed cancellation fees are not validated. This may lead
@@ -81,10 +83,26 @@ to conditions unfavourable for a hotel. Defaults to true.
 to conditions unfavourable for a hotel. Defaults to true.
 - `DEFAULT_BOOKING_STATE` - This state is assigned to every accepted booking. Can be `confirmed`
 or `pending`. Defaults to `confirmed`.
+
+#### Data modification
+
 - `UPDATE_AVAILABILITY` - If false, availability is not updated in data stored in WT platform. This
 makes sense with using `DEFAULT_BOOKING_STATE` with `pending` value when you have to process the
 booking manually anyway. Defaults to true.
 - `ALLOW_CANCELLATION` - If false, booking cancellation is not allowed. Defaults to true.
+
+#### Mailing
+
+- `MAIL_HOTEL_CONFIRMATION_SEND` - If true, a summary of each accepted booking is sent to
+`HOTEL_CONFIRMATION_ADDRESS`. Requires configured mailer and that address. Defaults to false.
+- `MAIL_CUSTOMER_CONFIRMATION_SEND` - If true, a summary of each accepted booking is sent
+to the customer. Requires configured mailer. Defaults to false.
+- `MAIL_HOTEL_CONFIRMATION_ADDRESS` - E-mail address to which the hotel confirmations will be
+sent.
+- `MAIL_PROVIDER` - Denotes which mailing provider should be used. Supported values are `dummy`
+and `sendgrid`. Defaults to undefined.
+- `MAIL_PROVIDER_OPTIONS` - JSON string with options of any given mailing provider. For example
+`{"from": "noreply@example.com"}`. See providers implementation for particular options.
 
 For boolean flags, any of '1', '0', 'true', 'false', 'yes', 'no' should work (case insensitive).
 
