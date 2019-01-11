@@ -1,6 +1,6 @@
 {
   "name": "wt-booking-api",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A sample API written in node.js implementing the WT booking interface.",
   "main": "src/index.js",
   "scripts": {
