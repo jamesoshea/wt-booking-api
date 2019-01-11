@@ -30,7 +30,7 @@ const hotelText = (data) => {
 };
 
 const hotelHtml = (data) => {
-  return hotelText();
+  return hotelText(data);
 };
 
 const customerSubject = (data) => {
@@ -42,7 +42,7 @@ const customerText = (data) => {
 };
 
 const customerHtml = (data) => {
-  return customerText();
+  return customerText(data);
 };
 
 module.exports = {
