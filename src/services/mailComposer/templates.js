@@ -1,4 +1,5 @@
 const dayjs = require('dayjs');
+const nl2br = require('nl2br');
 
 /**
  * mailData specs:
@@ -123,7 +124,7 @@ ${data.note}`
 };
 
 const hotelHtml = (data) => {
-  return hotelText(data);
+  return nl2br(hotelText(data));
 };
 
 const customerSubject = (data) => {
@@ -148,7 +149,7 @@ ${data.note}`
 };
 
 const customerHtml = (data) => {
-  return customerText(data);
+  return nl2br(customerText(data));
 };
 
 module.exports = {
