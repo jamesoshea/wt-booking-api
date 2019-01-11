@@ -47,7 +47,7 @@ module.exports = {
   mailing: {
     sendHotel: convertEnvVarToBoolean(process.env.MAIL_HOTEL_CONFIRMATION_SEND, false),
     sendCustomer: convertEnvVarToBoolean(process.env.MAIL_CUSTOMER_CONFIRMATION_SEND, false),
-    hotelAddress: convertEnvVarToBoolean(process.env.MAIL_HOTEL_CONFIRMATION_ADDRESS, undefined),
+    hotelAddress: process.env.MAIL_HOTEL_CONFIRMATION_ADDRESS || undefined,
   },
   mailerOpts: {
     provider: process.env.MAIL_PROVIDER || undefined, // dummy, sendgrid
