@@ -59,7 +59,7 @@ To run the server, you need to go through the following steps:
 
 ### Running the server in a hosted docker-based environment
 
-- You can use this API as a parametrized docker image in your setup:
+You can use this API as a parametrized docker image in your setup:
 
 - `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`.
 - `DB_CLIENT` - [Knex](https://knexjs.org/) database client name, for example `sqlite3`.
