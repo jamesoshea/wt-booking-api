@@ -2,15 +2,16 @@ const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
-const adapter = require('../services/adapter');
+const adapter = require('../services/adapters/base-adapter');
+const hotelAdapter = require('../services/adapters/hotel-adapter');
 const mailComposer = require('../services/mailComposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
-const hotelId = config.adapterOpts.hotelId.toLowerCase();
+const hotelId = config.adapterOpts.supplierId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
-  const hotelData = await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']);
+  const hotelData = await adapter.getSupplierData(['name', 'contacts', 'address', 'roomTypes']);
   const roomList = bookingBody.booking.rooms.map((r) => {
     return {
       roomType: hotelData.roomTypes.find((rt) => rt.id === r.id),
@@ -61,15 +62,15 @@ module.exports.create = async (req, res, next) => {
       bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
     // 4. E-mail confirmations
     const mailer = mailerService.get();
-    const mailInformation = ((config.mailing.sendHotel && config.mailing.hotelAddress) || config.mailing.sendCustomer)
+    const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
       ? await prepareDataForConfirmationMail(req.body, bookingRecord, wtAdapter)
       : {};
     // hotel
-    if (config.mailing.sendHotel && config.mailing.hotelAddress) {
+    if (config.mailing.sendSupplier && config.mailing.supplierAddress) {
       // no need to wait for result
       mailer.sendMail({
-        to: config.mailing.hotelAddress,
-        ...mailComposer.renderHotel(mailInformation),
+        to: config.mailing.supplierAddress,
+        ...mailComposer.renderSupplier(mailInformation),
       });
     }
     // customer
@@ -92,20 +93,20 @@ module.exports.create = async (req, res, next) => {
     if (err instanceof validators.ValidationError) {
       return next(new HttpValidationError('validationFailed', err.message));
     }
-    if (err instanceof adapter.UpstreamError) {
+    if (err instanceof hotelAdapter.UpstreamError) {
       return next(new HttpBadGatewayError('badGatewayError', err.message));
     }
-    if (err instanceof adapter.InvalidUpdateError) {
+    if (err instanceof hotelAdapter.InvalidUpdateError) {
       return next(new HttpConflictError('conflictError', err.message));
     }
-    if (err instanceof adapter.RestrictionsViolatedError) {
+    if (err instanceof hotelAdapter.RestrictionsViolatedError) {
       return next(new HttpConflictError('restrictionsViolated', err.message));
     }
-    if (err instanceof adapter.InvalidPriceError) {
+    if (err instanceof hotelAdapter.InvalidPriceError) {
       return next(new HttpValidationError('invalidPrice', err.message));
     }
-    if ((err instanceof adapter.InadmissibleCancellationFeesError) ||
-      (err instanceof adapter.IllFormedCancellationFeesError)) {
+    if ((err instanceof hotelAdapter.InadmissibleCancellationFeesError) ||
+      (err instanceof hotelAdapter.IllFormedCancellationFeesError)) {
       return next(new HttpValidationError('invalidCancellationFees', err.message));
     }
     next(err);
@@ -141,7 +142,7 @@ module.exports.cancel = async (req, res, next) => {
     await Booking.cancel(bookingId);
     return res.sendStatus(204);
   } catch (err) {
-    if (err instanceof adapter.InvalidUpdateError) {
+    if (err instanceof hotelAdapter.InvalidUpdateError) {
       // This happens when availability data have changed so
       // much since the booking that it cannot be restored any
       // more.

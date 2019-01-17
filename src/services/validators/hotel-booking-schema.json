@@ -95,7 +95,7 @@
         }
       }
     },
-    "BookingInfo": {
+    "HotelBookingInfo": {
       "description": "Information on the booked property",
       "type": "object",
       "required": [
@@ -163,7 +163,7 @@
       "format": "eth-address"
     },
     "booking": {
-      "$ref": "#/definitions/BookingInfo"
+      "$ref": "#/definitions/HotelBookingInfo"
     },
     "pricing": {
       "type": "object",

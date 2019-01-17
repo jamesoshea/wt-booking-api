@@ -1,7 +1,16 @@
 const tv4 = require('tv4');
 const validator = require('validator');
 
-const bookingSchema = require('./booking-schema.json');
+const config = require('../../config');
+
+let bookingSchema;
+if (config.segment === 'hotels') {
+  bookingSchema = require('./hotel-booking-schema.json');
+} else if (config.segment === 'airlines') {
+  bookingSchema = require('./airline-booking-schema.json');
+} else {
+  throw new Error(`Unknown segment ${config.segment}`);
+}
 
 class ValidationError extends Error {};
 module.exports.ValidationError = ValidationError;

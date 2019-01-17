@@ -1,10 +1,15 @@
 const winston = require('winston');
+const assert = require('assert');
 
 const env = process.env.WT_CONFIG || 'dev';
+
+const segment = process.env.WT_SEGMENT || 'hotels';
+assert(['hotels', 'airlines'].indexOf(segment) !== -1);
 
 const config = Object.assign({
   port: 8935,
   baseUrl: process.env.BASE_URL || 'http://localhost:8935',
+  segment: segment,
   logger: winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     transports: [
@@ -18,7 +23,7 @@ const config = Object.assign({
     // In your env config, replace these with suitable values.
     readApiUrl: 'http://localhost:3000',
     writeApiUrl: 'http://localhost:8000',
-    hotelId: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
+    supplierId: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
     writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
     writeApiWalletPassword: 'windingtree',
   },
@@ -35,9 +40,9 @@ const config = Object.assign({
   updateAvailability: true, // If false, availability is not updated in data stored in WT platform
   allowCancel: true, // If false, booking cancellation is not allowed.
   mailing: {
-    sendHotel: false, // If true, a summary of each accepted booking is sent to hotelAddress. Requires configured mailer.
+    sendSupplier: false, // If true, a summary of each accepted booking is sent to supplierAddress. Requires configured mailer.
     sendCustomer: false, // If true, a summary of each accepted booking is sent to the customer. Requires configured mailer.
-    hotelAddress: undefined,
+    supplierAddress: undefined,
   },
   mailerOpts: {
     provider: undefined, // dummy, sendgrid (or other if implemented)

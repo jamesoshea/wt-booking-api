@@ -51,9 +51,9 @@ module.exports.getHotelData = function () {
   };
 };
 
-module.exports.getBooking = function () {
+module.exports.getHotelBooking = function () {
   return {
-    hotelId: config.adapterOpts.hotelId,
+    hotelId: config.adapterOpts.supplierId,
     customer: {
       name: 'Sherlock',
       surname: 'Holmes',

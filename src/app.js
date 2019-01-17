@@ -9,7 +9,7 @@ const YAML = require('yamljs');
 
 const config = require('./config');
 const { version } = require('../package.json');
-const booking = require('./controllers/booking');
+const booking = require(`./controllers/${config.segment}-booking`);
 const { HttpError, HttpInternalError, Http404Error, HttpBadRequestError } = require('./errors');
 
 const app = express();

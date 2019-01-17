@@ -4,18 +4,18 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 
 const {
-  WTAdapter,
+  WTHotelAdapter,
   InvalidUpdateError,
   RestrictionsViolatedError,
   RoomUnavailableError,
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
   InvalidPriceError,
-} = require('../../src/services/adapter');
+} = require('../../../src/services/adapters/hotel-adapter');
 
 function _getAdapter () {
-  return new WTAdapter({
-    hotelId: 'hotelId',
+  return new WTHotelAdapter({
+    supplierId: 'supplierId',
     readApiUrl: 'http://readApiUrl',
     writeApiUrl: 'http://writeApiUrl',
     writeApiAccessKey: 'writeApiAccessKey',
@@ -23,8 +23,8 @@ function _getAdapter () {
   });
 }
 
-describe('services - adapter', function () {
-  describe('WTAdapter._applyUpdate', () => {
+describe('services - hotel adapter', function () {
+  describe('WTHotelAdapter._applyUpdate', () => {
     const wtAdapter = _getAdapter();
     let availability;
 
@@ -78,7 +78,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter._checkRestrictions', () => {
+  describe('WTHotelAdapter._checkRestrictions', () => {
     const wtAdapter = _getAdapter(),
       availability = [
         { roomTypeId: 'roomType1', date: '2019-01-01', quantity: 10 },
@@ -104,7 +104,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter._checkAvailability', () => {
+  describe('WTHotelAdapter._checkAvailability', () => {
     const wtAdapter = _getAdapter();
     it('should throw when the room is not available', async () => {
       assert.throws(() => {
@@ -134,7 +134,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter.updateAvailability', () => {
+  describe('WTHotelAdapter.updateAvailability', () => {
     let wtAdapter;
 
     beforeEach(async () => {
@@ -200,7 +200,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter._checkCancellationFees', () => {
+  describe('WTHotelAdapter._checkCancellationFees', () => {
     const wtAdapter = _getAdapter(),
       description = {
         defaultCancellationAmount: 10,
@@ -402,7 +402,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter._checkTotal', () => {
+  describe('WTHotelAdapter._checkTotal', () => {
     // NOTE: Most of the testing is done within the pricing.spec.js test suite.
     const wtAdapter = _getAdapter(),
       description = { currency: 'EUR' },
@@ -437,7 +437,7 @@ describe('services - adapter', function () {
     });
   });
 
-  describe('WTAdapter.checkAdmissibility', () => {
+  describe('WTHotelAdapter.checkAdmissibility', () => {
     const hotelData = { dummy: true,
         ratePlans: 'ratePlans',
         timezone: 'Europe/Prague',
@@ -462,7 +462,7 @@ describe('services - adapter', function () {
       today = '2018-12-01';
 
     beforeEach(() => {
-      sinon.stub(wtAdapter, 'getHotelData').callsFake(() => {
+      sinon.stub(wtAdapter, 'getSupplierData').callsFake(() => {
         return Promise.resolve(hotelData);
       });
       sinon.stub(wtAdapter, '_checkCancellationFees').returns(undefined);
@@ -471,7 +471,7 @@ describe('services - adapter', function () {
     });
 
     afterEach(() => {
-      wtAdapter.getHotelData.restore();
+      wtAdapter.getSupplierData.restore();
       wtAdapter._checkCancellationFees.restore();
       wtAdapter._checkTotal.restore();
       wtAdapter._checkAvailability.restore();
@@ -479,7 +479,7 @@ describe('services - adapter', function () {
 
     it('should call all the checking functions', async () => {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today));
-      assert.equal(wtAdapter.getHotelData.callCount, 1);
+      assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
       assert.deepEqual(wtAdapter._checkCancellationFees.args[0],
         [hotelData, 'cancellationFees', today, 'arrival']);
@@ -493,7 +493,7 @@ describe('services - adapter', function () {
 
     it('should call no checking functions if configured so', async () => {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today), {});
-      assert.equal(wtAdapter.getHotelData.callCount, 0);
+      assert.equal(wtAdapter.getSupplierData.callCount, 0);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
       assert.equal(wtAdapter._checkTotal.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
@@ -503,7 +503,7 @@ describe('services - adapter', function () {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today), {
         cancellationFees: true,
       });
-      assert.equal(wtAdapter.getHotelData.callCount, 1);
+      assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
       assert.equal(wtAdapter._checkTotal.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
@@ -513,7 +513,7 @@ describe('services - adapter', function () {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today), {
         totalPrice: true,
       });
-      assert.equal(wtAdapter.getHotelData.callCount, 1);
+      assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
       assert.equal(wtAdapter._checkTotal.callCount, 1);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
@@ -523,7 +523,7 @@ describe('services - adapter', function () {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today), {
         availability: true,
       });
-      assert.equal(wtAdapter.getHotelData.callCount, 1);
+      assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
       assert.equal(wtAdapter._checkTotal.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 1);

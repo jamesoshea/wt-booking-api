@@ -1,0 +1,145 @@
+{
+  "type": "object",
+  "required": [
+    "customer",
+    "airlineId",
+    "booking",
+    "pricing"
+  ],
+  "definitions": {
+    "Address": {
+      "title": "Postal address",
+      "type": "object",
+      "required": [
+        "line1",
+        "city",
+        "country"
+      ],
+      "properties": {
+        "line1": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "line2": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "postalCode": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 2,
+          "minLength": 2,
+          "description": "ISO 3166-1 alpha-2 codes"
+        }
+      }
+    },
+    "Customer": {
+      "description": "Person responsible for this booking who should be contacted by the hotel if needed",
+      "type": "object",
+      "required": [
+        "name",
+        "surname",
+        "email"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "surname": {
+          "type": "string"
+        },
+        "address": {
+          "$ref": "#/definitions/Address"
+        },
+        "phone": {
+          "description": "Phone number (with country prefix)",
+          "type": "string",
+          "maxLength": 18
+        },
+        "email": {
+          "description": "E-mail contact",
+          "type": "string",
+          "format": "email",
+          "maxLength": 150
+        }
+      }
+    },
+    "AirlineBookingInfo": {
+    }
+  },
+  "properties": {
+    "customer": {
+      "$ref": "#/definitions/Customer"
+    },
+    "note": {
+      "description": "Additional information passed to an airline from a customer",
+      "type": "string"
+    },
+    "airlineId": {
+      "description": "Airline ID within the Winding Tree platform",
+      "type": "string",
+      "format": "eth-address"
+    },
+    "booking": {
+      "$ref": "#/definitions/AirlineBookingInfo"
+    },
+    "pricing": {
+      "type": "object",
+      "required": [
+        "currency",
+        "total",
+        "cancellationFees"
+      ],
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 Currency code",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3,
+          "format": "currency-code"
+        },
+        "total": {
+          "description": "Total price that should be paid. Including taxes - this is subject to change in the future.",
+          "type": "number",
+          "format": "float"
+        },
+        "cancellationFees": {
+          "description": "Under what conditions can this booking be cancelled and how much will it cost.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "amount"],
+            "properties": {
+              "from": {
+                "description": "After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.",
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "description": "Before which date does this cancellation policy apply (including). If not present, this policy applies until the time of arrival.",
+                "type": "string",
+                "format": "date"
+              },
+              "amount": {
+                "description": "Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.",
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

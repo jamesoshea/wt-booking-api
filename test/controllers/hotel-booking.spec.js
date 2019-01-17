@@ -5,9 +5,10 @@ const request = require('supertest');
 const sinon = require('sinon');
 
 const config = require('../../src/config');
-const { getBooking, getHotelData } = require('../utils/factories');
+const { getHotelBooking, getHotelData } = require('../utils/factories');
 const mailerService = require('../../src/services/mailer');
-const adapter = require('../../src/services/adapter');
+const adapter = require('../../src/services/adapters/base-adapter');
+const hotelAdapter = require('../../src/services/adapters/hotel-adapter');
 const Booking = require('../../src/models/booking');
 
 describe('controllers - booking', function () {
@@ -19,21 +20,21 @@ describe('controllers - booking', function () {
     wtAdapterOrig = adapter.get();
     mailerOrig = mailerService.get();
     wtAdapter = {
-      getHotelData: sinon.stub().callsFake((fields) => {
+      getSupplierData: sinon.stub().callsFake((fields) => {
         return Promise.resolve(getHotelData());
       }),
       updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
         if (arrival === 'UpstreamError') {
-          return Promise.reject(new adapter.UpstreamError());
+          return Promise.reject(new hotelAdapter.UpstreamError());
         }
         if (arrival === 'InvalidUpdateError') {
-          return Promise.reject(new adapter.InvalidUpdateError());
+          return Promise.reject(new hotelAdapter.InvalidUpdateError());
         }
         return Promise.resolve();
       }),
       checkAdmissibility: sinon.stub().callsFake((booking) => {
         if (booking.arrival === 'InvalidPriceError') {
-          return Promise.reject(new adapter.InvalidPriceError());
+          return Promise.reject(new hotelAdapter.InvalidPriceError());
         }
         return Promise.resolve();
       }),
@@ -61,7 +62,7 @@ describe('controllers - booking', function () {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -105,7 +106,7 @@ describe('controllers - booking', function () {
       config.defaultBookingState = Booking.STATUS.PENDING;
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -146,7 +147,7 @@ describe('controllers - booking', function () {
       config.updateAvailability = false;
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -167,12 +168,12 @@ describe('controllers - booking', function () {
       const origMailing = config.mailing;
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
-        sendHotel: true,
-        hotelAddress: 'hotel@example.com',
+        sendSupplier: true,
+        supplierAddress: 'hotel@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -200,7 +201,7 @@ describe('controllers - booking', function () {
       };
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -225,12 +226,12 @@ describe('controllers - booking', function () {
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
         sendCustomer: true,
-        sendHotel: true,
-        hotelAddress: 'hotel@example.com',
+        sendSupplier: true,
+        supplierAddress: 'hotel@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getBooking())
+        .send(getHotelBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -251,7 +252,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       booking.customer.phone = '+420777777777';
       booking.customer.email = 'sherlock.holmes@houndofthebaskervilles.net';
       request(server)
@@ -262,7 +263,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 422 if neither e-mail nor phone are supplied', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       delete booking.customer.phone;
       delete booking.customer.email;
       request(server)
@@ -273,7 +274,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 422 if e-mail is invalid', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       booking.customer.email = 'huh';
       request(server)
         .post('/booking')
@@ -285,7 +286,7 @@ describe('controllers - booking', function () {
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({ dummy: 'dummy' }, getBooking()))
+        .send(Object.assign({ dummy: 'dummy' }, getHotelBooking()))
         .expect(422)
         .end(done);
     });
@@ -293,13 +294,13 @@ describe('controllers - booking', function () {
     it('should return 422 if an unexpected hotelId is used', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
+        .send(Object.assign({}, getHotelBooking(), { hotelId: 'unexpected' }))
         .expect(422)
         .end(done);
     });
 
     it('should return 422 when the price is not right', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       booking.booking.arrival = 'InvalidPriceError';
       request(server)
         .post('/booking')
@@ -309,7 +310,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 409 when booking is not possible', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       booking.booking.arrival = 'InvalidUpdateError';
       request(server)
         .post('/booking')
@@ -319,7 +320,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 502 when upstream error is encountered', (done) => {
-      const booking = getBooking();
+      const booking = getHotelBooking();
       booking.booking.arrival = 'UpstreamError';
       request(server)
         .post('/booking')

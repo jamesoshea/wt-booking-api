@@ -153,9 +153,9 @@ const customerHtml = (data) => {
 };
 
 module.exports = {
-  hotelSubject,
-  hotelText,
-  hotelHtml,
+  supplierSubject: hotelSubject,
+  supplierText: hotelText,
+  supplierHtml: hotelHtml,
   customerSubject,
   customerText,
   customerHtml,

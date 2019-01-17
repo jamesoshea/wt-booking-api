@@ -2,7 +2,7 @@ const dayjs = require('dayjs');
 const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
-const { computePrice, NoRatePlanError } = require('./pricing');
+const { computeHotelPrice, NoRatePlanError } = require('../pricing');
 const {
   cancellationFees: cancellationFeesLibrary,
   availability: availabilityLibrary,
@@ -17,7 +17,7 @@ class InadmissibleCancellationFeesError extends Error {};
 class InvalidPriceError extends Error {};
 
 const REQUIRED_FIELDS = [
-  'hotelId',
+  'supplierId',
   'readApiUrl',
   'writeApiUrl',
   'writeApiAccessKey',
@@ -27,14 +27,14 @@ const REQUIRED_FIELDS = [
 // Tolerance against numerical errors in floating-point price & fee computation.
 const EPSILON = 1e-4;
 
-class WTAdapter {
+class WTAirlineAdapter {
   constructor (opts) {
     for (let field of REQUIRED_FIELDS) {
       if (!opts[field]) {
         throw new Error(`Missing configuration: ${field}`);
       }
     }
-    this.hotelId = opts.hotelId;
+    this.supplierId = opts.supplierId;
     this.readApiUrl = opts.readApiUrl;
     this.writeApiUrl = opts.writeApiUrl;
     this.writeApiAccessKey = opts.writeApiAccessKey;
@@ -55,7 +55,7 @@ class WTAdapter {
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/hotels/${this.hotelId}/availability`,
+        uri: `${this.readApiUrl}/airlines/${this.supplierId}/availability`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
@@ -82,7 +82,7 @@ class WTAdapter {
     try {
       const response = await request({
         method: 'PATCH',
-        uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
+        uri: `${this.writeApiUrl}/airlines/${this.supplierId}`,
         json: true,
         body: {
           availability: { roomTypes: availability },
@@ -243,17 +243,17 @@ class WTAdapter {
   }
 
   /**
-   * Get hotel data.
+   * Get airline data.
    *
    * @param {Array<String>} fields
    * @returns {Promise<Object>}
    */
-  async getHotelData (fields) {
+  async getSupplierData (fields) {
     fields = fields.join(',');
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/hotels/${this.hotelId}?fields=${fields}`,
+        uri: `${this.readApiUrl}/airlines/${this.hotelId}?fields=${fields}`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
@@ -414,7 +414,7 @@ class WTAdapter {
     });
     let price;
     try {
-      price = computePrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
+      price = computeHotelPrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
     } catch (err) {
       if (err instanceof NoRatePlanError) {
         throw new InvalidPriceError(err.message);
@@ -452,7 +452,7 @@ class WTAdapter {
     };
     if (Object.values(checkOpts).filter((v) => v).length > 0) {
       const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
-        hotel = await this.getHotelData(fields),
+        hotel = await this.getSupplierData(fields),
         // Convert booking date to hotel's timezone and continue
         // all computation in hotel timezone.
         bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
@@ -473,27 +473,8 @@ class WTAdapter {
   }
 }
 
-let _WTAdapter;
-
-/**
- * Get the previously set WTAdapter instance.
- */
-function get () {
-  if (!_WTAdapter) {
-    throw new Error('No WTAdapter instance has been set!');
-  }
-  return _WTAdapter;
-}
-
-/**
- * Set WTAdapter instance during runtime.
- */
-function set (wtAdapter) {
-  _WTAdapter = wtAdapter;
-}
-
 module.exports = {
-  WTAdapter,
+  WTAirlineAdapter,
   UpstreamError,
   InvalidUpdateError,
   RoomUnavailableError,
@@ -501,6 +482,4 @@ module.exports = {
   IllFormedCancellationFeesError,
   InadmissibleCancellationFeesError,
   InvalidPriceError,
-  get,
-  set,
 };

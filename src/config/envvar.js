@@ -32,7 +32,7 @@ module.exports = {
     baseUrl: process.env.BASE_URL,
     readApiUrl: process.env.READ_API_URL,
     writeApiUrl: process.env.WRITE_API_URL,
-    hotelId: process.env.HOTEL_ID,
+    supplierId: process.env.SUPPLIER_ID,
     writeApiAccessKey: process.env.WRITE_API_KEY,
     writeApiWalletPassword: process.env.WALLET_PASSWORD,
   },
@@ -45,9 +45,9 @@ module.exports = {
   updateAvailability: convertEnvVarToBoolean(process.env.UPDATE_AVAILABILITY, true),
   allowCancel: convertEnvVarToBoolean(process.env.ALLOW_CANCELLATION, true),
   mailing: {
-    sendHotel: convertEnvVarToBoolean(process.env.MAIL_HOTEL_CONFIRMATION_SEND, false),
+    sendSupplier: convertEnvVarToBoolean(process.env.MAIL_SUPPLIER_CONFIRMATION_SEND, false),
     sendCustomer: convertEnvVarToBoolean(process.env.MAIL_CUSTOMER_CONFIRMATION_SEND, false),
-    hotelAddress: process.env.MAIL_HOTEL_CONFIRMATION_ADDRESS || undefined,
+    supplierAddress: process.env.MAIL_SUPPLIER_CONFIRMATION_ADDRESS || undefined,
   },
   mailerOpts: {
     provider: process.env.MAIL_PROVIDER || undefined, // dummy, sendgrid

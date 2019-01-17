@@ -67,7 +67,7 @@ You can use this API as a parametrized docker image in your setup:
 example `{"filename": "./envvar.sqlite"}`.
 - `READ_API_URL` - URL of [wt-read-api](https://github.com/windingtree/wt-read-api) instance.
 - `WRITE_API_URL` - URL of [wt-write-api](https://github.com/windingtree/wt-write-api) instance.
-- `HOTEL_ID` - On-chain Address of the hotel.
+- `SUPPLIER_ID` - On-chain Address of the hotel or airline.
 - `WRITE_API_KEY` - Access Key for wt-write-api instance.
 - `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
@@ -84,6 +84,7 @@ to conditions unfavourable for a hotel. Defaults to true.
 to conditions unfavourable for a hotel. Defaults to true.
 - `DEFAULT_BOOKING_STATE` - This state is assigned to every accepted booking. Can be `confirmed`
 or `pending`. Defaults to `confirmed`.
+- `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 
 #### Data modification
 
@@ -94,11 +95,11 @@ booking manually anyway. Defaults to true.
 
 #### Mailing
 
-- `MAIL_HOTEL_CONFIRMATION_SEND` - If true, a summary of each accepted booking is sent to
-`HOTEL_CONFIRMATION_ADDRESS`. Requires configured mailer and that address. Defaults to false.
+- `MAIL_SUPPLIER_CONFIRMATION_SEND` - If true, a summary of each accepted booking is sent to
+`MAIL_SUPPLIER_CONFIRMATION_ADDRESS`. Requires configured mailer and that address. Defaults to false.
 - `MAIL_CUSTOMER_CONFIRMATION_SEND` - If true, a summary of each accepted booking is sent
 to the customer. Requires configured mailer. Defaults to false.
-- `MAIL_HOTEL_CONFIRMATION_ADDRESS` - E-mail address to which the hotel confirmations will be
+- `MAIL_SUPPLIER_CONFIRMATION_ADDRESS` - E-mail address to which the hotel confirmations will be
 sent.
 - `MAIL_PROVIDER` - Denotes which mailing provider should be used. Supported values are `dummy`
 and `sendgrid`. Defaults to undefined.
@@ -121,7 +122,7 @@ $ docker run -p 8080:8935 \
   -e BASE_URL=https://booking.example.com \
   -e READ_API_URL=https://read-api.example.com \
   -e WRITE_API_URL=https://write-api.example.com \
-  -e HOTEL_ID=0x123456 \
+  -e SUPPLIER_ID=0x123456 \
   -e WRITE_API_KEY=werdfs12 \
   -e WALLET_PASSWORD=windingtree windingtree/wt-booking-api
 ```
@@ -190,3 +191,40 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
 If everything went well, you should get a response with the
 status code "200" and you should see a change in the hotel's
 availability data.
+
+The [swagger definition](docs/swagger.yaml) for airlines is just a bit different:
+
+```sh
+$ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data '
+{
+  "airlineId": "0xe92a8f9a7264695f4aed8d1f397dbc687ba40299",
+  "customer": {
+    "name": "Sherlock",
+    "surname": "Holmes",
+    "address": {
+      "line1": "221B Baker Street",
+      "city": "London",
+      "country": "GB"
+    },
+    "email": "sherlock.holmes@houndofthebaskervilles.net"
+  },
+  "pricing": {
+    "currency": "GBP",
+    "total": 221,
+    "cancellationFees": [
+      { "from": "2018-12-01", "to": "2019-01-01", "amount": 50 }
+    ]
+  },
+  "booking": {
+    "flightNumber": "OK0965",
+    "flightId": "IeKeix6G",
+    "bookingClasses": [
+      "bookingClassId": "business",
+      "passengers": [
+        "name": "John",
+        "surname: "Watson",
+      ],
+    ],
+  }
+}'
+```
