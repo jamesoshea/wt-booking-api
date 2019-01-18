@@ -308,6 +308,16 @@ describe('controllers - booking', function () {
         .end(done);
     });
 
+    it('should return 422 when the note is too long', (done) => {
+      const booking = getBooking();
+      booking.note = 'a'.repeat(3001);
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 409 when booking is not possible', (done) => {
       const booking = getBooking();
       booking.booking.arrival = 'InvalidUpdateError';

@@ -162,6 +162,7 @@ components:
         note:
           description: Additional information passed to a hotel from a customer
           type: string
+          maxLength: 3000
         hotelId:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
         booking:
@@ -214,8 +215,10 @@ components:
       properties:
         name:
           type: string
+          maxLength: 255
         surname:
           type: string
+          maxLength: 255
         address:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/Address
         email:
@@ -271,10 +274,13 @@ components:
               id:
                 description: Unique identifier for every guest, it can for example be a numerical ordinal. Every booking originator has to generate this data as it's used as a base for all other guest-related information (such as total number of guests).
                 type: string
+                maxLength: 255
               name:
                 type: string
+                maxLength: 255
               surname:
                 type: string
+                maxLength: 255
               age:
                 description: Age at the time of arrival
                 type: number
