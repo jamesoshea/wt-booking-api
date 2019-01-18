@@ -50,7 +50,7 @@ const fakeMailData = {
       },
       guests: [
         { name: `${noXssTest} ${nonAsciiTest}`, surname: `${noXssTest} ${nonAsciiTest}`, age: 13 },
-        { name: `${noXssTest} ${nonAsciiTest}`, surname: `${noXssTest} ${nonAsciiTest}`, age: 17 },
+        { age: 17 },
       ],
     },
   ],

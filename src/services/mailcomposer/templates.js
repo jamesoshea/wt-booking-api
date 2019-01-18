@@ -73,9 +73,14 @@ ${customerData.address
 };
 
 const formatRoomList = (roomList) => {
-  return roomList.map((r) => (`
-    - ${r.roomType.name}: (People: ${r.guests.length})
-`)).join('\n');
+  return roomList.map((r) => {
+    const guestList = r.guests.map((g, i) => {
+      return `
+        - Guest ${i + 1}: ${g.name ? `${g.name} ` : ''}${g.surname ? ` ${g.surname}` : ''}${g.age ? `${g.name || g.surname ? ', ' : ''}age ${g.age}` : ''}`;
+    }).join('\n');
+    return `
+    - ${r.roomType.name} (People: ${r.guests.length})${guestList}`;
+  }).join('\n');
 };
 
 const formatCancellationFees = (cancellationFees) => {
