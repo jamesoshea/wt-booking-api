@@ -3,7 +3,7 @@ const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
 const config = require('../config');
 const validators = require('../services/validators');
 const adapter = require('../services/adapter');
-const mailComposer = require('../services/mailComposer');
+const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
