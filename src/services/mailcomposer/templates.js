@@ -1,5 +1,6 @@
 const dayjs = require('dayjs');
-const nl2br = require('nl2br');
+const escapeHTML = require('escape-html');
+const showdown = require('showdown');
 
 /**
  * mailData specs:
@@ -8,7 +9,7 @@ const nl2br = require('nl2br');
  * {
  *    customer: <Customer from docs/swagger.yaml>,
  *    note: <string>,
- *    hotel: <https://github.com/windingtree/wiki/blob/d64397e5fb6e439f8436ed856f60664d08ae9b48/hotel-data-swagger.yaml#L78> limited to name,contacts,address and roomTypes
+ *    hotel: <https://github.com/windingtree/wiki/blob/d64397e5fb6e439f8436ed856f60664d08ae9b48/hotel-data-swagger.yaml#L78> limited to name, contacts, address
  *    arrival: <string, format date>,
  *    departure: <string, format date>,
  *    roomList: [
@@ -26,23 +27,23 @@ const nl2br = require('nl2br');
 
 const formatHotel = (hotelData) => {
   const template = `
-Hotel
-=====
-${hotelData.name ? `Name: ${hotelData.name}` : ''}
+# Hotel
+
+${hotelData.name ? `- Name: ${hotelData.name}` : ''}
 ${hotelData.address
-    ? `Address:
-  ${hotelData.address.line1 ? `${hotelData.address.line1}` : ''}
-  ${hotelData.address.line2 ? `${hotelData.address.line2}` : ''}
-  ${hotelData.address.city ? `${hotelData.address.city}` : ''}
-  ${hotelData.address.state ? `${hotelData.address.state}` : ''}
-  ${hotelData.address.country ? `${hotelData.address.country}` : ''}
-  ${hotelData.address.postalCode ? `${hotelData.address.postalCode}` : ''}
+    ? `- Address:
+  ${hotelData.address.line1 ? `    - ${hotelData.address.line1}` : ''}
+  ${hotelData.address.line2 ? `    - ${hotelData.address.line2}` : ''}
+  ${hotelData.address.city ? `    - ${hotelData.address.city}` : ''}
+  ${hotelData.address.state ? `    - ${hotelData.address.state}` : ''}
+  ${hotelData.address.country ? `    - ${hotelData.address.country}` : ''}
+  ${hotelData.address.postalCode ? `    - ${hotelData.address.postalCode}` : ''}
 ` : ''}
 ${hotelData.contacts && hotelData.contacts.general
-    ? `Contact:
-  ${hotelData.contacts.general.email ? `E-mail: ${hotelData.contacts.general.email}` : ''}
-  ${hotelData.contacts.general.phone ? `Phone: ${hotelData.contacts.general.phone}` : ''}
-  ${hotelData.contacts.general.url ? `Web: ${hotelData.contacts.general.url}` : ''}
+    ? `- Contact:
+  ${hotelData.contacts.general.email ? `    - E-mail: ${hotelData.contacts.general.email}` : ''}
+  ${hotelData.contacts.general.phone ? `    - Phone: ${hotelData.contacts.general.phone}` : ''}
+  ${hotelData.contacts.general.url ? `    - Web: ${hotelData.contacts.general.url}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -51,21 +52,20 @@ ${hotelData.contacts && hotelData.contacts.general
 
 const formatCustomer = (customerData) => {
   const template = `
-Customer
-========
+# Customer
 
-${customerData.name ? `Name: ${customerData.name}` : ''}
-${customerData.surname ? `Surname: ${customerData.surname}` : ''}
-${customerData.email ? `E-mail: ${customerData.email}` : ''}
-${customerData.phone ? `Phone: ${customerData.phone}` : ''}
+${customerData.name ? `- Name: ${customerData.name}` : ''}
+${customerData.surname ? `- Surname: ${customerData.surname}` : ''}
+${customerData.email ? `- E-mail: ${customerData.email}` : ''}
+${customerData.phone ? `- Phone: ${customerData.phone}` : ''}
 ${customerData.address
-    ? `Address:
-  ${customerData.address.line1 ? `${customerData.address.line1}` : ''}
-  ${customerData.address.line2 ? `${customerData.address.line2}` : ''}
-  ${customerData.address.city ? `${customerData.address.city}` : ''}
-  ${customerData.address.state ? `${customerData.address.state}` : ''}
-  ${customerData.address.country ? `${customerData.address.country}` : ''}
-  ${customerData.address.postalCode ? `${customerData.address.postalCode}` : ''}
+    ? `- Address:
+  ${customerData.address.line1 ? `    - ${customerData.address.line1}` : ''}
+  ${customerData.address.line2 ? `    - ${customerData.address.line2}` : ''}
+  ${customerData.address.city ? `    - ${customerData.address.city}` : ''}
+  ${customerData.address.state ? `    - ${customerData.address.state}` : ''}
+  ${customerData.address.country ? `    - ${customerData.address.country}` : ''}
+  ${customerData.address.postalCode ? `    - ${customerData.address.postalCode}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -74,28 +74,27 @@ ${customerData.address
 
 const formatRoomList = (roomList) => {
   return roomList.map((r) => (`
-  - ${r.roomType.name}: (People: ${r.guests.length})
+    - ${r.roomType.name}: (People: ${r.guests.length})
 `)).join('\n');
 };
 
 const formatCancellationFees = (cancellationFees) => {
   return cancellationFees.map((cf) => (`
-  - If you cancel between ${dayjs(cf.from).format('YYYY-MM-DD')} and ${dayjs(cf.to).format('YYYY-MM-DD')} hotel will keep ${cf.amount}% of the total price
+    - If you cancel between ${dayjs(cf.from).format('YYYY-MM-DD')} and ${dayjs(cf.to).format('YYYY-MM-DD')} hotel will keep ${cf.amount}% of the total price
 `)).join('\n');
 };
 
 const formatBooking = (data) => {
   const template = `
-Booking
-=======
+# Booking
 
-ID: ${data.id} (${data.status})
-Arrival: ${dayjs(data.arrival).format('YYYY-MM-DD')}
-Departure: ${dayjs(data.departure).format('YYYY-MM-DD')}
-Total: ${data.pricing.total} ${data.pricing.currency}
-Cancellation fees:
+- ID: ${data.id} (${data.status})
+- Arrival: ${dayjs(data.arrival).format('YYYY-MM-DD')}
+- Departure: ${dayjs(data.departure).format('YYYY-MM-DD')}
+- Total: ${data.pricing.total} ${data.pricing.currency}
+- Cancellation fees:
 ${formatCancellationFees(data.pricing.cancellationFees)}
-Rooms:
+- Rooms:
 ${formatRoomList(data.roomList)}
 `;
   // Drop empty lines and return
@@ -115,8 +114,9 @@ ${formatCustomer(data.customer)}
 ${formatBooking(data)}
 ${data.note
     ? `
-Note
-====
+
+# Note
+
 ${data.note}`
     : ''}
 `;
@@ -124,7 +124,8 @@ ${data.note}`
 };
 
 const hotelHtml = (data) => {
-  return nl2br(hotelText(data));
+  const converter = new showdown.Converter();
+  return converter.makeHtml(escapeHTML(hotelText(data)));
 };
 
 const customerSubject = (data) => {
@@ -149,7 +150,8 @@ ${data.note}`
 };
 
 const customerHtml = (data) => {
-  return nl2br(customerText(data));
+  const converter = new showdown.Converter();
+  return converter.makeHtml(escapeHTML(customerText(data)));
 };
 
 module.exports = {
