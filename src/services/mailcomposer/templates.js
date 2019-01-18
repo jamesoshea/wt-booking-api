@@ -89,9 +89,9 @@ const formatCancellationFees = (cancellationFees) => {
 `)).join('\n');
 };
 
-const formatBooking = (data) => {
+const formatSummary = (data) => {
   const template = `
-# Booking
+# Summary
 
 - ID: ${data.id} (${data.status})
 - Arrival: ${dayjs(data.arrival).format('YYYY-MM-DD')}
@@ -114,16 +114,15 @@ const hotelSubject = (data) => {
 
 const hotelText = (data) => {
   const f = `
-${formatHotel(data.hotel)}
+${formatSummary(data)}
 ${formatCustomer(data.customer)}
-${formatBooking(data)}
 ${data.note
     ? `
-
 # Note
-
 ${data.note}`
     : ''}
+
+${formatHotel(data.hotel)}
 `;
   return f;
 };
@@ -143,7 +142,7 @@ const customerText = (data) => {
   const f = `
 ${formatHotel(data.hotel)}
 ${formatCustomer(data.customer)}
-${formatBooking(data)}
+${formatSummary(data)}
 ${data.note
     ? `
 Note
