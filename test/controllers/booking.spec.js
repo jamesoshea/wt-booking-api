@@ -22,19 +22,10 @@ describe('controllers - booking', function () {
       getHotelData: sinon.stub().callsFake((fields) => {
         return Promise.resolve(getHotelData());
       }),
-      updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
-        if (arrival === 'UpstreamError') {
-          return Promise.reject(new adapter.UpstreamError());
-        }
-        if (arrival === 'InvalidUpdateError') {
-          return Promise.reject(new adapter.InvalidUpdateError());
-        }
+      updateAvailability: sinon.stub().callsFake(() => {
         return Promise.resolve();
       }),
-      checkAdmissibility: sinon.stub().callsFake((booking) => {
-        if (booking.arrival === 'InvalidPriceError') {
-          return Promise.reject(new adapter.InvalidPriceError());
-        }
+      checkAdmissibility: sinon.stub().callsFake(() => {
         return Promise.resolve();
       }),
     };
@@ -300,12 +291,18 @@ describe('controllers - booking', function () {
 
     it('should return 422 when the price is not right', (done) => {
       const booking = getBooking();
-      booking.booking.arrival = 'InvalidPriceError';
+      const orig = wtAdapter.checkAdmissibility;
+      wtAdapter.checkAdmissibility = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.InvalidPriceError());
+      });
       request(server)
         .post('/booking')
         .send(booking)
         .expect(422)
-        .end(done);
+        .end(() => {
+          wtAdapter.checkAdmissibility = orig;
+          done();
+        });
     });
 
     it('should return 422 when the note is too long', (done) => {
@@ -318,24 +315,58 @@ describe('controllers - booking', function () {
         .end(done);
     });
 
+    it('should return 422 when arrival is after departure', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = '2019-03-01';
+      booking.booking.departure = '2019-02-01';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 when arrival is the same as departure', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = '2019-03-01';
+      booking.booking.departure = '2019-03-01';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 409 when booking is not possible', (done) => {
       const booking = getBooking();
-      booking.booking.arrival = 'InvalidUpdateError';
+      const orig = wtAdapter.updateAvailability;
+      wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.InvalidUpdateError());
+      });
       request(server)
         .post('/booking')
         .send(booking)
         .expect(409)
-        .end(done);
+        .end(() => {
+          wtAdapter.updateAvailability = orig;
+          done();
+        });
     });
 
     it('should return 502 when upstream error is encountered', (done) => {
       const booking = getBooking();
-      booking.booking.arrival = 'UpstreamError';
+      const orig = wtAdapter.updateAvailability;
+      wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.UpstreamError());
+      });
       request(server)
         .post('/booking')
         .send(booking)
         .expect(502)
-        .end(done);
+        .end(() => {
+          wtAdapter.updateAvailability = orig;
+          done();
+        });
     });
   });
 

@@ -13,9 +13,16 @@ tv4.addFormat('email', (data) => {
   return 'Not a valid e-mail.';
 });
 
-module.exports.validateBooking = function (data) {
+function validateBookingAgainstSchema (data) {
   if (!tv4.validate(data, bookingSchema, false, true)) {
     const msg = tv4.error.message + ': ' + tv4.error.dataPath;
     throw new ValidationError(msg);
+  }
+};
+
+module.exports.validateBooking = function (data) {
+  validateBookingAgainstSchema(data);
+  if (data.booking.arrival >= data.booking.departure) {
+    throw new ValidationError(`Arrival at ${data.booking.arrival} is after departure at ${data.booking.departure}`);
   }
 };

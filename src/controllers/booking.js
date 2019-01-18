@@ -38,7 +38,7 @@ module.exports.create = async (req, res, next) => {
     // 1. Validate request payload.
     validators.validateBooking(req.body);
     // 2. Verify that hotelId is the expected one.
-    if (req.body.hotelId.toLowerCase() !== hotelId.toLowerCase()) {
+    if (req.body.hotelId.toLowerCase() !== hotelId) {
       throw new validators.ValidationError('Unexpected hotelId.');
     }
     // 3. Assemble the intended availability update and try to apply it.
