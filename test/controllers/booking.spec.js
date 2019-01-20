@@ -273,6 +273,16 @@ describe('controllers - booking', function () {
         .end(done);
     });
 
+    it('should return 422 if phone is invalid', (done) => {
+      const booking = getBooking();
+      booking.customer.phone = 'bababaphone';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
         .post('/booking')

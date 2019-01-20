@@ -2,6 +2,7 @@ const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
+const normalizers = require('../services/normalizers');
 const adapter = require('../services/adapter');
 const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
@@ -35,17 +36,19 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
  */
 module.exports.create = async (req, res, next) => {
   try {
+    // 0. Normalize request payload
+    const bookingData = normalizers.normalizeBooking(req.body);
     // 1. Validate request payload.
-    validators.validateBooking(req.body);
+    validators.validateBooking(bookingData);
     // 2. Verify that hotelId is the expected one.
-    if (req.body.hotelId.toLowerCase() !== hotelId) {
+    if (bookingData.hotelId.toLowerCase() !== hotelId) {
       throw new validators.ValidationError('Unexpected hotelId.');
     }
     // 3. Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
-      booking = req.body.booking,
-      pricing = req.body.pricing;
+      booking = bookingData.booking,
+      pricing = bookingData.pricing;
 
     await wtAdapter.checkAdmissibility(booking, pricing, new Date(), config.checkOpts);
     if (config.updateAvailability) {
@@ -53,16 +56,16 @@ module.exports.create = async (req, res, next) => {
     }
 
     // We are not storing any personal information
-    const bookingData = {
+    const bookingRecordData = {
         arrival: booking.arrival,
         departure: booking.departure,
         rooms: booking.rooms.map((r) => (r.id)),
       },
-      bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
+      bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
     // 4. E-mail confirmations
     const mailer = mailerService.get();
     const mailInformation = ((config.mailing.sendHotel && config.mailing.hotelAddress) || config.mailing.sendCustomer)
-      ? await prepareDataForConfirmationMail(req.body, bookingRecord, wtAdapter)
+      ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
       : {};
     // hotel
     if (config.mailing.sendHotel && config.mailing.hotelAddress) {

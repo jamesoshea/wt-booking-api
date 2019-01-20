@@ -67,6 +67,7 @@
         "phone": {
           "description": "Phone number (with country prefix)",
           "type": "string",
+          "format": "phone",
           "maxLength": 18
         },
         "email": {

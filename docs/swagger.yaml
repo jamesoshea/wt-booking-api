@@ -230,6 +230,7 @@ components:
         phone:
           description: Phone number (with country prefix)
           type: string
+          format: phone
           maxLength: 18
           example: +44123456789
     Room:
