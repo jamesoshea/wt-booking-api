@@ -87,6 +87,7 @@ describe('services - mailer', function () {
       assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].subject, 'SG subject');
       assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].text, 'SG text');
       assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].html, '<p>SG text</p>');
+      assert.isUndefined(mailer._provider._sendgridApi.send.firstCall.args[0].replyTo);
     });
 
     it('should fallback to sender from _opts', () => {
@@ -99,6 +100,32 @@ describe('services - mailer', function () {
       assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].text, 'SG text');
       assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].html, '<p>SG text</p>');
       mailer._provider._sendgridApi.send.restore();
+    });
+
+    it('should use replyTo if passed in opts', () => {
+      const mailer2 = new Mailer('sendgrid', { apiKey: '1234', from: 'defaults@example.com', replyTo: 'random-replies@example.com' });
+      mailer2.sendMail(mail);
+      assert.equal(mailer._provider._sendgridApi.send.callCount, 1);
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].from, 'sender@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].replyTo, 'random-replies@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].to, 'recipient@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].subject, 'SG subject');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].text, 'SG text');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].html, '<p>SG text</p>');
+    });
+
+    it('should use replyTo if passed in params', () => {
+      const mailer2 = new Mailer('sendgrid', { apiKey: '1234', from: 'defaults@example.com', replyTo: 'random-replies@example.com' });
+      mailer2.sendMail(Object.assign({}, mail, {
+        replyTo: 'overriden@example.com',
+      }));
+      assert.equal(mailer._provider._sendgridApi.send.callCount, 1);
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].from, 'sender@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].replyTo, 'overriden@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].to, 'recipient@example.com');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].subject, 'SG subject');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].text, 'SG text');
+      assert.equal(mailer._provider._sendgridApi.send.firstCall.args[0].html, '<p>SG text</p>');
     });
 
     it('should throw when to is missing', () => {
