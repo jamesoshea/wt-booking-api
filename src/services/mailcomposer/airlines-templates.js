@@ -1,5 +1,6 @@
 const dayjs = require('dayjs');
-const nl2br = require('nl2br');
+const escapeHTML = require('escape-html');
+const showdown = require('showdown');
 
 /**
  * mailData specs:
@@ -29,15 +30,15 @@ const nl2br = require('nl2br');
 
 const formatAirline = (airlineData) => {
   const template = `
-Airline
-=====
-${airlineData.name ? `Name: ${airlineData.name}` : ''}
-${airlineData.code ? `Code: ${airlineData.code}` : ''}
+# Airline
+
+${airlineData.name ? `- Name: ${airlineData.name}` : ''}
+${airlineData.code ? `- Code: ${airlineData.code}` : ''}
 ${airlineData.contacts && airlineData.contacts.general
-    ? `Contact:
-  ${airlineData.contacts.general.email ? `E-mail: ${airlineData.contacts.general.email}` : ''}
-  ${airlineData.contacts.general.phone ? `Phone: ${airlineData.contacts.general.phone}` : ''}
-  ${airlineData.contacts.general.url ? `Web: ${airlineData.contacts.general.url}` : ''}
+    ? `- Contact:
+  ${airlineData.contacts.general.email ? `    - E-mail: ${airlineData.contacts.general.email}` : ''}
+  ${airlineData.contacts.general.phone ? `    - Phone: ${airlineData.contacts.general.phone}` : ''}
+  ${airlineData.contacts.general.url ? `    - Web: ${airlineData.contacts.general.url}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -46,21 +47,20 @@ ${airlineData.contacts && airlineData.contacts.general
 
 const formatCustomer = (customerData) => {
   const template = `
-Customer
-========
+# Customer
 
-${customerData.name ? `Name: ${customerData.name}` : ''}
-${customerData.surname ? `Surname: ${customerData.surname}` : ''}
-${customerData.email ? `E-mail: ${customerData.email}` : ''}
-${customerData.phone ? `Phone: ${customerData.phone}` : ''}
+${customerData.name ? `- Name: ${customerData.name}` : ''}
+${customerData.surname ? `- Surname: ${customerData.surname}` : ''}
+${customerData.email ? `- E-mail: ${customerData.email}` : ''}
+${customerData.phone ? `- Phone: ${customerData.phone}` : ''}
 ${customerData.address
-    ? `Address:
-  ${customerData.address.line1 ? `${customerData.address.line1}` : ''}
-  ${customerData.address.line2 ? `${customerData.address.line2}` : ''}
-  ${customerData.address.city ? `${customerData.address.city}` : ''}
-  ${customerData.address.state ? `${customerData.address.state}` : ''}
-  ${customerData.address.country ? `${customerData.address.country}` : ''}
-  ${customerData.address.postalCode ? `${customerData.address.postalCode}` : ''}
+    ? `- Address:
+  ${customerData.address.line1 ? `    - ${customerData.address.line1}` : ''}
+  ${customerData.address.line2 ? `    - ${customerData.address.line2}` : ''}
+  ${customerData.address.city ? `    - ${customerData.address.city}` : ''}
+  ${customerData.address.state ? `    - ${customerData.address.state}` : ''}
+  ${customerData.address.country ? `    - ${customerData.address.country}` : ''}
+  ${customerData.address.postalCode ? `    - ${customerData.address.postalCode}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -79,22 +79,21 @@ const formatFlight = (booking) => {
 
 const formatCancellationFees = (cancellationFees) => {
   return cancellationFees.map((cf) => (`
-  - If you cancel between ${dayjs(cf.from).format('YYYY-MM-DD')} and ${dayjs(cf.to).format('YYYY-MM-DD')} airline will keep ${cf.amount}% of the total price
+    - If you cancel between ${dayjs(cf.from).format('YYYY-MM-DD')} and ${dayjs(cf.to).format('YYYY-MM-DD')} airline will keep ${cf.amount}% of the total price
 `)).join('\n');
 };
 
 const formatBooking = (data) => {
   const template = `
-Booking
-=======
+# Summary
 
-ID: ${data.id} (${data.status})
-Flight Nr: ${data.booking.flightNumber}
-FlightID: ${data.booking.id}
-Total: ${data.pricing.total} ${data.pricing.currency}
-Cancellation fees:
+- ID: ${data.id} (${data.status})
+- Flight Nr: ${data.booking.flightNumber}
+- FlightID: ${data.booking.id}
+- Total: ${data.pricing.total} ${data.pricing.currency}
+- Cancellation fees:
 ${formatCancellationFees(data.pricing.cancellationFees)}
-Flight:
+- Flight:
 ${formatFlight(data.booking)}
 `;
   // Drop empty lines and return
@@ -107,21 +106,22 @@ const airlineSubject = (data) => {
 
 const airlineText = (data) => {
   const f = `
-${formatAirline(data.airline)}
-${formatCustomer(data.customer)}
 ${formatBooking(data)}
+${formatCustomer(data.customer)}
 ${data.note
     ? `
-Note
-====
+# Note
 ${data.note}`
     : ''}
+
+${formatAirline(data.airline)}
 `;
   return f;
 };
 
 const airlineHtml = (data) => {
-  return nl2br(airlineText(data));
+  const converter = new showdown.Converter();
+  return converter.makeHtml(escapeHTML(airlineText(data)));
 };
 
 const customerSubject = (data) => {
@@ -144,7 +144,8 @@ ${data.note}`
 };
 
 const customerHtml = (data) => {
-  return nl2br(customerText(data));
+  const converter = new showdown.Converter();
+  return converter.makeHtml(escapeHTML(customerText(data)));
 };
 
 module.exports = {

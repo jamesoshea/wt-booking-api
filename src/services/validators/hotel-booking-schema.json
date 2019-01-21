@@ -54,10 +54,12 @@
       ],
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 255
         },
         "surname": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 255
         },
         "address": {
           "$ref": "#/definitions/Address"
@@ -65,6 +67,7 @@
         "phone": {
           "description": "Phone number (with country prefix)",
           "type": "string",
+          "format": "phone",
           "maxLength": 18
         },
         "email": {
@@ -124,13 +127,16 @@
             "properties": {
               "id": {
                 "description": "Unique identifier for every guest, it can for example be a numerical ordinal. Every booking originator has to generate this data as it's used as a base for all other guest-related information (such as total number of guests).",
-                "type": "string"
+                "type": "string",
+                "maxLength": 255
               },
               "name": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 255
               },
               "surname": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 255
               },
               "age": {
                 "description": "Age at the time of arrival",
@@ -155,7 +161,8 @@
     },
     "note": {
       "description": "Additional information passed to a hotel from a customer",
-      "type": "string"
+      "type": "string",
+      "maxLength": 3000
     },
     "hotelId": {
       "description": "Hotel ID within the Winding Tree platform",

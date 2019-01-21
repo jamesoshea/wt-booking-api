@@ -2,16 +2,16 @@ const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError } = require('../errors');
 const config = require('../config');
 const validators = require('../services/validators');
-const adapter = require('../services/adapters/base-adapter');
-const hotelAdapter = require('../services/adapters/hotel-adapter');
-const mailComposer = require('../services/mailComposer');
+const normalizers = require('../services/normalizers');
+const adapter = require('../services/adapter');
+const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
-const hotelId = config.adapterOpts.supplierId.toLowerCase();
+const hotelId = config.adapterOpts.hotelId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
-  const hotelData = await adapter.getSupplierData(['name', 'contacts', 'address', 'roomTypes']);
+  const hotelData = await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']);
   const roomList = bookingBody.booking.rooms.map((r) => {
     return {
       roomType: hotelData.roomTypes.find((rt) => rt.id === r.id),
@@ -36,17 +36,19 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
  */
 module.exports.create = async (req, res, next) => {
   try {
+    // 0. Normalize request payload
+    const bookingData = normalizers.normalizeBooking(req.body);
     // 1. Validate request payload.
-    validators.validateBooking(req.body);
+    validators.validateBooking(bookingData);
     // 2. Verify that hotelId is the expected one.
-    if (req.body.hotelId.toLowerCase() !== hotelId.toLowerCase()) {
+    if (bookingData.hotelId.toLowerCase() !== hotelId) {
       throw new validators.ValidationError('Unexpected hotelId.');
     }
     // 3. Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
-      booking = req.body.booking,
-      pricing = req.body.pricing;
+      booking = bookingData.booking,
+      pricing = bookingData.pricing;
 
     await wtAdapter.checkAdmissibility(booking, pricing, new Date(), config.checkOpts);
     if (config.updateAvailability) {
@@ -54,23 +56,23 @@ module.exports.create = async (req, res, next) => {
     }
 
     // We are not storing any personal information
-    const bookingData = {
+    const bookingRecordData = {
         arrival: booking.arrival,
         departure: booking.departure,
         rooms: booking.rooms.map((r) => (r.id)),
       },
-      bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
+      bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
     // 4. E-mail confirmations
     const mailer = mailerService.get();
-    const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
-      ? await prepareDataForConfirmationMail(req.body, bookingRecord, wtAdapter)
+    const mailInformation = ((config.mailing.sendHotel && config.mailing.hotelAddress) || config.mailing.sendCustomer)
+      ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
       : {};
     // hotel
-    if (config.mailing.sendSupplier && config.mailing.supplierAddress) {
+    if (config.mailing.sendHotel && config.mailing.hotelAddress) {
       // no need to wait for result
       mailer.sendMail({
-        to: config.mailing.supplierAddress,
-        ...mailComposer.renderSupplier(mailInformation),
+        to: config.mailing.hotelAddress,
+        ...mailComposer.renderHotel(mailInformation),
       });
     }
     // customer
@@ -93,20 +95,20 @@ module.exports.create = async (req, res, next) => {
     if (err instanceof validators.ValidationError) {
       return next(new HttpValidationError('validationFailed', err.message));
     }
-    if (err instanceof hotelAdapter.UpstreamError) {
+    if (err instanceof adapter.UpstreamError) {
       return next(new HttpBadGatewayError('badGatewayError', err.message));
     }
-    if (err instanceof hotelAdapter.InvalidUpdateError) {
+    if (err instanceof adapter.InvalidUpdateError) {
       return next(new HttpConflictError('conflictError', err.message));
     }
-    if (err instanceof hotelAdapter.RestrictionsViolatedError) {
+    if (err instanceof adapter.RestrictionsViolatedError) {
       return next(new HttpConflictError('restrictionsViolated', err.message));
     }
-    if (err instanceof hotelAdapter.InvalidPriceError) {
+    if (err instanceof adapter.InvalidPriceError) {
       return next(new HttpValidationError('invalidPrice', err.message));
     }
-    if ((err instanceof hotelAdapter.InadmissibleCancellationFeesError) ||
-      (err instanceof hotelAdapter.IllFormedCancellationFeesError)) {
+    if ((err instanceof adapter.InadmissibleCancellationFeesError) ||
+      (err instanceof adapter.IllFormedCancellationFeesError)) {
       return next(new HttpValidationError('invalidCancellationFees', err.message));
     }
     next(err);
@@ -142,7 +144,7 @@ module.exports.cancel = async (req, res, next) => {
     await Booking.cancel(bookingId);
     return res.sendStatus(204);
   } catch (err) {
-    if (err instanceof hotelAdapter.InvalidUpdateError) {
+    if (err instanceof adapter.InvalidUpdateError) {
       // This happens when availability data have changed so
       // much since the booking that it cannot be restored any
       // more.

@@ -34,6 +34,7 @@ const sendMail = (params) => {
   }
   return sendgridApi.send({
     from: params.from || _opts.from,
+    replyTo: params.replyTo || _opts.replyTo,
     to: params.to,
     subject: params.subject,
     text: params.text,

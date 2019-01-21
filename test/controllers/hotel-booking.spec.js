@@ -5,10 +5,9 @@ const request = require('supertest');
 const sinon = require('sinon');
 
 const config = require('../../src/config');
-const { getHotelBooking, getHotelData } = require('../utils/factories');
+const { getBooking, getHotelData } = require('../utils/factories');
 const mailerService = require('../../src/services/mailer');
-const adapter = require('../../src/services/adapters/base-adapter');
-const hotelAdapter = require('../../src/services/adapters/hotel-adapter');
+const adapter = require('../../src/services/adapter');
 const Booking = require('../../src/models/booking');
 
 describe('controllers - booking', function () {
@@ -20,22 +19,13 @@ describe('controllers - booking', function () {
     wtAdapterOrig = adapter.get();
     mailerOrig = mailerService.get();
     wtAdapter = {
-      getSupplierData: sinon.stub().callsFake((fields) => {
+      getHotelData: sinon.stub().callsFake((fields) => {
         return Promise.resolve(getHotelData());
       }),
-      updateAvailability: sinon.stub().callsFake((rooms, arrival, departure) => {
-        if (arrival === 'UpstreamError') {
-          return Promise.reject(new hotelAdapter.UpstreamError());
-        }
-        if (arrival === 'InvalidUpdateError') {
-          return Promise.reject(new hotelAdapter.InvalidUpdateError());
-        }
+      updateAvailability: sinon.stub().callsFake(() => {
         return Promise.resolve();
       }),
-      checkAdmissibility: sinon.stub().callsFake((booking) => {
-        if (booking.arrival === 'InvalidPriceError') {
-          return Promise.reject(new hotelAdapter.InvalidPriceError());
-        }
+      checkAdmissibility: sinon.stub().callsFake(() => {
         return Promise.resolve();
       }),
     };
@@ -62,7 +52,7 @@ describe('controllers - booking', function () {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -106,7 +96,7 @@ describe('controllers - booking', function () {
       config.defaultBookingState = Booking.STATUS.PENDING;
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -147,7 +137,7 @@ describe('controllers - booking', function () {
       config.updateAvailability = false;
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -168,12 +158,12 @@ describe('controllers - booking', function () {
       const origMailing = config.mailing;
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
-        sendSupplier: true,
-        supplierAddress: 'hotel@example.com',
+        sendHotel: true,
+        hotelAddress: 'hotel@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -201,7 +191,7 @@ describe('controllers - booking', function () {
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -226,12 +216,12 @@ describe('controllers - booking', function () {
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
         sendCustomer: true,
-        sendSupplier: true,
-        supplierAddress: 'hotel@example.com',
+        sendHotel: true,
+        hotelAddress: 'hotel@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -252,7 +242,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {
-      const booking = getHotelBooking();
+      const booking = getBooking();
       booking.customer.phone = '+420777777777';
       booking.customer.email = 'sherlock.holmes@houndofthebaskervilles.net';
       request(server)
@@ -263,7 +253,7 @@ describe('controllers - booking', function () {
     });
 
     it('should return 422 if neither e-mail nor phone are supplied', (done) => {
-      const booking = getHotelBooking();
+      const booking = getBooking();
       delete booking.customer.phone;
       delete booking.customer.email;
       request(server)
@@ -274,8 +264,18 @@ describe('controllers - booking', function () {
     });
 
     it('should return 422 if e-mail is invalid', (done) => {
-      const booking = getHotelBooking();
+      const booking = getBooking();
       booking.customer.email = 'huh';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 if phone is invalid', (done) => {
+      const booking = getBooking();
+      booking.customer.phone = 'bababaphone';
       request(server)
         .post('/booking')
         .send(booking)
@@ -286,7 +286,7 @@ describe('controllers - booking', function () {
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({ dummy: 'dummy' }, getHotelBooking()))
+        .send(Object.assign({ dummy: 'dummy' }, getBooking()))
         .expect(422)
         .end(done);
     });
@@ -294,14 +294,52 @@ describe('controllers - booking', function () {
     it('should return 422 if an unexpected hotelId is used', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({}, getHotelBooking(), { hotelId: 'unexpected' }))
+        .send(Object.assign({}, getBooking(), { hotelId: 'unexpected' }))
         .expect(422)
         .end(done);
     });
 
     it('should return 422 when the price is not right', (done) => {
-      const booking = getHotelBooking();
-      booking.booking.arrival = 'InvalidPriceError';
+      const booking = getBooking();
+      const orig = wtAdapter.checkAdmissibility;
+      wtAdapter.checkAdmissibility = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.InvalidPriceError());
+      });
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(() => {
+          wtAdapter.checkAdmissibility = orig;
+          done();
+        });
+    });
+
+    it('should return 422 when the note is too long', (done) => {
+      const booking = getBooking();
+      booking.note = 'a'.repeat(3001);
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 when arrival is after departure', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = '2019-03-01';
+      booking.booking.departure = '2019-02-01';
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 when arrival is the same as departure', (done) => {
+      const booking = getBooking();
+      booking.booking.arrival = '2019-03-01';
+      booking.booking.departure = '2019-03-01';
       request(server)
         .post('/booking')
         .send(booking)
@@ -310,23 +348,35 @@ describe('controllers - booking', function () {
     });
 
     it('should return 409 when booking is not possible', (done) => {
-      const booking = getHotelBooking();
-      booking.booking.arrival = 'InvalidUpdateError';
+      const booking = getBooking();
+      const orig = wtAdapter.updateAvailability;
+      wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.InvalidUpdateError());
+      });
       request(server)
         .post('/booking')
         .send(booking)
         .expect(409)
-        .end(done);
+        .end(() => {
+          wtAdapter.updateAvailability = orig;
+          done();
+        });
     });
 
     it('should return 502 when upstream error is encountered', (done) => {
-      const booking = getHotelBooking();
-      booking.booking.arrival = 'UpstreamError';
+      const booking = getBooking();
+      const orig = wtAdapter.updateAvailability;
+      wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.UpstreamError());
+      });
       request(server)
         .post('/booking')
         .send(booking)
         .expect(502)
-        .end(done);
+        .end(() => {
+          wtAdapter.updateAvailability = orig;
+          done();
+        });
     });
   });
 
