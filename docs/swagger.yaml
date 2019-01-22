@@ -316,6 +316,7 @@ components:
         note:
           description: Additional information passed to an airline from a customer
           type: string
+          maxLength: 3000
         airlineId:
           $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
         booking:
@@ -329,7 +330,7 @@ components:
       type: object
       required:
         - flightNumber
-        - flightId
+        - flightInstanceId
         - bookingClasses
       properties:
         flightNumber:
@@ -337,7 +338,7 @@ components:
           type: string
           minLength: 3
           maxLength: 7
-        flightId:
+        flightInstanceId:
           description: ID of the booked flight.
           type: string
           maxLength: 255

@@ -1,20 +1,25 @@
+const _ = require('lodash');
+
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError } = require('../errors');
-const config = require('../config');
+const { config } = require('../config');
 const validators = require('../services/validators');
-const adapter = require('../services/adapters/airline-adapter');
-const mailComposer = require('../services/mailComposer');
+const normalizers = require('../services/normalizers');
+const adapter = require('../services/adapters/base-adapter');
+const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
 const airlineId = config.adapterOpts.supplierId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
-  const airlineData = await adapter.getSupplierData(['name', 'contacts', 'code']);
+  const airlineData = await adapter.getSupplierData(['name', 'contacts', 'code', 'flights']);
+  const flight = airlineData.flights.flights.find(f => f.id === bookingBody.booking.flightInstanceId);
   return {
     customer: bookingBody.customer,
     note: bookingBody.note,
     airline: airlineData,
+    flight: flight,
     booking: bookingBody.booking,
     pricing: bookingBody.pricing,
     id: bookingRecord.id,
@@ -27,31 +32,43 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
  */
 module.exports.create = async (req, res, next) => {
   try {
+    // 0. Normalize request payload
+    const bookingData = normalizers.normalizeBooking(req.body);
     // 1. Validate request payload.
-    validators.validateBooking(req.body);
+    validators.validateBooking(bookingData);
     // 2. Verify that airlineId is the expected one.
-    if (req.body.airlineId.toLowerCase() !== airlineId.toLowerCase()) {
-      throw new validators.ValidationError('Unexpected address.');
+    if (bookingData.airlineId.toLowerCase() !== airlineId) {
+      throw new validators.ValidationError('Unexpected airlineId.');
     }
     // 3. Assemble the intended availability update and try to apply it.
-    // No airline availability stored in WT
+    // (Validation of the update is done inside the adapter.)
+    const wtAdapter = adapter.get(),
+      booking = bookingData.booking,
+      pricing = bookingData.pricing;
+
+    const flightInstance = await wtAdapter.getFlightInstanceData(booking.flightInstanceId);
+    await wtAdapter.checkAdmissibility(bookingData, flightInstance, pricing, new Date(), config.checkOpts);
+    if (config.updateAvailability) {
+      await wtAdapter.updateAvailability(booking.flightInstanceId, bookingData);
+    }
 
     // We are not storing any personal information
-    const bookingData = { // TODO add tests
-        airline: req.body.airlineId,
-        pricing: req.body.pricing,
+    let bookingClasses = _.cloneDeep(booking.bookingClasses);
+    bookingClasses = bookingClasses.map((c) => { c.passengerCount = c.passengers.length; delete c.passengers; return c; });
+    const bookingRecordData = {
+        airline: bookingData.airlineId,
+        pricing: pricing,
         booking: {
-          flightId: req.body.booking.flightId,
-          flightNumber: req.body.booking.flightId,
-          bookingClasses: req.body.booking.bookingClasses.map('bookingClassId'),
+          flightInstanceId: booking.flightInstanceId,
+          flightNumber: booking.flightNumber,
+          bookingClasses: bookingClasses,
         },
       },
-      bookingRecord = await Booking.create(bookingData, config.defaultBookingState);
+      bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
     // 4. E-mail confirmations
-    const wtAdapter = adapter.get();
     const mailer = mailerService.get();
     const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
-      ? await prepareDataForConfirmationMail(req.body, bookingRecord, wtAdapter)
+      ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
       : {};
     // airline
     if (config.mailing.sendSupplier && config.mailing.supplierAddress) {
@@ -107,12 +124,12 @@ module.exports.create = async (req, res, next) => {
 module.exports.cancel = async (req, res, next) => {
   try {
     const bookingId = req.params.id,
-      booking = await Booking.get(bookingId);
-    if (!booking) {
+      bookingRecord = await Booking.get(bookingId);
+    if (!bookingRecord) {
       const msg = `Booking ${bookingId} does not exist.`;
       throw new Http404Error('notFound', msg);
     }
-    if (booking.status === Booking.STATUS.CANCELLED) {
+    if (bookingRecord.status === Booking.STATUS.CANCELLED) {
       const msg = `Booking ${bookingId} already cancelled.`;
       throw new HttpConflictError('alreadyCancelled', msg);
     }
@@ -122,7 +139,9 @@ module.exports.cancel = async (req, res, next) => {
     }
 
     // Restore the availability.
-    // No airline availability stored in WT
+    const booking = bookingRecord.rawData,
+      wtAdapter = adapter.get();
+    await wtAdapter.updateAvailability(booking.flightInstanceId, booking, true);
 
     // Mark the booking as cancelled.
     await Booking.cancel(bookingId);

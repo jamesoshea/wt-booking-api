@@ -3,6 +3,7 @@
 /* eslint-disable no-new */
 const { assert } = require('chai');
 const MailComposer = require('../../src/services/mailcomposer');
+const { initSegment } = require('../../src/config/index');
 
 const nonAsciiTest = 'Příliš žluťoučký kůň úpěl ďábelské ódy\'s &<>$';
 const noXssTest = 'random text with <b>HTML</b> and XSS <script>alert("xss");</script>';
@@ -66,8 +67,13 @@ const fakeMailData = {
 };
 
 describe('services - mailcomposer', function () {
+  before(() => {
+    process.env.WT_SEGMENT = 'hotels';
+    initSegment();
+  });
+
   it('should escape html', () => {
-    const result = MailComposer.renderHotel(fakeMailData);
+    const result = MailComposer.renderSupplier(fakeMailData);
     assert.match(result.text, /<script>/i);
     assert.notMatch(result.html, /<script>/i);
   });

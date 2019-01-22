@@ -12,7 +12,7 @@ const showdown = require('showdown');
  *    airline: <https://github.com/windingtree/wtips/blob/0bfb89a9d57bd2836bf5fa0ada2e2bfb590aacae/assets/wtip-003/airlines-data-swagger.yaml#L59> limited to name,contacts and code
  *    booking: {
  *     flightNumber: OK0965,
- *     flightId: IeKeix6G,
+ *     flightInstanceId: IeKeix6G,
  *     bookingClasses: [
  *       bookingClassId: business,
  *       passengers: [
@@ -36,9 +36,9 @@ ${airlineData.name ? `- Name: ${airlineData.name}` : ''}
 ${airlineData.code ? `- Code: ${airlineData.code}` : ''}
 ${airlineData.contacts && airlineData.contacts.general
     ? `- Contact:
-  ${airlineData.contacts.general.email ? `    - E-mail: ${airlineData.contacts.general.email}` : ''}
-  ${airlineData.contacts.general.phone ? `    - Phone: ${airlineData.contacts.general.phone}` : ''}
-  ${airlineData.contacts.general.url ? `    - Web: ${airlineData.contacts.general.url}` : ''}
+  ${airlineData.contacts.general.email ? `  - E-mail: ${airlineData.contacts.general.email}` : ''}
+  ${airlineData.contacts.general.phone ? `  - Phone: ${airlineData.contacts.general.phone}` : ''}
+  ${airlineData.contacts.general.url ? `  - Web: ${airlineData.contacts.general.url}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -55,12 +55,12 @@ ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
 ${customerData.phone ? `- Phone: ${customerData.phone}` : ''}
 ${customerData.address
     ? `- Address:
-  ${customerData.address.line1 ? `    - ${customerData.address.line1}` : ''}
-  ${customerData.address.line2 ? `    - ${customerData.address.line2}` : ''}
-  ${customerData.address.city ? `    - ${customerData.address.city}` : ''}
-  ${customerData.address.state ? `    - ${customerData.address.state}` : ''}
-  ${customerData.address.country ? `    - ${customerData.address.country}` : ''}
-  ${customerData.address.postalCode ? `    - ${customerData.address.postalCode}` : ''}
+  ${customerData.address.line1 ? `  - ${customerData.address.line1}` : ''}
+  ${customerData.address.line2 ? `  - ${customerData.address.line2}` : ''}
+  ${customerData.address.city ? `  - ${customerData.address.city}` : ''}
+  ${customerData.address.state ? `  - ${customerData.address.state}` : ''}
+  ${customerData.address.country ? `  - ${customerData.address.country}` : ''}
+  ${customerData.address.postalCode ? `  - ${customerData.address.postalCode}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -73,7 +73,7 @@ const formatPassengers = (passengers) => {
 
 const formatFlight = (booking) => {
   return booking.bookingClasses.map((c) => (`
-  - ${c.bookingClassId}: (Passengers: ${formatPassengers(c.passengers)})
+    - ${c.bookingClassId} - passengers: ${formatPassengers(c.passengers)}
 `)).join('\n');
 };
 
@@ -87,9 +87,10 @@ const formatBooking = (data) => {
   const template = `
 # Summary
 
-- ID: ${data.id} (${data.status})
+- From: ${data.flight.origin}
+- To: ${data.flight.destination}
+- Booking Id: ${data.id} (status: ${data.status})
 - Flight Nr: ${data.booking.flightNumber}
-- FlightID: ${data.booking.id}
 - Total: ${data.pricing.total} ${data.pricing.currency}
 - Cancellation fees:
 ${formatCancellationFees(data.pricing.cancellationFees)}
@@ -101,7 +102,7 @@ ${formatFlight(data.booking)}
 };
 
 const airlineSubject = (data) => {
-  return `New booking ${data.id}: Flight nr ${data.booking.flightNumber} (flight id: ${data.booking.flightId})`;
+  return `New booking id ${data.id} for flight #${data.booking.flightNumber} (flight id ${data.booking.flightInstanceId})`;
 };
 
 const airlineText = (data) => {
@@ -125,7 +126,7 @@ const airlineHtml = (data) => {
 };
 
 const customerSubject = (data) => {
-  return `Booking confirmation ${data.id} with ${data.airline.name}: Flight nr ${data.booking.flightNumber}`;
+  return `Booking confirmation ${data.id} with ${data.airline.name}: Flight  #${data.booking.flightNumber}`;
 };
 
 const customerText = (data) => {

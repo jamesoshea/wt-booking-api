@@ -3,15 +3,8 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 
-const {
-  WTHotelAdapter,
-  InvalidUpdateError,
-  RestrictionsViolatedError,
-  RoomUnavailableError,
-  IllFormedCancellationFeesError,
-  InadmissibleCancellationFeesError,
-  InvalidPriceError,
-} = require('../../../src/services/adapters/hotel-adapter');
+const adapter = require('../../../src/services/adapters/base-adapter');
+const { WTHotelAdapter } = require('../../../src/services/adapters/hotel-adapter');
 
 function _getAdapter () {
   return new WTHotelAdapter({
@@ -62,19 +55,19 @@ describe('services - hotel adapter', function () {
     it('should throw InvalidUpdateError upon unknown roomTypeId', async () => {
       assert.throws(() => {
         wtAdapter._applyUpdate(availability, ['roomTypeX'], '2019-01-01', '2019-01-02');
-      }, InvalidUpdateError);
+      }, adapter.InvalidUpdateError);
     });
 
     it('should throw InvalidUpdateError upon unknown date', async () => {
       assert.throws(() => {
         wtAdapter._applyUpdate(availability, ['roomType1'], '2021-01-01', '2021-01-02');
-      }, InvalidUpdateError);
+      }, adapter.InvalidUpdateError);
     });
 
     it('should throw InvalidUpdateError upon overbooking', async () => {
       assert.throws(() => {
         wtAdapter._applyUpdate(availability, Array(100).fill('roomType1'), '2019-01-01', '2019-01-02');
-      }, InvalidUpdateError);
+      }, adapter.InvalidUpdateError);
     });
   });
 
@@ -90,13 +83,13 @@ describe('services - hotel adapter', function () {
     it('should throw when the noArrival restriction is violated', async () => {
       assert.throws(() => {
         wtAdapter._checkRestrictions(availability, ['roomType1'], '2019-01-02', '2019-01-03');
-      }, RestrictionsViolatedError);
+      }, adapter.RestrictionsViolatedError);
     });
 
     it('should throw when the noDeparture restriction is violated', async () => {
       assert.throws(() => {
         wtAdapter._checkRestrictions(availability, ['roomType1'], '2019-01-01', '2019-01-04');
-      }, RestrictionsViolatedError);
+      }, adapter.RestrictionsViolatedError);
     });
 
     it('should not throw if no restrictions are violated', async () => {
@@ -115,13 +108,13 @@ describe('services - hotel adapter', function () {
           { roomTypeId: 'roomType1', date: '2019-01-04', quantity: 0 },
         ],
         [{ 'guestInfoIds': ['1'], 'id': 'roomType1' }], '2019-01-02', '2019-01-03');
-      }, RoomUnavailableError);
+      }, adapter.RoomUnavailableError);
     });
 
     it('should throw when the room availability is undefined', async () => {
       assert.throws(() => {
         wtAdapter._checkAvailability([], [{ 'guestInfoIds': ['1'], 'id': 'roomType1' }], '2019-01-01', '2019-01-04');
-      }, RoomUnavailableError);
+      }, adapter.RoomUnavailableError);
     });
 
     it('should not throw if room is available', async () => {
@@ -246,7 +239,7 @@ describe('services - hotel adapter', function () {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
-        if (!(err instanceof IllFormedCancellationFeesError)) {
+        if (!(err instanceof adapter.IllFormedCancellationFeesError)) {
           throw err;
         }
       }
@@ -263,7 +256,7 @@ describe('services - hotel adapter', function () {
         throw new Error('Should have thrown');
       } catch (err) {
         assert.match(err.message, /the whole period between/);
-        if (!(err instanceof IllFormedCancellationFeesError)) {
+        if (!(err instanceof adapter.IllFormedCancellationFeesError)) {
           throw err;
         }
       }
@@ -280,7 +273,7 @@ describe('services - hotel adapter', function () {
         throw new Error('Should have thrown');
       } catch (err) {
         assert.match(err.message, /is before the booking date/);
-        if (!(err instanceof IllFormedCancellationFeesError)) {
+        if (!(err instanceof adapter.IllFormedCancellationFeesError)) {
           throw err;
         }
       }
@@ -297,7 +290,7 @@ describe('services - hotel adapter', function () {
         throw new Error('Should have thrown');
       } catch (err) {
         assert.match(err.message, /is after the arrival date/);
-        if (!(err instanceof IllFormedCancellationFeesError)) {
+        if (!(err instanceof adapter.IllFormedCancellationFeesError)) {
           throw err;
         }
       }
@@ -314,7 +307,7 @@ describe('services - hotel adapter', function () {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
-        if (!(err instanceof InadmissibleCancellationFeesError)) {
+        if (!(err instanceof adapter.InadmissibleCancellationFeesError)) {
           throw err;
         }
       }
@@ -331,7 +324,7 @@ describe('services - hotel adapter', function () {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
-        if (!(err instanceof InadmissibleCancellationFeesError)) {
+        if (!(err instanceof adapter.InadmissibleCancellationFeesError)) {
           throw err;
         }
       }
@@ -348,7 +341,7 @@ describe('services - hotel adapter', function () {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
       } catch (err) {
-        if (!(err instanceof InadmissibleCancellationFeesError)) {
+        if (!(err instanceof adapter.InadmissibleCancellationFeesError)) {
           throw err;
         }
       }
@@ -432,7 +425,7 @@ describe('services - hotel adapter', function () {
         await wtAdapter._checkTotal(description, ratePlans, bookingInfo, 'EUR', 60, '2018-12-01');
         throw new Error('Should have thrown');
       } catch (err) {
-        assert.instanceOf(err, InvalidPriceError);
+        assert.instanceOf(err, adapter.InvalidPriceError);
       }
     });
   });

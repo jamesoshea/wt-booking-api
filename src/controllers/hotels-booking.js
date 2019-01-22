@@ -1,17 +1,17 @@
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError } = require('../errors');
-const config = require('../config');
+const { config } = require('../config');
 const validators = require('../services/validators');
 const normalizers = require('../services/normalizers');
-const adapter = require('../services/adapter');
+const adapter = require('../services/adapters/base-adapter');
 const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
 
-const hotelId = config.adapterOpts.hotelId.toLowerCase();
+const hotelId = config.adapterOpts.supplierId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
-  const hotelData = await adapter.getHotelData(['name', 'contacts', 'address', 'roomTypes']);
+  const hotelData = await adapter.getSupplierData(['name', 'contacts', 'address', 'roomTypes']);
   const roomList = bookingBody.booking.rooms.map((r) => {
     return {
       roomType: hotelData.roomTypes.find((rt) => rt.id === r.id),
@@ -64,15 +64,15 @@ module.exports.create = async (req, res, next) => {
       bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
     // 4. E-mail confirmations
     const mailer = mailerService.get();
-    const mailInformation = ((config.mailing.sendHotel && config.mailing.hotelAddress) || config.mailing.sendCustomer)
+    const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
       ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
       : {};
     // hotel
-    if (config.mailing.sendHotel && config.mailing.hotelAddress) {
+    if (config.mailing.sendSupplier && config.mailing.supplierAddress) {
       // no need to wait for result
       mailer.sendMail({
-        to: config.mailing.hotelAddress,
-        ...mailComposer.renderHotel(mailInformation),
+        to: config.mailing.supplierAddress,
+        ...mailComposer.renderSupplier(mailInformation),
       });
     }
     // customer

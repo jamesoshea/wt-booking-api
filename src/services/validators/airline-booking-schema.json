@@ -1,4 +1,5 @@
 {
+  "description": "Booking object passed from a customer to an airline supplier",
   "type": "object",
   "required": [
     "customer",
@@ -6,46 +7,9 @@
     "booking",
     "pricing"
   ],
-  "definitions": {
-    "Address": {
-      "title": "Postal address",
-      "type": "object",
-      "required": [
-        "line1",
-        "city",
-        "country"
-      ],
-      "properties": {
-        "line1": {
-          "type": "string",
-          "maxLength": 150
-        },
-        "line2": {
-          "type": "string",
-          "maxLength": 150
-        },
-        "postalCode": {
-          "type": "string",
-          "maxLength": 10
-        },
-        "city": {
-          "type": "string",
-          "maxLength": 150
-        },
-        "state": {
-          "type": "string",
-          "maxLength": 150
-        },
-        "country": {
-          "type": "string",
-          "maxLength": 2,
-          "minLength": 2,
-          "description": "ISO 3166-1 alpha-2 codes"
-        }
-      }
-    },
-    "Customer": {
-      "description": "Person responsible for this booking who should be contacted by the hotel if needed",
+  "properties": {
+    "customer": {
+      "description": "Person responsible for this booking who should be contacted by the hotel/airline supplier if needed",
       "type": "object",
       "required": [
         "name",
@@ -54,45 +18,95 @@
       ],
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 255
         },
         "surname": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 255
         },
         "address": {
-          "$ref": "#/definitions/Address"
-        },
-        "phone": {
-          "description": "Phone number (with country prefix)",
-          "type": "string",
-          "maxLength": 18
+          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/Address"
         },
         "email": {
           "description": "E-mail contact",
           "type": "string",
           "format": "email",
           "maxLength": 150
+        },
+        "phone": {
+          "description": "Phone number (with country prefix)",
+          "type": "string",
+          "format": "phone",
+          "maxLength": 18
         }
       }
     },
-    "AirlineBookingInfo": {
-    }
-  },
-  "properties": {
-    "customer": {
-      "$ref": "#/definitions/Customer"
-    },
     "note": {
       "description": "Additional information passed to an airline from a customer",
-      "type": "string"
+      "type": "string",
+      "maxLength": 3000
     },
     "airlineId": {
-      "description": "Airline ID within the Winding Tree platform",
-      "type": "string",
-      "format": "eth-address"
+      "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType"
     },
     "booking": {
-      "$ref": "#/definitions/AirlineBookingInfo"
+      "description": "Information on the booked seats.",
+      "type": "object",
+      "required": [
+        "flightNumber",
+        "flightInstanceId",
+        "bookingClasses"
+      ],
+      "properties": {
+        "flightNumber": {
+          "description": "Number of the booked flight.",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 7
+        },
+        "flightInstanceId": {
+          "description": "ID of the booked flight.",
+          "type": "string",
+          "maxLength": 255
+        },
+        "bookingClasses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "bookingClassId",
+              "passengers"
+            ],
+            "properties": {
+              "bookingClassId": {
+                "type": "string"
+              },
+              "passengers": {
+                "type": "array",
+                "description": "List of passengers. The length of the list\ncorresponds to the number of seats booked for\nthis class.\n",
+                "minItems": 1,
+                "items": {
+                  "description": "Passenger information.",
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "surname"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "surname": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "pricing": {
       "type": "object",
@@ -103,38 +117,42 @@
       ],
       "properties": {
         "currency": {
-          "description": "ISO 4217 Currency code",
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 3,
-          "format": "currency-code"
+          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/CurrencyType"
         },
         "total": {
           "description": "Total price that should be paid. Including taxes - this is subject to change in the future.",
           "type": "number",
-          "format": "float"
+          "format": "float",
+          "minimum": -3.402823669209385e+38,
+          "maximum": 3.402823669209385e+38
         },
         "cancellationFees": {
-          "description": "Under what conditions can this booking be cancelled and how much will it cost.",
+          "description": "Under what conditions can this booking be cancelled and how much will it cost. Note that the cancellation fees should cover the whole period from the moment of booking up to service usage (hotel arrival or flight departure) and should be based on the supplier's cancellation policy. (Each cancellation fee should correspond to an applicable cancellation policy.)",
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["from", "to", "amount"],
+            "required": [
+              "from",
+              "to",
+              "amount"
+            ],
             "properties": {
               "from": {
-                "description": "After which date does this cancellation fee apply (including). If not present, this policy applies since the beginning of time.",
+                "description": "After which date does this cancellation fee apply (inclusive).",
                 "type": "string",
                 "format": "date"
               },
               "to": {
-                "description": "Before which date does this cancellation policy apply (including). If not present, this policy applies until the time of arrival.",
+                "description": "Until which date does this cancellation policy apply (inclusive).",
                 "type": "string",
                 "format": "date"
               },
               "amount": {
                 "description": "Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.",
                 "type": "number",
-                "format": "float"
+                "format": "float",
+                "minimum": -3.402823669209385e+38,
+                "maximum": 3.402823669209385e+38
               }
             }
           }

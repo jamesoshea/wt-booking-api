@@ -1,6 +1,6 @@
 const shortid = require('shortid');
 
-const { db } = require('../config');
+const { db } = require('../config').config;
 
 const TABLE = 'bookings',
   ID_LENGTH = 255,

@@ -1,5 +1,14 @@
 let _WTAdapter;
 
+class UpstreamError extends Error {};
+class InvalidUpdateError extends Error {};
+class RestrictionsViolatedError extends Error {};
+class RoomUnavailableError extends Error {};
+class FlightUnavailableError extends Error {};
+class IllFormedCancellationFeesError extends Error {};
+class InadmissibleCancellationFeesError extends Error {};
+class InvalidPriceError extends Error {};
+
 /**
  * Get the previously set WTAdapter instance.
  */
@@ -20,4 +29,12 @@ function set (wtAdapter) {
 module.exports = {
   get,
   set,
+  UpstreamError,
+  InvalidUpdateError,
+  RoomUnavailableError,
+  FlightUnavailableError,
+  RestrictionsViolatedError,
+  IllFormedCancellationFeesError,
+  InadmissibleCancellationFeesError,
+  InvalidPriceError,
 };

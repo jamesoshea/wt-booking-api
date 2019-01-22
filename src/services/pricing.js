@@ -30,7 +30,7 @@ function computeHotelPrice (bookingData, ratePlans, bookingDate, currency, hotel
     );
   }
   return total;
-};
+}
 
 module.exports = {
   computeHotelPrice,

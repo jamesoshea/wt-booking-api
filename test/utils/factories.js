@@ -1,4 +1,4 @@
-const config = require('../../src/config');
+const { config } = require('../../src/config');
 
 module.exports.getHotelData = function () {
   return {
@@ -94,6 +94,111 @@ module.exports.getHotelBooking = function () {
           id: '2',
           name: 'John',
           surname: 'Watson',
+        },
+      ],
+    },
+  };
+};
+
+module.exports.getAirlineData = function () {
+  return {
+    name: 'Mazurka Airlines',
+    code: 'MA',
+    contacts: {
+      general: {
+        email: 'info@airline-mazurka.com',
+        phone: '004078965423',
+        url: 'https://www.airline-mazurka.com',
+      },
+    },
+    flights: {
+      updatedAt: '2019-01-01 12:00:00',
+      flights: [
+        {
+          id: 'IeKeix6G-1',
+          origin: 'PRG',
+          destination: 'LAX',
+          segments: [
+            {
+              id: 'segment1',
+              departureAirport: 'PRG',
+              arrivalAirport: 'CDG',
+            },
+            {
+              id: 'segment2',
+              departureAirport: 'CDG',
+              arrivalAirport: 'LAX',
+            },
+          ],
+          flightInstancesUri: 'https://airline.com/flightinstancesone',
+        },
+        {
+          id: 'IeKeix6G-1',
+          origin: 'LON',
+          destination: 'CAP',
+          segments: [
+            {
+              id: 'segment1',
+              departureAirport: 'LON',
+              arrivalAirport: 'CAP',
+            },
+          ],
+          flightInstancesUri: 'https://airline.com/flightinstancestwo',
+        },
+      ],
+    },
+    id: '0xD8b8aF90986174d5c5558aAC0905AA1DB2Ee41ce',
+  };
+};
+
+module.exports.getFlightInstanceData = function () {
+  return [{
+    id: 'IeKeix6G-1',
+    departureDateTime: '2018-12-10 12:00:00',
+    bookingClasses: [
+      { id: 'economy', availabilityCount: 100 },
+      { id: 'business', availabilityCount: 20 },
+    ],
+  }, {
+    id: 'IeKeix6G-2',
+    departureDateTime: '2018-12-24 12:00:00',
+    bookingClasses: [
+      { id: 'economy', availabilityCount: 150 },
+    ],
+  }];
+};
+
+module.exports.getAirlineBooking = function () {
+  return {
+    airlineId: config.adapterOpts.supplierId,
+    customer: {
+      name: 'Sherlock',
+      surname: 'Holmes',
+      address: {
+        line1: '221B Baker Street',
+        city: 'London',
+        country: 'GB',
+      },
+      email: 'sherlock.holmes@houndofthebaskervilles.net',
+    },
+    pricing: {
+      currency: 'GBP',
+      total: 221,
+      cancellationFees: [
+        { from: '2018-12-01', to: '2019-01-01', amount: 50 },
+      ],
+    },
+    booking: {
+      flightInstanceId: 'IeKeix6G-1',
+      flightNumber: 'OK0965',
+      bookingClasses: [
+        {
+          bookingClassId: 'business',
+          passengers: [ { name: 'Sherlock', surname: 'Holmes' } ],
+        },
+        {
+          bookingClassId: 'economy',
+          passengers: [ { name: 'John', surname: 'Watson' } ],
         },
       ],
     },

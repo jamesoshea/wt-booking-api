@@ -3,7 +3,7 @@
 const { expect } = require('chai');
 const request = require('supertest');
 
-const { db } = require('../src/config');
+const { db } = require('../src/config').config;
 const { resetDB } = require('../src/db');
 
 // Global "before" hook - runs before all tests.

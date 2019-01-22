@@ -217,7 +217,7 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
   },
   "booking": {
     "flightNumber": "OK0965",
-    "flightId": "IeKeix6G",
+    "flightInstanceId": "IeKeix6G",
     "bookingClasses": [
       "bookingClassId": "business",
       "passengers": [

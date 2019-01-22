@@ -2,19 +2,12 @@ const dayjs = require('dayjs');
 const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
+const adapter = require('./base-adapter');
 const { computeHotelPrice, NoRatePlanError } = require('../pricing');
 const {
   cancellationFees: cancellationFeesLibrary,
   availability: availabilityLibrary,
 } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
-
-class UpstreamError extends Error {};
-class InvalidUpdateError extends Error {};
-class RestrictionsViolatedError extends Error {};
-class RoomUnavailableError extends Error {};
-class IllFormedCancellationFeesError extends Error {};
-class InadmissibleCancellationFeesError extends Error {};
-class InvalidPriceError extends Error {};
 
 const REQUIRED_FIELDS = [
   'supplierId',
@@ -66,7 +59,7 @@ class WTHotelAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -100,7 +93,7 @@ class WTHotelAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -119,11 +112,11 @@ class WTHotelAdapter {
       if (roomTypes.indexOf(item.roomTypeId) !== -1) {
         if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
           const msg = `Cannot arrive to ${item.roomTypeId} on date ${arrival}.`;
-          throw new RestrictionsViolatedError(msg);
+          throw new adapter.RestrictionsViolatedError(msg);
         }
         if (item.date === departure && item.restrictions && item.restrictions.noDeparture) {
           const msg = `Cannot depart from ${item.roomTypeId} on date ${departure}.`;
-          throw new RestrictionsViolatedError(msg);
+          throw new adapter.RestrictionsViolatedError(msg);
         }
       }
     }
@@ -155,7 +148,7 @@ class WTHotelAdapter {
     }, {});
     for (let roomTypeId in totals) {
       if (!availability.find((a) => a.roomTypeId === roomTypeId)) {
-        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
+        throw new adapter.InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
       }
       const departureDate = dayjs(departure);
       let currentDate = dayjs(arrival);
@@ -166,7 +159,7 @@ class WTHotelAdapter {
             availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
             if (availabilityItem.quantity - totals[roomTypeId] < 0) {
               const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
-              throw new InvalidUpdateError(msg);
+              throw new adapter.InvalidUpdateError(msg);
             }
             if (restore) {
               availabilityItem.quantity += totals[roomTypeId];
@@ -179,7 +172,7 @@ class WTHotelAdapter {
         }
         if (!found) {
           const msg = `No availability provided for room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')}.`;
-          throw new InvalidUpdateError(msg);
+          throw new adapter.InvalidUpdateError(msg);
         }
         currentDate = currentDate.add(1, 'day');
       }
@@ -222,7 +215,7 @@ class WTHotelAdapter {
   /**
    * Checks if rooms are actually available for given dates.
    *
-   * @param {Object} availability The original availability object.
+   * @param {Object} availabilityData The original availability object.
    * @param {Array} rooms List of booked rooms.
    * @param {String} arrival
    * @param {String} departure
@@ -237,7 +230,7 @@ class WTHotelAdapter {
       const result = availabilityLibrary.computeAvailability(arrival, departure, numberOfGuests, [rooms[i]], indexedAvailability);
       const roomResult = result.find((r) => r.roomTypeId === rooms[i].id);
       if (!roomResult || !roomResult.quantity) {
-        throw new RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
+        throw new adapter.RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
       }
     }
   }
@@ -264,7 +257,7 @@ class WTHotelAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -369,7 +362,7 @@ class WTHotelAdapter {
   _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
     const illFormed = this._isIllFormed(cancellationFees, bookedAt, arrival);
     if (illFormed) {
-      throw new IllFormedCancellationFeesError(illFormed);
+      throw new adapter.IllFormedCancellationFeesError(illFormed);
     }
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
@@ -382,7 +375,7 @@ class WTHotelAdapter {
     for (let fee of cancellationFees) {
       if (!this._isAdmissible(fee, normalizedPolicies, { amount: hotelDescription.defaultCancellationAmount })) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
-        throw new InadmissibleCancellationFeesError(msg);
+        throw new adapter.InadmissibleCancellationFeesError(msg);
       }
     }
   }
@@ -417,13 +410,13 @@ class WTHotelAdapter {
       price = computeHotelPrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
     } catch (err) {
       if (err instanceof NoRatePlanError) {
-        throw new InvalidPriceError(err.message);
+        throw new adapter.InvalidPriceError(err.message);
       }
       throw err;
     }
 
     if (total < (price - EPSILON)) {
-      throw new InvalidPriceError(`The total is too low, expected ${price}.`);
+      throw new adapter.InvalidPriceError(`The total is too low, expected ${price}.`);
     }
   }
 
@@ -475,11 +468,4 @@ class WTHotelAdapter {
 
 module.exports = {
   WTHotelAdapter,
-  UpstreamError,
-  InvalidUpdateError,
-  RoomUnavailableError,
-  RestrictionsViolatedError,
-  IllFormedCancellationFeesError,
-  InadmissibleCancellationFeesError,
-  InvalidPriceError,
 };

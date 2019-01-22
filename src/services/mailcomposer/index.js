@@ -1,12 +1,18 @@
-const config = require('../../config');
-const {
-  supplierSubject,
-  supplierText,
-  supplierHtml,
-  customerSubject,
-  customerText,
-  customerHtml,
-} = require(`./${config.segment}-templates`);
+const { AIRLINE_SEGMENT_ID, HOTEL_SEGMENT_ID } = require('../../../src/constants');
+const { initSegment } = require('../../config');
+const config = initSegment();
+const hotelTemplates = require('./hotels-templates');
+const airlineTemplates = require('./airlines-templates');
+
+function getTemplates () {
+  if (config.segment === HOTEL_SEGMENT_ID) {
+    return hotelTemplates;
+  } else if (config.segment === AIRLINE_SEGMENT_ID) {
+    return airlineTemplates;
+  } else {
+    throw new Error(`Unknown segment ${config.segment}`);
+  }
+}
 
 /**
  * mailData specs:
@@ -38,8 +44,8 @@ const {
  *    airline: <https://github.com/windingtree/wtips/blob/0bfb89a9d57bd2836bf5fa0ada2e2bfb590aacae/assets/wtip-003/airlines-data-swagger.yaml#L59> limited to name,contacts and code
  *    booking: {
  *     flightNumber: OK0965,
- *     flightId: IeKeix6G,
- *     bookingClasses: [
+ *     flightInstanceId: IeKeix6G,
+ *     bookingClasses: [ // TODO add swagger links
  *       bookingClassId: business,
  *       passengers: [
  *         name: John,
@@ -55,18 +61,20 @@ const {
  */
 
 const renderSupplier = (mailData) => {
+  const segmentTemplates = getTemplates();
   return {
-    subject: supplierSubject(mailData),
-    text: supplierText(mailData),
-    html: supplierHtml(mailData),
+    subject: segmentTemplates.supplierSubject(mailData),
+    text: segmentTemplates.supplierText(mailData),
+    html: segmentTemplates.supplierHtml(mailData),
   };
 };
 
 const renderCustomer = (mailData) => {
+  const segmentTemplates = getTemplates();
   return {
-    subject: customerSubject(mailData),
-    text: customerText(mailData),
-    html: customerHtml(mailData),
+    subject: segmentTemplates.customerSubject(mailData),
+    text: segmentTemplates.customerText(mailData),
+    html: segmentTemplates.customerHtml(mailData),
   };
 };
 

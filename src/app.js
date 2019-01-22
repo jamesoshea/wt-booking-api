@@ -7,9 +7,9 @@ const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
 const YAML = require('yamljs');
 
-const config = require('./config');
+let { config } = require('./config');
 const { version } = require('../package.json');
-const booking = require(`./controllers/${config.segment}-booking`);
+const { cancelBooking, createBooking } = require('./controllers/index');
 const { HttpError, HttpInternalError, Http404Error, HttpBadRequestError } = require('./errors');
 
 const app = express();
@@ -52,8 +52,8 @@ app.get('/', (req, res) => {
 });
 
 // Booking
-app.post('/booking', booking.create);
-app.delete('/booking/:id', booking.cancel);
+app.post('/booking', createBooking);
+app.delete('/booking/:id', cancelBooking);
 
 // 404 handler
 app.use('*', (req, res, next) => {

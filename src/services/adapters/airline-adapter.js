@@ -1,20 +1,13 @@
+const _ = require('lodash');
 const dayjs = require('dayjs');
 const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
-const { computeHotelPrice, NoRatePlanError } = require('../pricing');
+const adapter = require('./base-adapter');
+const validators = require('../validators/index');
 const {
   cancellationFees: cancellationFeesLibrary,
-  availability: availabilityLibrary,
 } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
-
-class UpstreamError extends Error {};
-class InvalidUpdateError extends Error {};
-class RestrictionsViolatedError extends Error {};
-class RoomUnavailableError extends Error {};
-class IllFormedCancellationFeesError extends Error {};
-class InadmissibleCancellationFeesError extends Error {};
-class InvalidPriceError extends Error {};
 
 const REQUIRED_FIELDS = [
   'supplierId',
@@ -45,47 +38,49 @@ class WTAirlineAdapter {
   }
 
   /**
-   * Get the current availability document.
+   * Get flight instance data with current availability.
    *
-   * Do not call directly to avoid race conditions.
-   *
+   * @param {string} flightInstanceId
    * @returns {Promise<Object>}
    */
-  async _getAvailability () {
+  async getFlightInstanceData (flightInstanceId) {
+    let fields = [ 'id', 'bookingClasses', 'departureDateTime' ];
+    fields = fields.join(',');
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/airlines/${this.supplierId}/availability`,
+        uri: `${this.readApiUrl}/airlines/${this.supplierId}/flightinstances/${flightInstanceId}?fields=${fields}`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
       });
       if (response.statusCode <= 299) {
-        return response.body.roomTypes;
+        return response.body;
       } else {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
   /**
-   * Set availability.
+   * Set flight instance. Used to update flight availability count.
    *
    * Do not call directly to avoid race conditions.
    *
-   * @param {Object} availability
+   * @param {Object} flightInstance
+   * @param {String} flightInstanceId
    * @returns {Promise<Object>}
    */
-  async _setAvailability (availability) {
+  async _setAvailability (flightInstance, flightInstanceId) {
     try {
       const response = await request({
         method: 'PATCH',
-        uri: `${this.writeApiUrl}/airlines/${this.supplierId}`,
+        uri: `${this.writeApiUrl}/airlines/${this.supplierId}/flightinstances/${flightInstanceId}`,
         json: true,
         body: {
-          availability: { roomTypes: availability },
+          flightInstance,
         },
         headers: {
           'X-Access-Key': this.writeApiAccessKey,
@@ -100,118 +95,82 @@ class WTAirlineAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
   /**
-   * Check restrictions on arrival and departure.
+   * Check restrictions on airlines (there aren't any for now).
    *
-   * @param {Object} availability
-   * @param {Array} roomTypes
-   * @param {String} arrival
-   * @param {String} departure
+   * @param {Object} flightInstance
+   * @param {Object} bookingData
    * @returns {undefined}
    * @throws {RestrictionsViolatedError}
    */
-  _checkRestrictions (availability, roomTypes, arrival, departure) {
-    for (let item of availability) {
-      if (roomTypes.indexOf(item.roomTypeId) !== -1) {
-        if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
-          const msg = `Cannot arrive to ${item.roomTypeId} on date ${arrival}.`;
-          throw new RestrictionsViolatedError(msg);
-        }
-        if (item.date === departure && item.restrictions && item.restrictions.noDeparture) {
-          const msg = `Cannot depart from ${item.roomTypeId} on date ${departure}.`;
-          throw new RestrictionsViolatedError(msg);
-        }
-      }
-    }
+  _checkRestrictions (flightInstance, bookingData) {
+
   }
 
   /**
-   * Apply availability update (modifies the availability object
+   * Apply availability count update (modifies the flight instance object
    * in the process).
    *
-   * "availability" is supposed to have the structure defined in
-   * https://github.com/windingtree/wiki/blob/master/hotel-data-swagger.yaml
-   *
-   * "update" is an object where keys are roomTypeIds and values
-   * are arrays of items with two properties: "date" and
-   * "subtract".
-   *
-   * @param {Object} availability The original availability object.
-   * @param {Array} rooms List of booked rooms.
-   * @param {String} arrival
-   * @param {String} departure
+   * @param {Object} flightInstance The original flight object to be modified
+   * @param {Object} bookingData
    * @param {Boolean} restore (optional) If true, the
    *     availability is restored rather than removed.
    * @returns {undefined}
    */
-  _applyUpdate (availability, rooms, arrival, departure, restore) {
-    const totals = rooms.reduce((_totals, roomTypeId) => {
-      _totals[roomTypeId] = (_totals[roomTypeId] || 0) + 1;
-      return _totals;
-    }, {});
-    for (let roomTypeId in totals) {
-      if (!availability.find((a) => a.roomTypeId === roomTypeId)) {
-        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
+  _applyUpdate (flightInstance, bookingData, restore) {
+    if (bookingData.booking.flightInstanceId !== flightInstance.id) {
+      throw new adapter.InvalidUpdateError(`Trying to update incorrect flight id ${flightInstance.id} with booking for ${bookingData.booking.flightInstanceId}.`);
+    }
+
+    for (let bc of bookingData.booking.bookingClasses) {
+      let className = bc.bookingClassId;
+      let passengerCount = bc.passengers.length;
+      let bookingClass = flightInstance.bookingClasses.find(bc => bc.id === className);
+      if (_.isUndefined(bookingClass)) {
+        throw new adapter.InvalidUpdateError(`No booking class ${className} at flight ${flightInstance.id}.`);
       }
-      const departureDate = dayjs(departure);
-      let currentDate = dayjs(arrival);
-      while (currentDate.isBefore(departureDate)) {
-        let found = false;
-        for (let availabilityItem of availability) {
-          if (availabilityItem.roomTypeId === roomTypeId &&
-            availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
-            if (availabilityItem.quantity - totals[roomTypeId] < 0) {
-              const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
-              throw new InvalidUpdateError(msg);
-            }
-            if (restore) {
-              availabilityItem.quantity += totals[roomTypeId];
-            } else {
-              availabilityItem.quantity -= totals[roomTypeId];
-            }
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          const msg = `No availability provided for room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')}.`;
-          throw new InvalidUpdateError(msg);
-        }
-        currentDate = currentDate.add(1, 'day');
+      if (bookingClass.availabilityCount - passengerCount < 0) {
+        const msg = `Flight ${bookingData.booking.flightNumber} (id: ${bookingData.booking.flightInstanceId}) is overbooked in class ${className}.`;
+        throw new adapter.InvalidUpdateError(msg);
+      }
+
+      if (!restore) {
+        bookingClass.availabilityCount -= passengerCount;
+      } else {
+        bookingClass.availabilityCount += passengerCount;
       }
     }
   }
 
   /**
-   * Update availability.
+   * Update flight instance availability count.
    *
    * Serializes calls internally to avoid race conditions.
    *
-   * @param {Array} rooms Array of roomTypeIds to be booked
-   * @param {String} arrival
-   * @param {String} departure
+   * @param {String} flightInstanceId
+   * @param {Object} bookingData
    * @param {Boolean} restore (optional) If true, the
    *     availability is restored rather than removed.
    * @returns {Promise<Object>}
    */
-  updateAvailability (rooms, arrival, departure, restore) {
+  updateAvailability (flightInstanceId, bookingData, restore) {
     this.updating = this.updating.then(() => {
-      return this._getAvailability();
-    }).then((availability) => {
+      return this.getFlightInstanceData(flightInstanceId);
+    }).then((flightInstance) => {
       // If availability is restored, we assume it is done based
       // on a cancelled booking, whose validity has been
       // previously checked - therefore, we do not check it
       // again.
       if (!restore) {
         // Only a soft check here, hard check follows in _applyUpdate
-        this._checkRestrictions(availability, arrival, departure);
+        this._checkRestrictions(flightInstance, bookingData);
       }
-      this._applyUpdate(availability, rooms.map((x) => x.id), arrival, departure, restore); // Modifies availability.
-      return this._setAvailability(availability);
+      this._applyUpdate(flightInstance, bookingData, restore); // Modifies availability count.
+      return this._setAvailability(flightInstance, flightInstanceId);
     });
     const ret = this.updating;
     // Do not propagate errors further;
@@ -220,24 +179,26 @@ class WTAirlineAdapter {
   }
 
   /**
-   * Checks if rooms are actually available for given dates.
+   * Checks if flight instance is actually available.
    *
-   * @param {Object} availability The original availability object.
-   * @param {Array} rooms List of booked rooms.
-   * @param {String} arrival
-   * @param {String} departure
+   * @param {Object} flightInstance The original availability object.
+   * @param {Object} bookingData List of booked rooms.
    * @returns {undefined}
-   * @throws {RoomUnavailableError}
+   * @throws {FlightUnavailableError}
    */
-  _checkAvailability (availabilityData, rooms, arrival, departure) {
-    this._checkRestrictions(availabilityData, rooms.map((r) => r.id), arrival, departure);
-    const indexedAvailability = availabilityLibrary.indexAvailability(availabilityData);
-    for (let i = 0; i < rooms.length; i += 1) {
-      const numberOfGuests = rooms[i].guestInfoIds ? rooms[i].guestInfoIds.length : undefined;
-      const result = availabilityLibrary.computeAvailability(arrival, departure, numberOfGuests, [rooms[i]], indexedAvailability);
-      const roomResult = result.find((r) => r.roomTypeId === rooms[i].id);
-      if (!roomResult || !roomResult.quantity) {
-        throw new RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
+  _checkAvailability (flightInstance, bookingData) {
+    this._checkRestrictions(flightInstance, bookingData);
+
+    for (let bc of bookingData.booking.bookingClasses) {
+      let className = bc.bookingClassId;
+      let passengerCount = bc.passengers.length;
+      let bookingClass = flightInstance.bookingClasses.find(bc => bc.id === className);
+      if (_.isUndefined(bookingClass)) {
+        throw new adapter.FlightUnavailableError(`No booking class ${className} at flight ${flightInstance.id}.`);
+      }
+      if (bookingClass.availabilityCount - passengerCount < 0) {
+        const msg = `Flight ${bookingData.booking.flightNumber} (id: ${bookingData.booking.flightInstanceId}) is overbooked in class ${className}.`;
+        throw new adapter.FlightUnavailableError(msg);
       }
     }
   }
@@ -253,7 +214,7 @@ class WTAirlineAdapter {
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/airlines/${this.hotelId}?fields=${fields}`,
+        uri: `${this.readApiUrl}/airlines/${this.supplierId}?fields=${fields}`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
@@ -264,7 +225,7 @@ class WTAirlineAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -358,72 +319,63 @@ class WTAirlineAdapter {
    * Note: we assume that hotel's cancellation policies are
    * meaningfully defined; we do not validate it here.
    *
-   * @param {Object} hotelDescription
+   * @param {Object} airline
    * @param {Array} cancellationFees
    * @param {String} bookedAt
-   * @param {String} arrival
+   * @param {String} departureDateTime
    * @return {Promise<void>}
    * @throw {InadmissibleCancellationFeesError}
    * @throw {IllFormedCancellationFeesError}
    */
-  _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
-    const illFormed = this._isIllFormed(cancellationFees, bookedAt, arrival);
+  _checkCancellationFees (airline, cancellationFees, bookedAt, departureDateTime) {
+    const illFormed = this._isIllFormed(cancellationFees, bookedAt, departureDateTime);
     if (illFormed) {
-      throw new IllFormedCancellationFeesError(illFormed);
+      throw new adapter.IllFormedCancellationFeesError(illFormed);
     }
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
     const normalizedPolicies = cancellationFeesLibrary.computeCancellationFees(
       bookedAt,
-      arrival,
-      hotelDescription.cancellationPolicies,
-      hotelDescription.defaultCancellationAmount
+      departureDateTime,
+      airline.cancellationPolicies,
+      airline.defaultCancellationAmount
     );
     for (let fee of cancellationFees) {
-      if (!this._isAdmissible(fee, normalizedPolicies, { amount: hotelDescription.defaultCancellationAmount })) {
+      if (!this._isAdmissible(fee, normalizedPolicies, { amount: airline.defaultCancellationAmount })) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
-        throw new InadmissibleCancellationFeesError(msg);
+        throw new adapter.InadmissibleCancellationFeesError(msg);
       }
     }
   }
 
   /**
-   * Check price.
+   * Check price. For now this simply checks basic fare validity based on known fares.
+   * TODO use wt-pricing-algorithms to account for currencies, modifieres etc.
    *
-   * @param {Object} hotelDescription
-   * @param {Object} ratePlans
-   * @param {Object} bookingInfo
+   * @param {Object} airline
+   * @param {Object} flightInstance
+   * @param {Object} bookingData
    * @param {String} currency
    * @param {float} total
    * @return {Promise<void>}
    * @throw {InvalidPriceError}
    */
-  _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
-    ratePlans = Object.values(ratePlans);
-    const guestInfo = {};
-    for (let item of bookingInfo.guestInfo) {
-      guestInfo[item.id] = item;
-    }
-    const bookingData = bookingInfo.rooms.map((room) => {
-      return {
-        roomType: { id: room.id },
-        arrival: bookingInfo.arrival,
-        departure: bookingInfo.departure,
-        guests: room.guestInfoIds.map((gid) => guestInfo[gid]),
-      };
-    });
-    let price;
-    try {
-      price = computeHotelPrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
-    } catch (err) {
-      if (err instanceof NoRatePlanError) {
-        throw new InvalidPriceError(err.message);
+  _checkTotal (airline, flightInstance, bookingData, currency, total) {
+    let price = 0;
+    for (let bookingClass of bookingData.bookingClasses) {
+      let fareForClass = flightInstance.bookingClasses.find(bc => bc.id === bookingClass.bookingClassId);
+      if (!fareForClass) {
+        throw new adapter.InvalidPriceError(`Unknown booking class ${bookingClass.bookingClassId}`);
       }
-      throw err;
+      fareForClass = fareForClass.fare;
+      if (fareForClass.currency !== currency) {
+        throw new adapter.InvalidPriceError(`WTAirlineAdapter can only work with one currency atm. Flight instance: ${fareForClass.currency}, Airline: ${currency}`);
+      }
+      price += bookingClass.passengerCount * fareForClass.amount; // TODO support currencies
     }
 
     if (total < (price - EPSILON)) {
-      throw new InvalidPriceError(`The total is too low, expected ${price}.`);
+      throw new adapter.InvalidPriceError(`The total is too low, expected ${price}`);
     }
   }
 
@@ -434,7 +386,8 @@ class WTAirlineAdapter {
    * Every component of the validation can be turned off with
    * `checkOpts` parameter.
    *
-   * @param {Object} bookingInfo
+   * @param {Object} bookingData
+   * @param {Object} flightInstance
    * @param {Object} pricing
    * @param {Date} bookedAt
    * @param {Object} checkOpts {availability, cancellationFees, totalPrice}
@@ -444,30 +397,53 @@ class WTAirlineAdapter {
    * @throw {IllFormedCancellationFeesError}
    * @throw {RoomUnavailableError}
    */
-  async checkAdmissibility (bookingInfo, pricing, bookingDate, checkOpts) {
+  async checkAdmissibility (bookingData, flightInstance, pricing, bookedAt, checkOpts) {
     checkOpts = checkOpts || {
       availability: true,
       cancellationFees: true,
       totalPrice: true,
     };
+    const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'flights', 'code'],
+      airline = await this.getSupplierData(fields),
+      bookingDate = moment(bookedAt).format('YYYY-MM-DD');
+
+    // sanity checks TODO move to validation?
+    // 1. is in future
+    if (!moment(bookedAt).isValid()) {
+      throw new validators.ValidationError(`Booking date is in invalid format (${bookedAt}). Use ISO 8601.`);
+    }
+    const flightDeparture = moment(flightInstance.departureDateTime);
+    if (!flightDeparture.isValid()) {
+      throw new validators.ValidationError(`Flight date is in invalid format (${flightInstance.departureDateTime}). Use ISO 8601.`);
+    }
+    if (flightDeparture.isBefore(bookedAt)) {
+      throw new validators.ValidationError(`Flight departure date ${flightInstance.departureDateTime} is earlier than booking date ${bookingDate}`);
+    }
+    // 2. flight exists
+    const flightIds = _.map(airline.flights.flights, 'id');
+    if (flightIds.indexOf(bookingData.booking.flightInstanceId) === -1) {
+      throw new validators.ValidationError(`Unknown flight id ${bookingData.booking.flightInstanceId}.`);
+    }
+    // 3. existing booking classes
+    const bookingClasses = _.map(flightInstance.bookingClasses, 'id');
+    for (let bc of bookingData.booking.bookingClasses) {
+      if (bookingClasses.indexOf(bc.bookingClassId) === -1) {
+        throw new validators.ValidationError(`Unknown booking class ${bc.bookingClassId}`);
+      }
+    }
     if (Object.values(checkOpts).filter((v) => v).length > 0) {
-      const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
-        hotel = await this.getSupplierData(fields),
-        // Convert booking date to hotel's timezone and continue
-        // all computation in hotel timezone.
-        bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
-      
       // check the room availability
       if (checkOpts.availability) {
-        this._checkAvailability(hotel.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
+        this._checkAvailability(flightInstance, bookingData);
       }
       // check cancellation fees
       if (checkOpts.cancellationFees) {
-        this._checkCancellationFees(hotel, pricing.cancellationFees, bookedAt, bookingInfo.arrival);
+        this._checkCancellationFees(airline, pricing.cancellationFees, bookingDate, flightInstance.departureDateTime);
       }
       // check final price
       if (checkOpts.totalPrice) {
-        this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
+        // fare
+        this._checkTotal(airline, flightInstance, bookingData, pricing.currency, pricing.total);
       }
     }
   }
@@ -475,11 +451,4 @@ class WTAirlineAdapter {
 
 module.exports = {
   WTAirlineAdapter,
-  UpstreamError,
-  InvalidUpdateError,
-  RoomUnavailableError,
-  RestrictionsViolatedError,
-  IllFormedCancellationFeesError,
-  InadmissibleCancellationFeesError,
-  InvalidPriceError,
 };

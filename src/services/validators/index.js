@@ -2,16 +2,21 @@ const tv4 = require('tv4');
 const validator = require('validator');
 const PhoneNumber = require('awesome-phonenumber');
 
-const config = require('../../config');
+const { AIRLINE_SEGMENT_ID, HOTEL_SEGMENT_ID } = require('../../constants');
+let { config } = require('../../config');
 
 let bookingSchema;
-if (config.segment === 'hotels') {
-  bookingSchema = require('./hotel-booking-schema.json');
-} else if (config.segment === 'airlines') {
-  bookingSchema = require('./airline-booking-schema.json');
-} else {
-  throw new Error(`Unknown segment ${config.segment}`);
-}
+
+module.exports.initialize = function (config) {
+  if (config.segment === HOTEL_SEGMENT_ID) {
+    bookingSchema = require('./hotel-booking-schema.json');
+  } else if (config.segment === AIRLINE_SEGMENT_ID) {
+    bookingSchema = require('./airline-booking-schema.json');
+  } else {
+    throw new Error(`Unknown segment ${config.segment}`);
+  }
+};
+module.exports.initialize(config);
 
 class ValidationError extends Error {};
 module.exports.ValidationError = ValidationError;
@@ -41,8 +46,18 @@ function validateBookingAgainstSchema (data) {
 module.exports.validateBooking = function (data) {
   // syntax
   validateBookingAgainstSchema(data);
-  // arrival/departure dates
-  if (data.booking.arrival >= data.booking.departure) {
-    throw new ValidationError(`Arrival at ${data.booking.arrival} is after departure at ${data.booking.departure}`);
+  if (config.segment === HOTEL_SEGMENT_ID) {
+    // arrival/departure dates
+    if (data.booking.arrival >= data.booking.departure) {
+      throw new ValidationError(`Arrival at ${data.booking.arrival} is after departure at ${data.booking.departure}`);
+    }
+  }
+  if (config.segment === AIRLINE_SEGMENT_ID) {
+    // nonempty classes
+    for (let bc of data.booking.bookingClasses) {
+      if (bc.passengers.length === 0) {
+        throw new ValidationError(`Cannot book class ${bc.bookingClassId} for no passengers.`);
+      }
+    }
   }
 };

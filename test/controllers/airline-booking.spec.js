@@ -1,24 +1,24 @@
 /* eslint-env mocha */
 /* eslint-disable promise/no-callback-in-promise */
-const { HOTEL_SEGMENT_ID } = require('../../src/constants');
+const { AIRLINE_SEGMENT_ID } = require('../../src/constants');
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
 
-const { initSegment } = require('../../src/config');
+let { initSegment } = require('../../src/config');
 let config;
-const { getHotelBooking, getHotelData } = require('../utils/factories');
+const { getAirlineBooking, getAirlineData, getFlightInstanceData } = require('../utils/factories');
 const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapters/base-adapter');
 const Booking = require('../../src/models/booking');
 const validator = require('../../src/services/validators/index');
 
-describe('controllers - hotel booking', function () {
+describe('controllers - airline booking', function () {
   let server, wtAdapterOrig, wtAdapter,
     mailerOrig, mailer;
 
   before(async () => {
-    process.env.WT_SEGMENT = HOTEL_SEGMENT_ID;
+    process.env.WT_SEGMENT = AIRLINE_SEGMENT_ID;
     config = initSegment();
     server = require('../../src/index');
     validator.initialize(config);
@@ -26,13 +26,16 @@ describe('controllers - hotel booking', function () {
     mailerOrig = mailerService.get();
     wtAdapter = {
       getSupplierData: sinon.stub().callsFake((fields) => {
-        return Promise.resolve(getHotelData());
+        return Promise.resolve(getAirlineData());
       }),
       updateAvailability: sinon.stub().callsFake(() => {
         return Promise.resolve();
       }),
       checkAdmissibility: sinon.stub().callsFake(() => {
         return Promise.resolve();
+      }),
+      getFlightInstanceData: sinon.stub().callsFake(() => {
+        return Promise.resolve(getFlightInstanceData()[0]);
       }),
     };
     mailer = {
@@ -61,7 +64,7 @@ describe('controllers - hotel booking', function () {
       config.updateAvailability = true;
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -69,17 +72,8 @@ describe('controllers - hotel booking', function () {
           try {
             assert.deepEqual(wtAdapter.updateAvailability.args, [
               [
-                [
-                  {
-                    'guestInfoIds': ['1'],
-                    'id': 'single-room',
-                  },
-                  {
-                    'guestInfoIds': ['2'],
-                    'id': 'single-room',
-                  },
-                ],
-                '2019-01-01', '2019-01-03',
+                getAirlineBooking().booking.flightInstanceId,
+                getAirlineBooking(),
               ],
             ]);
             assert.property(res.body, 'id');
@@ -89,9 +83,32 @@ describe('controllers - hotel booking', function () {
             assert.propertyVal(booking, 'id', res.body.id);
             assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
             assert.deepEqual(booking.rawData, {
-              arrival: '2019-01-01',
-              departure: '2019-01-03',
-              rooms: ['single-room', 'single-room'],
+              airline: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
+              pricing: {
+                cancellationFees: [
+                  {
+                    amount: 50,
+                    from: '2018-12-01',
+                    to: '2019-01-01',
+                  },
+                ],
+                currency: 'GBP',
+                total: 221,
+              },
+              booking: {
+                flightInstanceId: 'IeKeix6G-1',
+                flightNumber: 'OK0965',
+                bookingClasses: [
+                  {
+                    bookingClassId: 'business',
+                    passengerCount: 1,
+                  },
+                  {
+                    bookingClassId: 'economy',
+                    passengerCount: 1,
+                  },
+                ],
+              },
             });
             config = orig;
             done();
@@ -107,7 +124,7 @@ describe('controllers - hotel booking', function () {
       config.defaultBookingState = Booking.STATUS.PENDING;
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -115,17 +132,8 @@ describe('controllers - hotel booking', function () {
           try {
             assert.deepEqual(wtAdapter.updateAvailability.args, [
               [
-                [
-                  {
-                    'guestInfoIds': ['1'],
-                    'id': 'single-room',
-                  },
-                  {
-                    'guestInfoIds': ['2'],
-                    'id': 'single-room',
-                  },
-                ],
-                '2019-01-01', '2019-01-03',
+                getAirlineBooking().booking.flightInstanceId,
+                getAirlineBooking(),
               ],
             ]);
             assert.property(res.body, 'id');
@@ -148,7 +156,7 @@ describe('controllers - hotel booking', function () {
       config.updateAvailability = false;
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -164,24 +172,24 @@ describe('controllers - hotel booking', function () {
         });
     });
 
-    it('should send email to hotel if configured', (done) => {
+    it('should send email to airline if configured', (done) => {
       const origMailerOpts = config.mailerOpts;
       const origMailing = config.mailing;
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
         sendSupplier: true,
-        supplierAddress: 'hotel@example.com',
+        supplierAddress: 'airline@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
           if (err) return done(err);
           try {
             assert.equal(mailer.sendMail.callCount, 1);
-            assert.equal(mailer.sendMail.firstCall.args[0].to, 'hotel@example.com');
+            assert.equal(mailer.sendMail.firstCall.args[0].to, 'airline@example.com');
             config.mailerOpts = origMailerOpts;
             config.mailing = origMailing;
             done();
@@ -202,7 +210,7 @@ describe('controllers - hotel booking', function () {
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
@@ -221,25 +229,25 @@ describe('controllers - hotel booking', function () {
         });
     });
 
-    it('should send email to hotel and customer if configured', (done) => {
+    it('should send email to airline and customer if configured', (done) => {
       const origMailerOpts = config.mailerOpts;
       const origMailing = config.mailing;
       config.mailerOpts = { provider: 'dummy' };
       config.mailing = {
         sendCustomer: true,
         sendSupplier: true,
-        supplierAddress: 'hotel@example.com',
+        supplierAddress: 'airline@example.com',
       };
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getAirlineBooking())
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
           if (err) return done(err);
           try {
             assert.equal(mailer.sendMail.callCount, 2);
-            assert.equal(mailer.sendMail.firstCall.args[0].to, 'hotel@example.com');
+            assert.equal(mailer.sendMail.firstCall.args[0].to, 'airline@example.com');
             assert.equal(mailer.sendMail.secondCall.args[0].to, 'sherlock.holmes@houndofthebaskervilles.net');
             config.mailerOpts = origMailerOpts;
             config.mailing = origMailing;
@@ -253,7 +261,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       booking.customer.phone = '+420777777777';
       booking.customer.email = 'sherlock.holmes@houndofthebaskervilles.net';
       request(server)
@@ -264,7 +272,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 422 if neither e-mail nor phone are supplied', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       delete booking.customer.phone;
       delete booking.customer.email;
       request(server)
@@ -275,7 +283,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 422 if e-mail is invalid', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       booking.customer.email = 'huh';
       request(server)
         .post('/booking')
@@ -285,7 +293,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 422 if phone is invalid', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       booking.customer.phone = 'bababaphone';
       request(server)
         .post('/booking')
@@ -297,21 +305,21 @@ describe('controllers - hotel booking', function () {
     it('should return 422 if unknown attributes are encountered', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({ dummy: 'dummy' }, getHotelBooking()))
+        .send(Object.assign({ dummy: 'dummy' }, getAirlineBooking()))
         .expect(422)
         .end(done);
     });
 
-    it('should return 422 if an unexpected hotelId is used', (done) => {
+    it('should return 422 if an unexpected airlineId is used', (done) => {
       request(server)
         .post('/booking')
-        .send(Object.assign({}, getHotelBooking(), { hotelId: 'unexpected' }))
+        .send(Object.assign({}, getAirlineBooking(), { airlineId: 'unexpected' }))
         .expect(422)
         .end(done);
     });
 
     it('should return 422 when the price is not right', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       const orig = wtAdapter.checkAdmissibility;
       wtAdapter.checkAdmissibility = sinon.stub().callsFake(() => {
         return Promise.reject(new adapter.InvalidPriceError());
@@ -327,7 +335,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 422 when the note is too long', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       booking.note = 'a'.repeat(3001);
       request(server)
         .post('/booking')
@@ -336,10 +344,9 @@ describe('controllers - hotel booking', function () {
         .end(done);
     });
 
-    it('should return 422 when arrival is after departure', (done) => {
-      const booking = getHotelBooking();
-      booking.booking.arrival = '2019-03-01';
-      booking.booking.departure = '2019-02-01';
+    it('should return 422 when the flight number is too short', (done) => {
+      const booking = getAirlineBooking();
+      booking.booking.flightNumber = 'a'.repeat(2);
       request(server)
         .post('/booking')
         .send(booking)
@@ -347,10 +354,19 @@ describe('controllers - hotel booking', function () {
         .end(done);
     });
 
-    it('should return 422 when arrival is the same as departure', (done) => {
-      const booking = getHotelBooking();
-      booking.booking.arrival = '2019-03-01';
-      booking.booking.departure = '2019-03-01';
+    it('should return 422 when the flight number is too long', (done) => {
+      const booking = getAirlineBooking();
+      booking.booking.flightNumber = 'a'.repeat(8);
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 when the flight id is too long', (done) => {
+      const booking = getAirlineBooking();
+      booking.booking.flightInstanceId = 'a'.repeat(256);
       request(server)
         .post('/booking')
         .send(booking)
@@ -359,7 +375,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 409 when booking is not possible', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       const orig = wtAdapter.updateAvailability;
       wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
         return Promise.reject(new adapter.InvalidUpdateError());
@@ -375,7 +391,7 @@ describe('controllers - hotel booking', function () {
     });
 
     it('should return 502 when upstream error is encountered', (done) => {
-      const booking = getHotelBooking();
+      const booking = getAirlineBooking();
       const orig = wtAdapter.updateAvailability;
       wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
         return Promise.reject(new adapter.UpstreamError());
@@ -393,11 +409,12 @@ describe('controllers - hotel booking', function () {
 
   describe('DELETE /booking/:id', () => {
     it('should mark an existing booking as cancelled and restore the availability', (done) => {
-      Booking.create({
-        arrival: '2019-01-01',
-        departure: '2019-01-03',
-        rooms: ['single-room', 'single-room'],
-      }, Booking.STATUS.CONFIRMED).then((booking) => {
+      const bookingRaw = {
+        flightInstanceId: 'IeKeix6G-1',
+        flightNumber: 'OK0965',
+        bookingClasses: [ { bookingClassId: 'economy', passengerCount: 2 } ],
+      };
+      Booking.create(bookingRaw, Booking.STATUS.CONFIRMED).then((booking) => {
         request(server)
           .delete(`/booking/${booking.id}`)
           .expect(204)
@@ -407,7 +424,11 @@ describe('controllers - hotel booking', function () {
               booking = await Booking.get(booking.id);
               assert.equal(booking.status, Booking.STATUS.CANCELLED);
               assert.deepEqual(wtAdapter.updateAvailability.args, [
-                [['single-room', 'single-room'], '2019-01-01', '2019-01-03', true],
+                [
+                  bookingRaw.flightInstanceId,
+                  bookingRaw,
+                  true,
+                ],
               ]);
               done();
             } catch (err) {
