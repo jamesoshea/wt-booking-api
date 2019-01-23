@@ -25,7 +25,7 @@ if (process.env.DEFAULT_BOOKING_STATE && process.env.DEFAULT_BOOKING_STATE !== '
 module.exports = {
   db: knex({
     client: process.env.DB_CLIENT,
-    connection: JSON.parse(process.env.DB_CLIENT_OPTIONS) || {},
+    connection: JSON.parse(process.env.DB_CLIENT_OPTIONS || '{}'),
     useNullAsDefault: true,
   }),
   adapterOpts: {
@@ -51,6 +51,6 @@ module.exports = {
   },
   mailerOpts: {
     provider: process.env.MAIL_PROVIDER || undefined, // dummy, sendgrid
-    providerOpts: JSON.parse(process.env.MAIL_PROVIDER_OPTIONS) || {},
+    providerOpts: JSON.parse(process.env.MAIL_PROVIDER_OPTIONS || '{}'),
   },
 };
