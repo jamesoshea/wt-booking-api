@@ -12,26 +12,17 @@ jobs:
     - npm run lint
     - npm test
     - npm run coverage
-  - stage: Build docker image and upload to AWS
+  - stage: Build and publish docker image
     sudo: true
     services:
     - docker
     install: true
     if: tag IS present
     script:
-    - pip install --user awscli
-    - export PATH=$PATH:$HOME/.local/bin
-    - eval $(aws ecr get-login --no-include-email --region eu-west-1)
-    - echo "Building docker image"
-    - docker build -t wt-booking-api:$TRAVIS_BRANCH .
-    - docker tag wt-booking-api:$TRAVIS_BRANCH 029479441096.dkr.ecr.eu-west-1.amazonaws.com/wt-booking-api:$TRAVIS_BRANCH
-    - docker push 029479441096.dkr.ecr.eu-west-1.amazonaws.com/wt-booking-api:$TRAVIS_BRANCH
+    - docker build -t windingtree/wt-booking-api:$TRAVIS_BRANCH .
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - docker tag wt-booking-api:$TRAVIS_BRANCH windingtree/wt-booking-api:$TRAVIS_BRANCH
     - docker push windingtree/wt-booking-api:$TRAVIS_BRANCH
 env:
   global:
-  - secure: m/jZ/fk/lxnslfxX5OHWuW6zSs/otingNQYxi3zY7g5f8n2nj0jugw2i/YPVnlkbafOyWi84SzzuGcJg/MxE2mGFICZMXZLH5DqLmNZDDYZq3sNQaY/azLI9XsFaeiTl+FjP1RIQ6bSA6zEeITQtPRr439qLditW6GrWidHa30wVOFek1/uD7e2x4z2OS0uG7ISVrS1MWOFhb+CCHXiht5wIih5edMEbTlrm0yg/WTHBuxGzizKcuFtt3+hX47Tn73gRkub/n9BiACPydQn+vhlCYcxHeCKAS7TyLitrXYi+7xtWGMYOWLZ1598dlrFXY6TL06iPuA/3FcH99Vw0nTkUWjfJmYTzarZjO1LnjQGorzS42VoGpJ6x1Fs4T9w4R0iygMDceEe3QyF6EYcohTBbLW/sw0urPe7pnIfdcBIPGxng+O07+ygzgFlkCMv9NwvWs76sUTAVSYCXxIdFOX+krO5ixKQSHRy9cqw6vL/KLr2tI+eavdVq2VdONDdB80azKmsy3qU8sXy9DXoCrrWcMCdYAQTAxjUdiqKdpdVSEPSVJxqmaciz6QcRaNbtX+qDniidvmKGroMIeLTzTN1rHwXJhMtiEy/o8FJi9QkdxRlgCY0i0wiU3TxYuqjlPNptGFVBVxyGjfk8TsvKZLrVskDwWY9yX8y5SE2vgjo=
-  - secure: srqtYrftRGlYU6XOCZS9a0CYCkYckLyoL591gi6hr3TH/0ckTi1jGuivQiL0MpWoP/5L+FdVshhNbfX2MvktMrIvJi6lSp+7zklWjQoO91U6U1XV9iZI65TznmaV7vzhbHXSQv3I8alx3aPTjJ923iku97cbDTRzBmhNAjm+hXU5FupXXqWgvw6Jfg+4s7tDzMiHaOT0/UjVnIfTEA9y1g/FoGi5BImS7jp/f9VHjP8xyHIZ87OF2IC9u1WrghX9A9vBtlSpjUx+eoVi8IVEQ56Rr2joLwe8RjoPzhZm1z1jV3G8oZImfA3S8peZIQx+r0Pbeldzvdy9SdAE0RzkfQhyDwBioOIVdESqUSS/7OOu7uKZOTwFreIYl6wR7dXgitiV5riHCMq3K2o2CWZutHgsZC25pFGxrAzdLWMPsVQNxBJWjrWIrob6wTedxnkhEANavJfhxGhnT6o2SnFkgqQDFUM4vUgRl1n0ZKrZh+TRm07wBbfSLAU72Tbf2QcF93/3iD2O9GUHo3y/5DEQlJoHYKVlSHTf1NOhJPsxmk8DzavewU0QhpOfUIL2MiUkBySYO7tO/BDsBwU7rt+a7gTpkeiHF1pcsXfPEJvPO4pAcFrGBO6BzFKyGjyjGQYbRgHwQG1k6yfR0ismMM6Cktt0SfccaoMjr/l9e1P2dLA=
   - secure: NDQtIHjlfY7fCoGMljqhv5qOHOwJVnE9N+2NbAYOGzp9H65q6vF1NSGHun+ig6TrdZ+ggpgaNI86WdrendMttbQq718i9/xb8/8qlMEuHsyA3m/CKdmrCy8u0ud42rzXKUDYUmHyVd/Yn7QiGUCGf4wLmo9QOB9im+v7xtJrSswef52f1S9nKSdmt5SgBjGQGTIcKS9ajX7VsQJhwJYxzOuU28EBt459kFJSPfy9T8TL5SEXZL433p64DUj8W27pVw659bS23VtH5OHM+IaFsh/7RksrnQbS9eYCxxHfdp2+piHajThTMBlPiIoumkCImafv54ZCYa8XYEmh/rqVSTg12JdS2jOeiX2rr3tXkcvg1y+WCR4SkvvjdS/uxUAM0iwE/l3M64BSaob925ho9QxoD8eDdbAHduVxFRPAyaxRNtu30opSmfGc/rn73R5knWa0AaRf7HKxbC3E9DIzZnQDNlk3A5GEWzcadMDMgCvKChykpBkts3gGT0BCkKBrGfxUXlB9R7EqE8B6KLq3VF9AFckqYuJHMYO9TpCZDRRpcdyi+KRV/8h7JOCtOue9dL4e0ho2QaNrnu1gmkxxUSDndM0qXDc/W8Vdi71SYRvUDMg7590T4l4HMbxo96CGOh893N5QzgkeGSeYwql3/JCAkfVGC+BLBCP4VzLffJ0=
   - secure: Ja0dm3qmhRGEuVydoeNzHhUgBIebN1bFrOsLzy0feGZqaOBg2mjJxp5Qv0Z6DFWanT8QkZTe7ZqzVTz1NKjKuqSEl/sIkCiY49jQqaj2LMUfiilCjEyoWW/rbyspwTXk/cDMTjzMvGrARvGrG6NQ47gIeietvSWQNPO7qACCLlF62WAWCF7ZC926vl/njFAdZzy0oH63hv8Dp6irwqQfb8vuO/4JlKmecgOJhwsvvu3HTKgFN6RgW1QS7hEhGXHSLnhst0P1IgSnoPZrctw/tpeKF72swfhK5uJDXlyo+cEhi0jvwlKjuwjzJ346++xe5TH5LH3wznctQmCHq/RN5AZVh4cx67Z97L+OIigSdXtEF+WL1c4Cc35K80J0qq8iXYTImU1c/V0K6ZBinvz+0TTVnjo9UjdtBqhAlmLb+EVvQ54IAfkFdh2galLULBuI6NqkPTrwKQT1xY1CcvRY1KzdsZjzXp1wnzTP4zBhPBxjMzRO25ZhzzyxWpy2DmkPNttn5ZeoboYIJ8wskFasu54QrAZeIU1jPOlL3ASt/wwVtmXaO1KZn7auMiElg/N3rWjFq3mfqOCIPRXvNhyCMUK48EuSYQMgsjNRlKblXdi9yb7psVNuQMiODKxMkKP4XN11Ph6dE4cMJSg2wLiscieM54N2X+fRILgZ8dwQhlU=
