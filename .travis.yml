@@ -22,6 +22,9 @@ jobs:
     - docker build -t windingtree/wt-booking-api:$TRAVIS_BRANCH .
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - docker push windingtree/wt-booking-api:$TRAVIS_BRANCH
+    - docker tag windingtree/wt-booking-api:$TRAVIS_BRANCH windingtree/wt-booking-api:latest
+    - docker push windingtree/wt-booking-api:latest
+
 env:
   global:
   - secure: NDQtIHjlfY7fCoGMljqhv5qOHOwJVnE9N+2NbAYOGzp9H65q6vF1NSGHun+ig6TrdZ+ggpgaNI86WdrendMttbQq718i9/xb8/8qlMEuHsyA3m/CKdmrCy8u0ud42rzXKUDYUmHyVd/Yn7QiGUCGf4wLmo9QOB9im+v7xtJrSswef52f1S9nKSdmt5SgBjGQGTIcKS9ajX7VsQJhwJYxzOuU28EBt459kFJSPfy9T8TL5SEXZL433p64DUj8W27pVw659bS23VtH5OHM+IaFsh/7RksrnQbS9eYCxxHfdp2+piHajThTMBlPiIoumkCImafv54ZCYa8XYEmh/rqVSTg12JdS2jOeiX2rr3tXkcvg1y+WCR4SkvvjdS/uxUAM0iwE/l3M64BSaob925ho9QxoD8eDdbAHduVxFRPAyaxRNtu30opSmfGc/rn73R5knWa0AaRf7HKxbC3E9DIzZnQDNlk3A5GEWzcadMDMgCvKChykpBkts3gGT0BCkKBrGfxUXlB9R7EqE8B6KLq3VF9AFckqYuJHMYO9TpCZDRRpcdyi+KRV/8h7JOCtOue9dL4e0ho2QaNrnu1gmkxxUSDndM0qXDc/W8Vdi71SYRvUDMg7590T4l4HMbxo96CGOh893N5QzgkeGSeYwql3/JCAkfVGC+BLBCP4VzLffJ0=
