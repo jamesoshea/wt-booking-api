@@ -9,8 +9,8 @@ const showdown = require('showdown');
  * {
  *    customer: <Customer from docs/swagger.yaml>,
  *    note: <string>,
- *    airline: <https://github.com/windingtree/wtips/blob/0bfb89a9d57bd2836bf5fa0ada2e2bfb590aacae/assets/wtip-003/airlines-data-swagger.yaml#L59> limited to name,contacts and code
- *    booking: {
+ *    airline: <https://github.com/windingtree/wiki/blob/a85cef934adee0bd816fea180bb02e6d39b27360/airline-data-swagger.yaml#L60> limited to name,contacts and code
+ *    booking: { <https://github.com/windingtree/wt-booking-api/blob/d62241f8d667dc7d4ceab87aaad69dc5a8d8e080/docs/swagger.yaml#L305>
  *     flightNumber: OK0965,
  *     flightInstanceId: IeKeix6G,
  *     bookingClasses: [
