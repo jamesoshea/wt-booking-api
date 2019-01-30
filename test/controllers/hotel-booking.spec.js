@@ -56,9 +56,6 @@ describe('controllers - hotel booking', function () {
 
   describe('POST /booking', () => {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
-      const orig = config;
-      config.defaultBookingState = 'confirmed';
-      config.updateAvailability = true;
       request(server)
         .post('/booking')
         .send(getHotelBooking())
@@ -93,10 +90,8 @@ describe('controllers - hotel booking', function () {
               departure: '2019-01-03',
               rooms: ['single-room', 'single-room'],
             });
-            config = orig;
             done();
           } catch (err) {
-            config = orig;
             done(err);
           }
         });
