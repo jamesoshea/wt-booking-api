@@ -170,7 +170,7 @@ components:
           type: string
           maxLength: 3000
         hotelId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/EthereumAddressType
         booking:
           $ref: '#/components/schemas/HotelBookingInfo'
         pricing:
@@ -227,7 +227,7 @@ components:
         - cancellationFees
       properties:
         currency:
-          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/CurrencyType'
+          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/CurrencyType'
         total:
           description: Total price that should be paid. Including taxes - this is subject to change in the future.
           type: number
@@ -318,7 +318,7 @@ components:
           type: string
           maxLength: 3000
         airlineId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/EthereumAddressType
         booking:
           $ref: '#/components/schemas/AirlineBookingInfo'
         pricing:
