@@ -19,7 +19,7 @@ function normalizeBooking (bookingData) {
   }
 
   if (bookingData.customer && bookingData.customer.email) {
-    bookingData.customer.email = normalizePhone(bookingData.customer.email);
+    bookingData.customer.email = normalizeEmail(bookingData.customer.email);
   }
   return bookingData;
 }

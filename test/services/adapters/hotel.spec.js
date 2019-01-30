@@ -481,7 +481,7 @@ describe('services - hotel adapter', function () {
         [hotelData, 'ratePlans', bookingInfo, 'currency', 'total', today]);
       assert.equal(wtAdapter._checkAvailability.callCount, 1);
       assert.deepEqual(wtAdapter._checkAvailability.args[0],
-        [hotelData.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure]);
+        [hotelData.availability.roomTypes, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure]);
     });
 
     it('should call no checking functions if configured so', async () => {

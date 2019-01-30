@@ -452,7 +452,7 @@ class WTHotelAdapter {
       
       // check the room availability
       if (checkOpts.availability) {
-        this._checkAvailability(hotel.availability, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
+        this._checkAvailability(hotel.availability.roomTypes, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
       }
       // check cancellation fees
       if (checkOpts.cancellationFees) {
