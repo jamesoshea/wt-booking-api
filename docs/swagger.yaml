@@ -178,7 +178,7 @@ components:
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
     Customer:
-      description: Person responsible for this booking who should be contacted by the hotel/airline supplier if needed
+      description: Person responsible for this booking who should be contacted by the supplier if needed
       type: object
       required:
         - name
@@ -256,7 +256,7 @@ components:
                 type: string
                 format: date
               amount:
-                description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.
+                description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the airline keep.
                 type: number
                 format: float
     HotelBookingInfo:

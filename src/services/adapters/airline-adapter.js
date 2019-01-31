@@ -385,7 +385,7 @@ class WTAirlineAdapter {
 
   /**
    * Check admissibility wrt. the suggested price,
-   * room availability and cancellation fees.
+   * flight availability and cancellation fees.
    *
    * Every component of the validation can be turned off with
    * `checkOpts` parameter.
