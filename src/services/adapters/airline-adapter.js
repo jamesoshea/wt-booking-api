@@ -74,29 +74,33 @@ class WTAirlineAdapter {
    * @returns {Promise<Object>}
    */
   async _setAvailability (flightInstance, flightInstanceId) {
-    try {
-      const response = await request({
-        method: 'PATCH',
-        uri: `${this.writeApiUrl}/airlines/${this.supplierId}/flightinstances/${flightInstanceId}`,
-        json: true,
-        body: {
-          flightInstance,
-        },
-        headers: {
-          'X-Access-Key': this.writeApiAccessKey,
-          'X-Wallet-Password': this.writeApiWalletPassword,
-        },
-        simple: false,
-        resolveWithFullResponse: true,
-      });
-      if (response.statusCode <= 299) {
-        return response.body;
-      } else {
-        throw new Error(`Error ${response.statusCode}`);
-      }
-    } catch (err) {
-      throw new adapter.UpstreamError(err.message);
-    }
+    /*
+      TODO wt-write-api doesn't support this endpoint yet. Updating availability needs to be implemented by each airline
+      depending on their internal requirements
+    */
+    // try {
+    //   const response = await request({
+    //     method: 'PATCH',
+    //     uri: `${this.writeApiUrl}/airlines/${this.supplierId}/flightinstances/${flightInstanceId}`,
+    //     json: true,
+    //     body: {
+    //       flightInstance,
+    //     },
+    //     headers: {
+    //       'X-Access-Key': this.writeApiAccessKey,
+    //       'X-Wallet-Password': this.writeApiWalletPassword,
+    //     },
+    //     simple: false,
+    //     resolveWithFullResponse: true,
+    //   });
+    //   if (response.statusCode <= 299) {
+    //     return response.body;
+    //   } else {
+    //     throw new Error(`Error ${response.statusCode}`);
+    //   }
+    // } catch (err) {
+    //   throw new adapter.UpstreamError(err.message);
+    // }
   }
 
   /**
