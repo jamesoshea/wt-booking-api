@@ -1,5 +1,5 @@
 {
-  "name": "wt-booking-api",
+  "name": "@windingtree/wt-booking-api",
   "version": "0.3.1",
   "description": "A sample API written in node.js implementing the WT booking interface.",
   "main": "src/index.js",
