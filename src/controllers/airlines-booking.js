@@ -14,7 +14,7 @@ const airlineId = config.adapterOpts.supplierId.toLowerCase();
 
 const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapter) => {
   const airlineData = await adapter.getSupplierData(['name', 'contacts', 'code', 'flights']);
-  const flight = airlineData.flights.flights.find(f => f.id === bookingBody.booking.flightInstanceId);
+  const flight = airlineData.flights.items.find(f => f.id === bookingBody.booking.flightInstanceId);
   return {
     customer: bookingBody.customer,
     note: bookingBody.note,

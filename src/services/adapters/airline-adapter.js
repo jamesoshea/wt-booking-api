@@ -424,7 +424,7 @@ class WTAirlineAdapter {
       throw new validators.ValidationError(`Flight departure date ${flightInstance.departureDateTime} is earlier than booking date ${bookingDate}`);
     }
     // 2. flight exists
-    const flightIds = _.map(airline.flights.flights, 'id');
+    const flightIds = _.map(airline.flights.items, 'id');
     if (flightIds.indexOf(bookingData.booking.flightInstanceId) === -1) {
       throw new validators.ValidationError(`Unknown flight id ${bookingData.booking.flightInstanceId}.`);
     }
