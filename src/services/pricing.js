@@ -4,7 +4,7 @@ const dayjs = require('dayjs'),
 
 class NoRatePlanError extends Error {};
 
-function computePrice (bookingData, ratePlans, bookingDate, currency, hotelCurrency) {
+function computeHotelPrice (bookingData, ratePlans, bookingDate, currency, hotelCurrency) {
   bookingDate = dayjs(bookingDate);
   let total = currencyjs(0);
   for (let bookingItem of bookingData) {
@@ -30,9 +30,9 @@ function computePrice (bookingData, ratePlans, bookingDate, currency, hotelCurre
     );
   }
   return total;
-};
+}
 
 module.exports = {
-  computePrice,
+  computeHotelPrice,
   NoRatePlanError,
 };

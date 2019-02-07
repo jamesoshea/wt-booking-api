@@ -2,11 +2,13 @@
 /* eslint-disable standard/object-curly-even-spacing */
 /* eslint-disable no-new */
 const { assert } = require('chai');
+
 const MailComposer = require('../../src/services/mailcomposer');
+const { initSegment } = require('../../src/config/index');
 
 const nonAsciiTest = 'Příliš žluťoučký kůň úpěl ďábelské ódy\'s &<>$';
 const noXssTest = 'random text with <b>HTML</b> and XSS <script>alert("xss");</script>';
-const fakeMailData = {
+const fakeBaseMailData = {
   customer: {
     name: `${noXssTest} ${nonAsciiTest}`,
     surname: `${noXssTest} ${nonAsciiTest}`,
@@ -22,6 +24,17 @@ const fakeMailData = {
     },
   },
   note: `${noXssTest} ${nonAsciiTest}`,
+  pricing: {
+    currency: 'CZK',
+    total: 123.35,
+    cancellationFees: [
+      { from: '2019-01-01', to: '2019-01-03', amount: 100 },
+    ],
+  },
+  id: `${noXssTest} ${nonAsciiTest}`,
+  status: 'confirmed',
+};
+const fakeHotelMailData = Object.assign({
   hotel: {
     name: `${noXssTest} ${nonAsciiTest}`,
     contacts: {
@@ -54,20 +67,56 @@ const fakeMailData = {
       ],
     },
   ],
-  pricing: {
-    currency: 'CZK',
-    total: 123.35,
-    cancellationFees: [
-      { from: '2019-01-01', to: '2019-01-03', amount: 100 },
+}, fakeBaseMailData);
+const fakeAirlineMailData = Object.assign({
+  booking: {
+    flightNumber: `${noXssTest} ${nonAsciiTest}`,
+    flightInstanceId: `${noXssTest} ${nonAsciiTest}`,
+    bookingClasses: [
+      { id: 'economy', passengers: [ { name: 'Jeffrey', surname: 'Winger' } ] },
+      { id: 'business', passengers: [ { name: 'John', surname: 'Watson' } ] },
     ],
   },
-  id: `${noXssTest} ${nonAsciiTest}`,
-  status: 'confirmed',
-};
+  flight: {
+    id: 'qwerty',
+    origin: 'PRG',
+    destination: 'LAX',
+    segments: [],
+  },
+  airline: {
+    name: 'Mazurka Airlines',
+    code: 'MA',
+    contacts: {
+      general: {
+        email: 'info@airline-mazurka.com',
+        phone: '004078965423',
+        url: 'https://www.airline-mazurka.com',
+      },
+    },
+  },
+}, fakeBaseMailData);
 
-describe('services - mailcomposer', function () {
+describe('services - mailcomposer hotels', function () {
+  before(() => {
+    process.env.WT_SEGMENT = 'hotels';
+    initSegment();
+  });
+
   it('should escape html', () => {
-    const result = MailComposer.renderHotel(fakeMailData);
+    const result = MailComposer.renderSupplier(fakeHotelMailData);
+    assert.match(result.text, /<script>/i);
+    assert.notMatch(result.html, /<script>/i);
+  });
+});
+
+describe('services - mailcomposer airlines', function () {
+  before(() => {
+    process.env.WT_SEGMENT = 'airlines';
+    initSegment();
+  });
+
+  it('should escape html', () => {
+    const result = MailComposer.renderSupplier(fakeAirlineMailData);
     assert.match(result.text, /<script>/i);
     assert.notMatch(result.html, /<script>/i);
   });

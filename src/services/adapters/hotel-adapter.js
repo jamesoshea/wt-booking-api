@@ -2,22 +2,15 @@ const dayjs = require('dayjs');
 const request = require('request-promise-native');
 const moment = require('moment-timezone');
 
-const { computePrice, NoRatePlanError } = require('./pricing');
+const adapter = require('./base-adapter');
+const { computeHotelPrice, NoRatePlanError } = require('../pricing');
 const {
   cancellationFees: cancellationFeesLibrary,
   availability: availabilityLibrary,
 } = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
 
-class UpstreamError extends Error {};
-class InvalidUpdateError extends Error {};
-class RestrictionsViolatedError extends Error {};
-class RoomUnavailableError extends Error {};
-class IllFormedCancellationFeesError extends Error {};
-class InadmissibleCancellationFeesError extends Error {};
-class InvalidPriceError extends Error {};
-
 const REQUIRED_FIELDS = [
-  'hotelId',
+  'supplierId',
   'readApiUrl',
   'writeApiUrl',
   'writeApiAccessKey',
@@ -27,14 +20,14 @@ const REQUIRED_FIELDS = [
 // Tolerance against numerical errors in floating-point price & fee computation.
 const EPSILON = 1e-4;
 
-class WTAdapter {
+class WTHotelAdapter {
   constructor (opts) {
     for (let field of REQUIRED_FIELDS) {
       if (!opts[field]) {
         throw new Error(`Missing configuration: ${field}`);
       }
     }
-    this.hotelId = opts.hotelId;
+    this.supplierId = opts.supplierId;
     this.readApiUrl = opts.readApiUrl;
     this.writeApiUrl = opts.writeApiUrl;
     this.writeApiAccessKey = opts.writeApiAccessKey;
@@ -55,7 +48,7 @@ class WTAdapter {
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/hotels/${this.hotelId}/availability`,
+        uri: `${this.readApiUrl}/hotels/${this.supplierId}/availability`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
@@ -66,7 +59,7 @@ class WTAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -82,7 +75,7 @@ class WTAdapter {
     try {
       const response = await request({
         method: 'PATCH',
-        uri: `${this.writeApiUrl}/hotels/${this.hotelId}`,
+        uri: `${this.writeApiUrl}/hotels/${this.supplierId}`,
         json: true,
         body: {
           availability: { roomTypes: availability },
@@ -100,7 +93,7 @@ class WTAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -119,11 +112,11 @@ class WTAdapter {
       if (roomTypes.indexOf(item.roomTypeId) !== -1) {
         if (item.date === arrival && item.restrictions && item.restrictions.noArrival) {
           const msg = `Cannot arrive to ${item.roomTypeId} on date ${arrival}.`;
-          throw new RestrictionsViolatedError(msg);
+          throw new adapter.RestrictionsViolatedError(msg);
         }
         if (item.date === departure && item.restrictions && item.restrictions.noDeparture) {
           const msg = `Cannot depart from ${item.roomTypeId} on date ${departure}.`;
-          throw new RestrictionsViolatedError(msg);
+          throw new adapter.RestrictionsViolatedError(msg);
         }
       }
     }
@@ -155,7 +148,7 @@ class WTAdapter {
     }, {});
     for (let roomTypeId in totals) {
       if (!availability.find((a) => a.roomTypeId === roomTypeId)) {
-        throw new InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
+        throw new adapter.InvalidUpdateError(`No availability provided for room type ${roomTypeId}.`);
       }
       const departureDate = dayjs(departure);
       let currentDate = dayjs(arrival);
@@ -166,7 +159,7 @@ class WTAdapter {
             availabilityItem.date === currentDate.format('YYYY-MM-DD')) {
             if (availabilityItem.quantity - totals[roomTypeId] < 0) {
               const msg = `Room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')} is overbooked.`;
-              throw new InvalidUpdateError(msg);
+              throw new adapter.InvalidUpdateError(msg);
             }
             if (restore) {
               availabilityItem.quantity += totals[roomTypeId];
@@ -179,7 +172,7 @@ class WTAdapter {
         }
         if (!found) {
           const msg = `No availability provided for room type ${roomTypeId} and date ${currentDate.format('YYYY-MM-DD')}.`;
-          throw new InvalidUpdateError(msg);
+          throw new adapter.InvalidUpdateError(msg);
         }
         currentDate = currentDate.add(1, 'day');
       }
@@ -222,7 +215,7 @@ class WTAdapter {
   /**
    * Checks if rooms are actually available for given dates.
    *
-   * @param {Object} availability The original availability object.
+   * @param {Object} availabilityData The original availability object.
    * @param {Array} rooms List of booked rooms.
    * @param {String} arrival
    * @param {String} departure
@@ -237,7 +230,7 @@ class WTAdapter {
       const result = availabilityLibrary.computeAvailability(arrival, departure, numberOfGuests, [rooms[i]], indexedAvailability);
       const roomResult = result.find((r) => r.roomTypeId === rooms[i].id);
       if (!roomResult || !roomResult.quantity) {
-        throw new RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
+        throw new adapter.RoomUnavailableError(`Cannot go to ${rooms[i].id}, it is not available.`);
       }
     }
   }
@@ -248,12 +241,12 @@ class WTAdapter {
    * @param {Array<String>} fields
    * @returns {Promise<Object>}
    */
-  async getHotelData (fields) {
+  async getSupplierData (fields) {
     fields = fields.join(',');
     try {
       const response = await request({
         method: 'GET',
-        uri: `${this.readApiUrl}/hotels/${this.hotelId}?fields=${fields}`,
+        uri: `${this.readApiUrl}/hotels/${this.supplierId}?fields=${fields}`,
         json: true,
         simple: false,
         resolveWithFullResponse: true,
@@ -264,7 +257,7 @@ class WTAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
-      throw new UpstreamError(err.message);
+      throw new adapter.UpstreamError(err.message);
     }
   }
 
@@ -369,7 +362,7 @@ class WTAdapter {
   _checkCancellationFees (hotelDescription, cancellationFees, bookedAt, arrival) {
     const illFormed = this._isIllFormed(cancellationFees, bookedAt, arrival);
     if (illFormed) {
-      throw new IllFormedCancellationFeesError(illFormed);
+      throw new adapter.IllFormedCancellationFeesError(illFormed);
     }
     // For each item, find out if it's admissible wrt. declared
     // cancellation policies.
@@ -382,7 +375,7 @@ class WTAdapter {
     for (let fee of cancellationFees) {
       if (!this._isAdmissible(fee, normalizedPolicies, { amount: hotelDescription.defaultCancellationAmount })) {
         let msg = `Inadmissible cancellation fee found: (${fee.from}, ${fee.to}, ${fee.amount})`;
-        throw new InadmissibleCancellationFeesError(msg);
+        throw new adapter.InadmissibleCancellationFeesError(msg);
       }
     }
   }
@@ -414,16 +407,16 @@ class WTAdapter {
     });
     let price;
     try {
-      price = computePrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
+      price = computeHotelPrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
     } catch (err) {
       if (err instanceof NoRatePlanError) {
-        throw new InvalidPriceError(err.message);
+        throw new adapter.InvalidPriceError(err.message);
       }
       throw err;
     }
 
     if (total < (price - EPSILON)) {
-      throw new InvalidPriceError(`The total is too low, expected ${price}.`);
+      throw new adapter.InvalidPriceError(`The total is too low, expected ${price}.`);
     }
   }
 
@@ -452,7 +445,7 @@ class WTAdapter {
     };
     if (Object.values(checkOpts).filter((v) => v).length > 0) {
       const fields = ['defaultCancellationAmount', 'cancellationPolicies', 'currency', 'ratePlans', 'timezone', 'availability'],
-        hotel = await this.getHotelData(fields),
+        hotel = await this.getSupplierData(fields),
         // Convert booking date to hotel's timezone and continue
         // all computation in hotel timezone.
         bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
@@ -473,34 +466,6 @@ class WTAdapter {
   }
 }
 
-let _WTAdapter;
-
-/**
- * Get the previously set WTAdapter instance.
- */
-function get () {
-  if (!_WTAdapter) {
-    throw new Error('No WTAdapter instance has been set!');
-  }
-  return _WTAdapter;
-}
-
-/**
- * Set WTAdapter instance during runtime.
- */
-function set (wtAdapter) {
-  _WTAdapter = wtAdapter;
-}
-
 module.exports = {
-  WTAdapter,
-  UpstreamError,
-  InvalidUpdateError,
-  RoomUnavailableError,
-  RestrictionsViolatedError,
-  IllFormedCancellationFeesError,
-  InadmissibleCancellationFeesError,
-  InvalidPriceError,
-  get,
-  set,
+  WTHotelAdapter,
 };

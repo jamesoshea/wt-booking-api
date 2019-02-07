@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 const { assert } = require('chai');
 
-const { db } = require('../../src/config');
+const { db } = require('../../src/config').config;
 const { resetDB } = require('../../src/db');
 const Booking = require('../../src/models/booking');
 
