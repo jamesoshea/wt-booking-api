@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+coverage
+.nyc_output
+.eslintcache
+*.tgz
+.idea/
+*.sqlite
+.travis.yml
+test
+.github
