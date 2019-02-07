@@ -19,6 +19,12 @@
     "type": "git",
     "url": "git+https://github.com/windingtree/wt-booking-api.git"
   },
+  "bin": {
+    "wt-booking-api": "./management/start-server.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "winding-tree",
     "api",

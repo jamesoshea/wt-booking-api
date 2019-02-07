@@ -13,19 +13,15 @@ hotel. Within this scope, it:
   requests). This implementation does not change availability
   for the date of departure.
 
-Note: we do not expect this API implementation to be run in
+**Note: we do not expect this API implementation to be run in
 production "as is"; instead, we assume that it should serve more
 as an inspiration or as a basis on which actual integrations
-between existing systems and Winding Tree can be built.
-
-Most notably, this implementation misses the actual relay of
-booking data to hotel managers as we expect the mechanism of
-such a relay to be generally different for different hotels. 
+between existing systems and Winding Tree can be built.**
 
 ## Requirements
 - Nodejs 10.x
 
-## Getting started
+## Development
 In order to install and run tests, we must:
 ```
 git clone git@github.com:windingtree/wt-write-api.git
@@ -34,7 +30,7 @@ npm install
 npm test
 ```
 
-## Running the server
+### Running in dev mode
 
 To run the server, you need to go through the following steps:
 
@@ -57,9 +53,41 @@ To run the server, you need to go through the following steps:
    WT_CONFIG=prod node src/index.js
    ```
 
-### Running the server in a hosted docker-based environment
+## Running this server
 
-You can use this API as a parametrized docker image in your setup:
+### Docker
+
+You can run the whole API in a docker container, and you can
+control which config will be used by passing an appropriate value
+to WT_CONFIG variable at runtime. Database will be setup during the
+container startup in the current setup. You can skip this with
+`SKIP_DB_SETUP` environment variable.
+
+```sh
+$ docker build -t windingtree/wt-booking-api .
+$ docker run -p 8080:8935 -e WT_CONFIG=playground windingtree/wt-booking-api
+```
+After that you can access the wt-booking-api on local port `8080`.
+
+### NPM
+
+You can install and run this from NPM as well:
+
+```sh
+$ npm install -g @windingtree/wt-booking-api
+$ WT_CONFIG=playground wt-booking-api
+```
+
+This will also create a local SQLite instance in the directory
+where you run the `wt-booking-api` command. To prevent that,
+you can suppress DB creation with `SKIP_DB_SETUP` environment
+variable.
+
+### Running in production
+
+You can customize the behaviour of the instance by many environment
+variables which get applied if you run the API with `WT_CONFIG=envvar`.
+These are:
 
 - `BASE_URL` - Base URL of this API instance, for example `https://booking-mazurka.windingtree.com`.
 - `DB_CLIENT` - [Knex](https://knexjs.org/) database client name, for example `sqlite3`.
@@ -126,7 +154,7 @@ $ docker run -p 8080:8935 \
   -e WRITE_API_KEY=werdfs12 \
   -e WALLET_PASSWORD=windingtree windingtree/wt-booking-api
 ```
-- After that you can access the wt-booking-api on local port `8080`.
+After that you can access the wt-booking-api on local port `8080`.
 Database will also be setup during the container startup in the current setup.
 You can skip this with `SKIP_DB_SETUP` environment variable.
 

@@ -12,6 +12,17 @@ jobs:
     - npm run lint
     - npm test
     - npm run coverage
+  - stage: NPM release
+    if: tag IS present
+    script: echo 'Deploying to NPM...'
+    deploy:
+      provider: npm
+      email: chadima.jiri@gmail.com
+      skip_cleanup: true
+      api_key: "$NPM_TOKEN"
+      on:
+        repo: windingtree/wt-booking-api
+        tags: true
   - stage: Build and publish docker image
     sudo: true
     services:
