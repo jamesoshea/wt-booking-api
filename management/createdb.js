@@ -8,8 +8,8 @@ if (process.env.SKIP_DB_SETUP) {
     // If this is called directly as a script, terminate
     // the DB connection, otherwise the process will hang
     if (require.main === module) {
-      const { db } = require('../src/config');
-      db.destroy();
+      const { config } = require('../src/config');
+      config.db.destroy();
     }
   }, (err) => {
     console.log(`Error: ${err}`);
