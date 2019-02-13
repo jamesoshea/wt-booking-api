@@ -1,9 +1,9 @@
 function normalizeEmail (email) {
-  return email && email.trim().toLowerCase();
+  return email && email.trim && email.trim().toLowerCase();
 }
 
 function normalizePhone (phone) {
-  if (!phone) {
+  if (!phone || !phone.trim) {
     return;
   }
   let normalizedPhone = phone.trim().replace(/ |-|\(|\)/gi, '');

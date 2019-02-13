@@ -328,9 +328,9 @@ describe('controllers - airline booking', function () {
         .post('/booking')
         .send(booking)
         .expect(422)
-        .end(() => {
+        .end((err) => {
           wtAdapter.checkAdmissibility = orig;
-          done();
+          done(err);
         });
     });
 
@@ -384,9 +384,9 @@ describe('controllers - airline booking', function () {
         .post('/booking')
         .send(booking)
         .expect(409)
-        .end(() => {
+        .end((err) => {
           wtAdapter.updateAvailability = orig;
-          done();
+          done(err);
         });
     });
 
@@ -400,9 +400,9 @@ describe('controllers - airline booking', function () {
         .post('/booking')
         .send(booking)
         .expect(502)
-        .end(() => {
+        .end((err) => {
           wtAdapter.updateAvailability = orig;
-          done();
+          done(err);
         });
     });
   });

@@ -89,7 +89,6 @@ describe('services - airline adapter', function () {
     it('should throw InvalidUpdateError upon unknown flightInstanceId', async () => {
       assert.throws(() => {
         flightBooking.booking.flightInstanceId = 'unknownflightInstanceId';
-        console.log(flightBooking);
         wtAdapter._applyUpdate(flightInstances[0], flightBooking);
       }, adapter.InvalidUpdateError);
     });

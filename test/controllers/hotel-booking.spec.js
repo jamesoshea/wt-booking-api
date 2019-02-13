@@ -269,6 +269,16 @@ describe('controllers - hotel booking', function () {
         .end(done);
     });
 
+    it('should return 422 if non-string phone is supplied', (done) => {
+      const booking = getHotelBooking();
+      booking.customer.phone = {};
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 422 if e-mail is invalid', (done) => {
       const booking = getHotelBooking();
       booking.customer.email = 'huh';
@@ -305,6 +315,26 @@ describe('controllers - hotel booking', function () {
         .end(done);
     });
 
+    it('should return 422 if cancellationFees are empty', (done) => {
+      const booking = getHotelBooking();
+      booking.pricing.cancellationFees = [];
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 if cancellationFees are malformed', (done) => {
+      const booking = getHotelBooking();
+      booking.pricing.cancellationFees = [{}];
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
     it('should return 422 when the price is not right', (done) => {
       const booking = getHotelBooking();
       const orig = wtAdapter.checkAdmissibility;
@@ -315,9 +345,9 @@ describe('controllers - hotel booking', function () {
         .post('/booking')
         .send(booking)
         .expect(422)
-        .end(() => {
+        .end((err) => {
           wtAdapter.checkAdmissibility = orig;
-          done();
+          done(err);
         });
     });
 
@@ -353,6 +383,22 @@ describe('controllers - hotel booking', function () {
         .end(done);
     });
 
+    it('should return 422 when room is not available', (done) => {
+      const booking = getHotelBooking();
+      const orig = wtAdapter.checkAdmissibility;
+      wtAdapter.checkAdmissibility = sinon.stub().callsFake(() => {
+        return Promise.reject(new adapter.RoomUnavailableError('cannot go into room'));
+      });
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end((err) => {
+          wtAdapter.checkAdmissibility = orig;
+          done(err);
+        });
+    });
+
     it('should return 409 when booking is not possible', (done) => {
       const booking = getHotelBooking();
       const orig = wtAdapter.updateAvailability;
@@ -363,9 +409,9 @@ describe('controllers - hotel booking', function () {
         .post('/booking')
         .send(booking)
         .expect(409)
-        .end(() => {
+        .end((err) => {
           wtAdapter.updateAvailability = orig;
-          done();
+          done(err);
         });
     });
 
@@ -379,9 +425,9 @@ describe('controllers - hotel booking', function () {
         .post('/booking')
         .send(booking)
         .expect(502)
-        .end(() => {
+        .end((err) => {
           wtAdapter.updateAvailability = orig;
-          done();
+          done(err);
         });
     });
   });

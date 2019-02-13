@@ -107,6 +107,9 @@ module.exports.create = async (req, res, next) => {
     if (err instanceof adapter.InvalidPriceError) {
       return next(new HttpValidationError('invalidPrice', err.message));
     }
+    if (err instanceof adapter.RoomUnavailableError) {
+      return next(new HttpValidationError('unavailableRoom', err.message));
+    }
     if ((err instanceof adapter.InadmissibleCancellationFeesError) ||
       (err instanceof adapter.IllFormedCancellationFeesError)) {
       return next(new HttpValidationError('invalidCancellationFees', err.message));

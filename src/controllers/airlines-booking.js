@@ -107,6 +107,9 @@ module.exports.create = async (req, res, next) => {
     if (err instanceof adapter.RestrictionsViolatedError) {
       return next(new HttpConflictError('restrictionsViolated', err.message));
     }
+    if (err instanceof adapter.FlightUnavailableError) {
+      return next(new HttpValidationError('unavailableFlight', err.message));
+    }
     if (err instanceof adapter.InvalidPriceError) {
       return next(new HttpValidationError('invalidPrice', err.message));
     }
