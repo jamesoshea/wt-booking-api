@@ -99,6 +99,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `WRITE_API_KEY` - Access Key for wt-write-api instance.
 - `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
+- `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 
 The following options are optional.
 
@@ -112,7 +113,6 @@ to conditions unfavourable for a hotel. Defaults to true.
 to conditions unfavourable for a hotel. Defaults to true.
 - `DEFAULT_BOOKING_STATE` - This state is assigned to every accepted booking. Can be `confirmed`
 or `pending`. Defaults to `confirmed`.
-- `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 
 #### Data modification
 
