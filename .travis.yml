@@ -10,6 +10,8 @@ jobs:
     install: case $TRAVIS_BRANCH in greenkeeper*) npm i;; *) npm ci;; esac;
     script:
     - npm run lint
+    - npm run regenerate-schemas
+    - npm run validate-schemas
     - npm test
     - npm run coverage
   - stage: NPM release

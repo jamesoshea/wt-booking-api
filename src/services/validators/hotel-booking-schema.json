@@ -9,7 +9,7 @@
   ],
   "properties": {
     "customer": {
-      "description": "Person responsible for this booking who should be contacted by the hotel/airline supplier if needed",
+      "description": "Person responsible for this booking who should be contacted by the supplier if needed",
       "type": "object",
       "required": [
         "name",
@@ -48,7 +48,7 @@
       "maxLength": 3000
     },
     "hotelId": {
-      "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/EthereumAddressType"
+      "$ref": "https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/EthereumAddressType"
     },
     "booking": {
       "description": "Information on the booked property",
@@ -134,7 +134,7 @@
       ],
       "properties": {
         "currency": {
-          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/CurrencyType"
+          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/CurrencyType"
         },
         "total": {
           "description": "Total price that should be paid. Including taxes - this is subject to change in the future.",
@@ -146,6 +146,7 @@
         "cancellationFees": {
           "description": "Under what conditions can this booking be cancelled and how much will it cost. Note that the cancellation fees should cover the whole period from the moment of booking up to service usage (hotel arrival or flight departure) and should be based on the supplier's cancellation policy. (Each cancellation fee should correspond to an applicable cancellation policy.)",
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "required": [
@@ -165,7 +166,7 @@
                 "format": "date"
               },
               "amount": {
-                "description": "Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the hotel keep.",
+                "description": "Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the airline/hotel keep.",
                 "type": "number",
                 "format": "float",
                 "minimum": -3.402823669209385e+38,

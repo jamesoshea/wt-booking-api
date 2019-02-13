@@ -240,6 +240,7 @@ components:
             service usage (hotel arrival or flight departure) and should be based on the supplier's cancellation policy.
             (Each cancellation fee should correspond to an applicable cancellation policy.)
           type: array
+          minItems: 1
           items:
             type: object
             required:
@@ -256,7 +257,7 @@ components:
                 type: string
                 format: date
               amount:
-                description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the airline keep.
+                description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the airline/hotel keep.
                 type: number
                 format: float
     HotelBookingInfo:
