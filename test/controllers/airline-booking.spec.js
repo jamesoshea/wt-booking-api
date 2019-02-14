@@ -405,6 +405,26 @@ describe('controllers - airline booking', function () {
           done(err);
         });
     });
+
+    it('should return 503 when upstream error with retry-after is encountered', (done) => {
+      const booking = getAirlineBooking();
+      const orig = wtAdapter.updateAvailability;
+      wtAdapter.updateAvailability = sinon.stub().callsFake(() => {
+        const err = new adapter.UpstreamError();
+        err.headers = {
+          'retry-after': 20,
+        };
+        return Promise.reject(err);
+      });
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(503)
+        .end((err) => {
+          wtAdapter.updateAvailability = orig;
+          done(err);
+        });
+    });
   });
 
   describe('DELETE /booking/:id', () => {
