@@ -1,5 +1,6 @@
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
-  Http404Error, HttpForbiddenError } = require('../errors');
+  Http404Error, HttpForbiddenError,
+  HttpServiceUnavailable } = require('../errors');
 const { config } = require('../config');
 const validators = require('../services/validators');
 const normalizers = require('../services/normalizers');
@@ -96,6 +97,9 @@ module.exports.create = async (req, res, next) => {
       return next(new HttpValidationError('validationFailed', err.message));
     }
     if (err instanceof adapter.UpstreamError) {
+      if (err.headers && err.headers['retry-after']) {
+        return next(new HttpServiceUnavailable(null, null, err.message, err.headers));
+      }
       return next(new HttpBadGatewayError('badGatewayError', err.message));
     }
     if (err instanceof adapter.InvalidUpdateError) {

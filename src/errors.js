@@ -1,10 +1,11 @@
 class HttpError extends Error {
-  constructor (code, msgLong, msgShort) {
+  constructor (code, msgLong, msgShort, additionalHeaders) {
     super();
     this.code = code || this.constructor.defaultCode;
     this.msgShort = msgShort || this.constructor.defaultMsgShort;
     this.msgLong = msgLong || this.constructor.defaultMsgLong || '';
     this.status = this.constructor.status;
+    this.headers = additionalHeaders;
     // For compatibility with the Error class:
     this.message = this.msgLong || this.msgShort || this.code;
   }
@@ -59,6 +60,12 @@ HttpBadGatewayError.defaultCode = 'badGatewayError';
 HttpBadGatewayError.defaultMsgShort = 'Bad gateway.';
 HttpBadGatewayError.defaultMsgLong = 'Invalid response from an upstream server.';
 
+class HttpServiceUnavailable extends HttpError {};
+HttpServiceUnavailable.status = 503;
+HttpServiceUnavailable.defaultCode = 'serviceUnavailable';
+HttpServiceUnavailable.defaultMsgShort = 'Service unavailable.';
+HttpServiceUnavailable.defaultMsgLong = 'Service is temporarily unavailable. Try again later.';
+
 module.exports = {
   HttpError,
   Http404Error,
@@ -68,4 +75,5 @@ module.exports = {
   HttpValidationError,
   HttpInternalError,
   HttpBadGatewayError,
+  HttpServiceUnavailable,
 };

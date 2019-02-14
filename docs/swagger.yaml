@@ -81,6 +81,10 @@ paths:
           $ref: '#/components/responses/ConflictError'
         422:
           $ref: '#/components/responses/UnprocessableEntityError'
+        502:
+          $ref: '#/components/responses/BadGatewayError'
+        503:
+          $ref: '#/components/responses/ServiceUnavailable'
   '/booking/{bookingId}':
     parameters:
       - name: bookingId
@@ -145,6 +149,18 @@ components:
             $ref: '#/components/schemas/Error'
     NotFoundError:
       description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadGatewayError:
+      description: Upstream APIs are not responding
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Upstream APIs are responding with 503 Service Unavailable
       content:
         application/json:
           schema:

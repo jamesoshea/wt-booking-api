@@ -90,9 +90,19 @@ class WTHotelAdapter {
       if (response.statusCode <= 299) {
         return response.body;
       } else {
+        if (response.statusCode === 503 && response.headers['retry-after']) {
+          const upstreamError = new adapter.UpstreamError(`Error ${response.statusCode}`);
+          upstreamError.headers = {
+            'retry-after': response.headers['retry-after'],
+          };
+          throw upstreamError;
+        }
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
+      if (err instanceof adapter.UpstreamError) {
+        throw err;
+      }
       throw new adapter.UpstreamError(err.message);
     }
   }
