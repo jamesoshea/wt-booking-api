@@ -1,6 +1,7 @@
 const dayjs = require('dayjs');
 const escapeHTML = require('escape-html');
 const showdown = require('showdown');
+const PhoneNumber = require('awesome-phonenumber');
 
 /**
  * mailData specs:
@@ -29,6 +30,11 @@ const showdown = require('showdown');
  */
 
 const formatAirline = (airlineData) => {
+  let generalPhone;
+  if (airlineData.contacts && airlineData.contacts.general && airlineData.contacts.general.phone) {
+    const pn = new PhoneNumber(airlineData.contacts.general.phone);
+    generalPhone = pn.getNumber('international');
+  }
   const template = `
 # Airline
 
@@ -37,7 +43,7 @@ ${airlineData.code ? `- Code: ${airlineData.code}` : ''}
 ${airlineData.contacts && airlineData.contacts.general
     ? `- Contact:
   ${airlineData.contacts.general.email ? `  - E-mail: ${airlineData.contacts.general.email}` : ''}
-  ${airlineData.contacts.general.phone ? `  - Phone: ${airlineData.contacts.general.phone}` : ''}
+  ${airlineData.contacts.general.phone ? `  - Phone: ${generalPhone}` : ''}
   ${airlineData.contacts.general.url ? `  - Web: ${airlineData.contacts.general.url}` : ''}
 ` : ''}
 `;
@@ -46,13 +52,18 @@ ${airlineData.contacts && airlineData.contacts.general
 };
 
 const formatCustomer = (customerData) => {
+  let customerPhone;
+  if (customerData.phone) {
+    const pn = new PhoneNumber(customerData.phone);
+    customerPhone = pn.getNumber('international');
+  }
   const template = `
 # Customer
 
 ${customerData.name ? `- Name: ${customerData.name}` : ''}
 ${customerData.surname ? `- Surname: ${customerData.surname}` : ''}
 ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
-${customerData.phone ? `- Phone: ${customerData.phone}` : ''}
+${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
   ${customerData.address.line1 ? `  - ${customerData.address.line1}` : ''}

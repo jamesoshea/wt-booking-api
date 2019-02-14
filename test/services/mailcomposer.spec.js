@@ -13,7 +13,7 @@ const fakeBaseMailData = {
     name: `${noXssTest} ${nonAsciiTest}`,
     surname: `${noXssTest} ${nonAsciiTest}`,
     email: 'test@example.com',
-    phone: '00420123123123',
+    phone: '+420123123123',
     address: {
       line1: `${noXssTest} ${nonAsciiTest}`,
       line2: `${noXssTest} ${nonAsciiTest}`,
@@ -40,7 +40,7 @@ const fakeHotelMailData = Object.assign({
     contacts: {
       general: {
         email: 'hotel@example.com',
-        phone: '00420123123456',
+        phone: '+420123123456',
         url: 'https://example.com',
       },
     },
@@ -89,7 +89,7 @@ const fakeAirlineMailData = Object.assign({
     contacts: {
       general: {
         email: 'info@airline-mazurka.com',
-        phone: '004078965423',
+        phone: '+4078965423',
         url: 'https://www.airline-mazurka.com',
       },
     },

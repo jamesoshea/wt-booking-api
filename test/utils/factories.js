@@ -6,7 +6,7 @@ module.exports.getHotelData = function () {
     contacts: {
       general: {
         email: 'info@hotel-mazurka.com',
-        phone: '004078965423',
+        phone: '+4078965423',
         url: 'https://www.hotel-mazurka.com',
       },
     },
@@ -107,7 +107,7 @@ module.exports.getAirlineData = function () {
     contacts: {
       general: {
         email: 'info@airline-mazurka.com',
-        phone: '004078965423',
+        phone: '+4078965423',
         url: 'https://www.airline-mazurka.com',
       },
     },

@@ -1,6 +1,7 @@
 const dayjs = require('dayjs');
 const escapeHTML = require('escape-html');
 const showdown = require('showdown');
+const PhoneNumber = require('awesome-phonenumber');
 
 /**
  * mailData specs:
@@ -26,6 +27,11 @@ const showdown = require('showdown');
  */
 
 const formatHotel = (hotelData) => {
+  let generalPhone;
+  if (hotelData.contacts && hotelData.contacts.general && hotelData.contacts.general.phone) {
+    const pn = new PhoneNumber(hotelData.contacts.general.phone);
+    generalPhone = pn.getNumber('international');
+  }
   const template = `
 # Hotel
 
@@ -42,7 +48,7 @@ ${hotelData.address
 ${hotelData.contacts && hotelData.contacts.general
     ? `- Contact:
   ${hotelData.contacts.general.email ? `    - E-mail: ${hotelData.contacts.general.email}` : ''}
-  ${hotelData.contacts.general.phone ? `    - Phone: ${hotelData.contacts.general.phone}` : ''}
+  ${hotelData.contacts.general.phone ? `    - Phone: ${generalPhone}` : ''}
   ${hotelData.contacts.general.url ? `    - Web: ${hotelData.contacts.general.url}` : ''}
 ` : ''}
 `;
@@ -51,13 +57,18 @@ ${hotelData.contacts && hotelData.contacts.general
 };
 
 const formatCustomer = (customerData) => {
+  let customerPhone;
+  if (customerData.phone) {
+    const pn = new PhoneNumber(customerData.phone);
+    customerPhone = pn.getNumber('international');
+  }
   const template = `
 # Customer
 
 ${customerData.name ? `- Name: ${customerData.name}` : ''}
 ${customerData.surname ? `- Surname: ${customerData.surname}` : ''}
 ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
-${customerData.phone ? `- Phone: ${customerData.phone}` : ''}
+${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
   ${customerData.address.line1 ? `    - ${customerData.address.line1}` : ''}
