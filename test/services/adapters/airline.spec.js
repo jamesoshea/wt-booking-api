@@ -282,7 +282,7 @@ describe('services - airline adapter', function () {
   describe('WTAirlineAdapter._checkCancellationFees', () => {
     const wtAdapter = _getAdapter(),
       description = {
-        defaultCancellationAmount: 20,
+        defaultCancellationAmount: 10,
         cancellationPolicies: [
           // Some parts are commented-out; some cancellation
           // policies are intentionally not "in-order" to test
@@ -389,6 +389,7 @@ describe('services - airline adapter', function () {
         { from: '2019-02-02', to: '2019-02-20', amount: 50 },
         { from: '2019-02-21', to: '2019-03-28', amount: 75 },
       ];
+      description.defaultCancellationAmount = 100;
       try {
         await wtAdapter._checkCancellationFees(description, cancellationFees, '2018-12-01', '2019-03-28');
         throw new Error('Should have thrown');
