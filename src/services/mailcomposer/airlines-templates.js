@@ -68,7 +68,7 @@ ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
 ${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
-    - ${addressFormatter.format(normalizeAddress(customerData.address)).replace(/\n$/, '').split('\n').join('\n    - ')}
+    - ${addressFormatter.format(normalizeAddress(customerData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -81,7 +81,7 @@ const formatPassengers = (passengers) => {
 
 const formatFlight = (booking) => {
   return booking.bookingClasses.map((c) => (`
-    - ${c.bookingClassId} - passengers: ${formatPassengers(c.passengers)}
+    - ${c.id} - passengers: ${formatPassengers(c.passengers)}
 `)).join('\n');
 };
 

@@ -40,7 +40,7 @@ const formatHotel = (hotelData) => {
 ${hotelData.name ? `- Name: ${hotelData.name}` : ''}
 ${hotelData.address
     ? `- Address:
-    - ${addressFormatter.format(normalizeAddress(hotelData.address)).replace(/\n$/, '').split('\n').join('\n    - ')}
+    - ${addressFormatter.format(normalizeAddress(hotelData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 ${hotelData.contacts && hotelData.contacts.general
     ? `- Contact:
@@ -68,7 +68,7 @@ ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
 ${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
-    - ${addressFormatter.format(normalizeAddress(customerData.address)).replace(/\n$/, '').split('\n').join('\n    - ')}
+    - ${addressFormatter.format(normalizeAddress(customerData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 `;
   // Drop empty lines and return

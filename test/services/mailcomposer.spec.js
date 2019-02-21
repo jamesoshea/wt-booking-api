@@ -2,9 +2,13 @@
 /* eslint-disable standard/object-curly-even-spacing */
 /* eslint-disable no-new */
 const { assert } = require('chai');
+const fs = require('fs');
+const path = require('path');
 
 const MailComposer = require('../../src/services/mailcomposer');
 const { initSegment } = require('../../src/config/index');
+const mdHotelContents = fs.readFileSync(path.resolve(__dirname, './hotel-mail.md'), { encoding: 'utf-8' });
+const mdAirlineContents = fs.readFileSync(path.resolve(__dirname, './airline-mail.md'), { encoding: 'utf-8' });
 
 const nonAsciiTest = 'Příliš žluťoučký kůň úpěl ďábelské ódy\'s &<>$';
 const noXssTest = 'random text with <b>HTML</b> and XSS <script>alert("xss");</script>';
@@ -100,6 +104,11 @@ describe('services - mailcomposer hotels', function () {
     initSegment();
   });
 
+  it('should render markdown', () => {
+    const result = MailComposer.renderSupplier(fakeHotelMailData);
+    assert.equal(result.text, mdHotelContents);
+  });
+
   it('should escape html', () => {
     const result = MailComposer.renderSupplier(fakeHotelMailData);
     assert.match(result.text, /<script>/i);
@@ -111,6 +120,11 @@ describe('services - mailcomposer airlines', function () {
   before(() => {
     process.env.WT_SEGMENT = 'airlines';
     initSegment();
+  });
+
+  it('should render markdown', () => {
+    const result = MailComposer.renderSupplier(fakeAirlineMailData);
+    assert.equal(result.text, mdAirlineContents);
   });
 
   it('should escape html', () => {
