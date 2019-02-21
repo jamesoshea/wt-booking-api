@@ -163,6 +163,7 @@ describe('services - pricing', function () {
               {
                 conditions: { from: '2019-01-01', to: '2019-12-31', maxAge: 7 },
                 adjustment: -10,
+                type: 'percentage',
               },
             ],
           },
@@ -191,6 +192,7 @@ describe('services - pricing', function () {
               {
                 conditions: { from: '2019-01-01', to: '2019-12-31', minOccupants: 3 },
                 adjustment: -20,
+                type: 'percentage',
               },
             ],
           },
@@ -213,14 +215,17 @@ describe('services - pricing', function () {
               {
                 conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 3 },
                 adjustment: -20,
+                type: 'percentage',
               },
               {
                 conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 8 },
                 adjustment: -40,
+                type: 'percentage',
               },
               {
                 conditions: { from: '2019-01-01', to: '2019-12-31', minLengthOfStay: 20 },
                 adjustment: -60,
+                type: 'percentage',
               },
             ],
           },

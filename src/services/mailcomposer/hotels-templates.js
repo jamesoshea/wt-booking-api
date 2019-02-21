@@ -2,6 +2,8 @@ const dayjs = require('dayjs');
 const escapeHTML = require('escape-html');
 const showdown = require('showdown');
 const PhoneNumber = require('awesome-phonenumber');
+const addressFormatter = require('@fragaria/address-formatter');
+const { normalizeAddress } = require('./common');
 
 /**
  * mailData specs:
@@ -10,12 +12,12 @@ const PhoneNumber = require('awesome-phonenumber');
  * {
  *    customer: <Customer from docs/swagger.yaml>,
  *    note: <string>,
- *    hotel: <https://github.com/windingtree/wiki/blob/a85cef934adee0bd816fea180bb02e6d39b27360/hotel-data-swagger.yaml#L78> limited to name, contacts, address
+ *    hotel: <https://github.com/windingtree/wiki/blob/868b5d2685b1cd70647020978141be820ddccd30/hotel-data-swagger.yaml> limited to name, contacts, address
  *    arrival: <string, format date>,
  *    departure: <string, format date>,
  *    roomList: [
  *      {
- *        roomType: <https://github.com/windingtree/wiki/blob/a85cef934adee0bd816fea180bb02e6d39b27360/hotel-data-swagger.yaml#L141>,
+ *        roomType: <https://github.com/windingtree/wiki/blob/868b5d2685b1cd70647020978141be820ddccd30/hotel-data-swagger.yaml#L141>,
  *        guests: <Array of elements from BookingInfo.guestInfo from docs/swagger.yaml that belong to this room>,
  *      }
  *     ]
@@ -38,18 +40,13 @@ const formatHotel = (hotelData) => {
 ${hotelData.name ? `- Name: ${hotelData.name}` : ''}
 ${hotelData.address
     ? `- Address:
-  ${hotelData.address.line1 ? `    - ${hotelData.address.line1}` : ''}
-  ${hotelData.address.line2 ? `    - ${hotelData.address.line2}` : ''}
-  ${hotelData.address.city ? `    - ${hotelData.address.city}` : ''}
-  ${hotelData.address.state ? `    - ${hotelData.address.state}` : ''}
-  ${hotelData.address.country ? `    - ${hotelData.address.country}` : ''}
-  ${hotelData.address.postalCode ? `    - ${hotelData.address.postalCode}` : ''}
+    - ${addressFormatter.format(normalizeAddress(hotelData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 ${hotelData.contacts && hotelData.contacts.general
     ? `- Contact:
-  ${hotelData.contacts.general.email ? `    - E-mail: ${hotelData.contacts.general.email}` : ''}
-  ${hotelData.contacts.general.phone ? `    - Phone: ${generalPhone}` : ''}
-  ${hotelData.contacts.general.url ? `    - Web: ${hotelData.contacts.general.url}` : ''}
+${hotelData.contacts.general.email ? `    - E-mail: ${hotelData.contacts.general.email}` : ''}
+${hotelData.contacts.general.phone ? `    - Phone: ${generalPhone}` : ''}
+${hotelData.contacts.general.url ? `    - Web: ${hotelData.contacts.general.url}` : ''}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -71,12 +68,7 @@ ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
 ${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
-  ${customerData.address.line1 ? `    - ${customerData.address.line1}` : ''}
-  ${customerData.address.line2 ? `    - ${customerData.address.line2}` : ''}
-  ${customerData.address.city ? `    - ${customerData.address.city}` : ''}
-  ${customerData.address.state ? `    - ${customerData.address.state}` : ''}
-  ${customerData.address.country ? `    - ${customerData.address.country}` : ''}
-  ${customerData.address.postalCode ? `    - ${customerData.address.postalCode}` : ''}
+    - ${addressFormatter.format(normalizeAddress(customerData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 `;
   // Drop empty lines and return

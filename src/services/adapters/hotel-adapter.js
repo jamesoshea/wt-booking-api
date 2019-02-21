@@ -7,7 +7,7 @@ const { computeHotelPrice, NoRatePlanError } = require('../pricing');
 const {
   cancellationFees: cancellationFeesLibrary,
   availability: availabilityLibrary,
-} = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
+} = require('@windingtree/wt-pricing-algorithms');
 
 const REQUIRED_FIELDS = [
   'supplierId',

@@ -20,7 +20,13 @@ const SCHEMA_DEFS = [
   },
 ];
 
-for (let definition of SCHEMA_DEFS) {
-  let schema = openapi2schema('docs/swagger.yaml', {async: false});
-  fs.writeFileSync(definition.filePath, JSON.stringify(schema['/booking'].post.body.oneOf[definition.order], null, '  '));
-}
+openapi2schema('docs/swagger.yaml', { async: true }, (err, result) => {
+  if (err) {
+    // openapi2schema fails
+    console.error(err);
+  } else {
+    for (let definition of SCHEMA_DEFS) {
+      fs.writeFileSync(definition.filePath, JSON.stringify(result['/booking'].post.body.oneOf[definition.order], null, '  '));
+    }
+  }
+});

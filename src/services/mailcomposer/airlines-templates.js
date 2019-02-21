@@ -2,6 +2,8 @@ const dayjs = require('dayjs');
 const escapeHTML = require('escape-html');
 const showdown = require('showdown');
 const PhoneNumber = require('awesome-phonenumber');
+const addressFormatter = require('@fragaria/address-formatter');
+const { normalizeAddress } = require('./common');
 
 /**
  * mailData specs:
@@ -10,8 +12,8 @@ const PhoneNumber = require('awesome-phonenumber');
  * {
  *    customer: <Customer from docs/swagger.yaml>,
  *    note: <string>,
- *    airline: <https://github.com/windingtree/wiki/blob/a85cef934adee0bd816fea180bb02e6d39b27360/airline-data-swagger.yaml#L60> limited to name,contacts and code
- *    booking: { <https://github.com/windingtree/wt-booking-api/blob/d62241f8d667dc7d4ceab87aaad69dc5a8d8e080/docs/swagger.yaml#L305>
+ *    airline: <https://github.com/windingtree/wiki/blob/868b5d2685b1cd70647020978141be820ddccd30/airline-data-swagger.yaml> limited to name,contacts and code
+ *    booking: { </docs/swagger.yaml#L305>
  *     flightNumber: OK0965,
  *     flightInstanceId: IeKeix6G,
  *     bookingClasses: [
@@ -66,12 +68,7 @@ ${customerData.email ? `- E-mail: ${customerData.email}` : ''}
 ${customerData.phone ? `- Phone: ${customerPhone}` : ''}
 ${customerData.address
     ? `- Address:
-  ${customerData.address.line1 ? `  - ${customerData.address.line1}` : ''}
-  ${customerData.address.line2 ? `  - ${customerData.address.line2}` : ''}
-  ${customerData.address.city ? `  - ${customerData.address.city}` : ''}
-  ${customerData.address.state ? `  - ${customerData.address.state}` : ''}
-  ${customerData.address.country ? `  - ${customerData.address.country}` : ''}
-  ${customerData.address.postalCode ? `  - ${customerData.address.postalCode}` : ''}
+    - ${addressFormatter.format(normalizeAddress(customerData.address), { output: 'array' }).join('\n    - ')}
 ` : ''}
 `;
   // Drop empty lines and return
@@ -84,7 +81,7 @@ const formatPassengers = (passengers) => {
 
 const formatFlight = (booking) => {
   return booking.bookingClasses.map((c) => (`
-    - ${c.bookingClassId} - passengers: ${formatPassengers(c.passengers)}
+    - ${c.id} - passengers: ${formatPassengers(c.passengers)}
 `)).join('\n');
 };
 

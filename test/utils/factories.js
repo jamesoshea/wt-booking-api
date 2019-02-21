@@ -11,11 +11,11 @@ module.exports.getHotelData = function () {
       },
     },
     address: {
-      line1: 'Transylvania Road 789',
-      line2: '',
-      postalCode: '33312',
+      road: 'Transylvania Road',
+      houseNumber: '789',
+      postcode: '33312',
       city: 'Dragolm',
-      country: 'RO',
+      countryCode: 'RO',
     },
     roomTypes: [
       {
@@ -58,9 +58,10 @@ module.exports.getHotelBooking = function () {
       name: 'Sherlock',
       surname: 'Holmes',
       address: {
-        line1: '221B Baker Street',
+        road: 'Baker Street',
+        houseNumber: '221B',
         city: 'London',
-        country: 'GB',
+        countryCode: 'GB',
       },
       email: 'sherlock.holmes@houndofthebaskervilles.net',
     },
@@ -175,9 +176,10 @@ module.exports.getAirlineBooking = function () {
       name: 'Sherlock',
       surname: 'Holmes',
       address: {
-        line1: '221B Baker Street',
+        road: 'Baker Street',
+        houseNumber: '221B',
         city: 'London',
-        country: 'GB',
+        countryCode: 'GB',
       },
       email: 'sherlock.holmes@houndofthebaskervilles.net',
     },

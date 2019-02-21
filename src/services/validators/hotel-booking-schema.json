@@ -26,7 +26,52 @@
           "maxLength": 255
         },
         "address": {
-          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/1b7bd3e03f88fdfce6d2f0cf27059caf889eb036/hotel-data-swagger.yaml#/components/schemas/Address"
+          "title": "Postal address",
+          "description": "Based on output of Open Street Map's [Nominatim](https://wiki.openstreetmap.org/wiki/Nominatim). For formatting, take a look [here](https://github.com/OpenCageData/address-formatting).",
+          "type": "object",
+          "required": [
+            "road",
+            "houseNumber",
+            "city",
+            "countryCode"
+          ],
+          "properties": {
+            "houseNumber": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "road": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "county": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "stateDistrict": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "state": {
+              "type": "string",
+              "maxLength": 150
+            },
+            "postcode": {
+              "type": "string",
+              "maxLength": 13
+            },
+            "countryCode": {
+              "type": "string",
+              "maxLength": 2,
+              "minLength": 2,
+              "description": "ISO 3166-1 alpha-2 codes",
+              "format": "country-code"
+            }
+          }
         },
         "email": {
           "description": "E-mail contact",
@@ -48,7 +93,10 @@
       "maxLength": 3000
     },
     "hotelId": {
-      "$ref": "https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/EthereumAddressType"
+      "title": "Ethereum address",
+      "type": "string",
+      "description": "Ethereum address in hexadecimal format (with leading 0x) or an ENS name.",
+      "maxLength": 300
     },
     "booking": {
       "description": "Information on the booked property",
@@ -134,7 +182,12 @@
       ],
       "properties": {
         "currency": {
-          "$ref": "https://raw.githubusercontent.com/windingtree/wiki/ef3fd90df7fcd1461cad1be2cb5bfeefb4fe4633/shared-resources.yaml#/components/schemas/CurrencyType"
+          "title": "Currency code",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3,
+          "description": "Three letter ISO 4217 currency code.",
+          "format": "currency-code"
         },
         "total": {
           "description": "Total price that should be paid. Including taxes - this is subject to change in the future.",
