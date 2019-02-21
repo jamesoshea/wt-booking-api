@@ -1,6 +1,6 @@
 const dayjs = require('dayjs'),
   currencyjs = require('currency.js'),
-  wtpas = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
+  wtpas = require('@windingtree/wt-pricing-algorithms');
 
 class NoRatePlanError extends Error {};
 

@@ -7,7 +7,7 @@ const adapter = require('./base-adapter');
 const validators = require('../validators/index');
 const {
   cancellationFees: cancellationFeesLibrary,
-} = require('@windingtree/wt-pricing-algorithms/dist/node/wt-pricing-algorithms');
+} = require('@windingtree/wt-pricing-algorithms');
 
 const REQUIRED_FIELDS = [
   'supplierId',
