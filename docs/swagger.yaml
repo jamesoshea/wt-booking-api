@@ -186,7 +186,7 @@ components:
           type: string
           maxLength: 3000
         hotelId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/868b5d2685b1cd70647020978141be820ddccd30/shared-resources.yaml#/components/schemas/EthereumAddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/EthereumAddressType
         booking:
           $ref: '#/components/schemas/HotelBookingInfo'
         pricing:
@@ -208,7 +208,7 @@ components:
           type: string
           maxLength: 255
         address:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/868b5d2685b1cd70647020978141be820ddccd30/shared-resources.yaml#/components/schemas/AddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/AddressType
         email:
           description: E-mail contact
           type: string
@@ -243,7 +243,7 @@ components:
         - cancellationFees
       properties:
         currency:
-          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/868b5d2685b1cd70647020978141be820ddccd30/shared-resources.yaml#/components/schemas/CurrencyType'
+          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/CurrencyType'
         total:
           description: Total price that should be paid. Including taxes - this is subject to change in the future.
           type: number
@@ -335,7 +335,7 @@ components:
           type: string
           maxLength: 3000
         airlineId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/868b5d2685b1cd70647020978141be820ddccd30/shared-resources.yaml#/components/schemas/EthereumAddressType
+          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/EthereumAddressType
         booking:
           $ref: '#/components/schemas/AirlineBookingInfo'
         pricing:
