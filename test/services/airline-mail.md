@@ -10,6 +10,7 @@
 - Flight:
     - economy - passengers: Jeffrey Winger
     - business - passengers: John Watson
+- Origin: WT OTA
 
 # Customer
 - Name: random text with <b>HTML</b> and XSS <script>alert("xss");</script> Příliš žluťoučký kůň úpěl ďábelské ódy's &<>$

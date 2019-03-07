@@ -17,6 +17,7 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
   const airlineData = await adapter.getSupplierData(['name', 'contacts', 'code', 'flights']);
   const flight = airlineData.flights.items.find(f => f.id === bookingBody.booking.flightInstanceId);
   return {
+    origin: bookingBody.origin,
     customer: bookingBody.customer,
     note: bookingBody.note,
     airline: airlineData,
@@ -57,6 +58,7 @@ module.exports.create = async (req, res, next) => {
     let bookingClasses = _.cloneDeep(booking.bookingClasses);
     bookingClasses = bookingClasses.map((c) => { c.passengerCount = c.passengers.length; delete c.passengers; return c; });
     const bookingRecordData = {
+        origin: bookingData.origin,
         airline: bookingData.airlineId,
         pricing: pricing,
         booking: {
