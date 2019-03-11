@@ -51,8 +51,8 @@ module.exports.getHotelData = function () {
   };
 };
 
-module.exports.getHotelBooking = function () {
-  return {
+module.exports.getHotelBooking = function (withComponents = false) {
+  const data = {
     hotelId: config.adapterOpts.supplierId,
     customer: {
       name: 'Sherlock',
@@ -99,6 +99,45 @@ module.exports.getHotelBooking = function () {
       ],
     },
   };
+  if (withComponents) {
+    data.pricing.components = {
+      stay: [
+        {
+          date: '2019-01-02',
+          subtotal: 110.5,
+          guests: [
+            {
+              guestId: '1',
+              ratePlanId: 'rp1',
+              resultingPrice: 55,
+            },
+            {
+              guestId: '2',
+              ratePlanId: 'rp1',
+              resultingPrice: 55.5,
+            },
+          ],
+        },
+        {
+          date: '2019-01-03',
+          subtotal: 110.5,
+          guests: [
+            {
+              guestId: '1',
+              ratePlanId: 'rp1',
+              resultingPrice: 55,
+            },
+            {
+              guestId: '2',
+              ratePlanId: 'rp1',
+              resultingPrice: 55.5,
+            },
+          ],
+        },
+      ],
+    };
+  }
+  return data;
 };
 
 module.exports.getAirlineData = function () {

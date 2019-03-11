@@ -396,7 +396,7 @@ describe('services - hotel adapter', function () {
     });
   });
 
-  describe('WTHotelAdapter._checkTotal', () => {
+  describe('WTHotelAdapter._checkPrice', () => {
     // NOTE: Most of the testing is done within the pricing.spec.js test suite.
     const wtAdapter = _getAdapter(),
       description = { currency: 'EUR' },
@@ -418,12 +418,59 @@ describe('services - hotel adapter', function () {
       };
 
     it('should successfully return when the total is OK', async () => {
-      await wtAdapter._checkTotal(description, ratePlans, bookingInfo, 'EUR', 8 * 10, '2018-12-01');
+      await wtAdapter._checkPrice(description, ratePlans, bookingInfo, {
+        currency: 'EUR',
+        total: 8 * 10,
+      }, '2018-12-01');
     });
 
     it('should throw InvalidPriceError when the total is too low', async () => {
       try {
-        await wtAdapter._checkTotal(description, ratePlans, bookingInfo, 'EUR', 60, '2018-12-01');
+        await wtAdapter._checkPrice(description, ratePlans, bookingInfo, {
+          currency: 'EUR',
+          total: 60,
+        }, '2018-12-01');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        assert.instanceOf(err, adapter.InvalidPriceError);
+      }
+    });
+
+    it('should throw InvalidPriceError when the subtotals do not form total', async () => {
+      try {
+        await wtAdapter._checkPrice(description, ratePlans, bookingInfo, {
+          currency: 'EUR',
+          total: 80,
+          components: {
+            stay: [
+              { subtotal: 40 },
+              { subtotal: 35 },
+            ],
+          },
+        }, '2018-12-01');
+        throw new Error('Should have thrown');
+      } catch (err) {
+        assert.instanceOf(err, adapter.InvalidPriceError);
+      }
+    });
+
+    it('should throw InvalidPriceError when the resultingPrice fields do not form subtotal', async () => {
+      try {
+        await wtAdapter._checkPrice(description, ratePlans, bookingInfo, {
+          currency: 'EUR',
+          total: 80,
+          components: {
+            stay: [
+              {
+                subtotal: 80,
+                guests: [
+                  { resultingPrice: 30 },
+                  { resultingPrice: 20 },
+                ],
+              },
+            ],
+          },
+        }, '2018-12-01');
         throw new Error('Should have thrown');
       } catch (err) {
         assert.instanceOf(err, adapter.InvalidPriceError);
@@ -460,14 +507,14 @@ describe('services - hotel adapter', function () {
         return Promise.resolve(hotelData);
       });
       sinon.stub(wtAdapter, '_checkCancellationFees').returns(undefined);
-      sinon.stub(wtAdapter, '_checkTotal').returns(undefined);
+      sinon.stub(wtAdapter, '_checkPrice').returns(undefined);
       sinon.stub(wtAdapter, '_checkAvailability').returns(undefined);
     });
 
     afterEach(() => {
       wtAdapter.getSupplierData.restore();
       wtAdapter._checkCancellationFees.restore();
-      wtAdapter._checkTotal.restore();
+      wtAdapter._checkPrice.restore();
       wtAdapter._checkAvailability.restore();
     });
 
@@ -477,9 +524,11 @@ describe('services - hotel adapter', function () {
       assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
       assert.deepEqual(wtAdapter._checkCancellationFees.args[0],
         [hotelData, 'cancellationFees', today, 'arrival']);
-      assert.equal(wtAdapter._checkTotal.callCount, 1);
-      assert.deepEqual(wtAdapter._checkTotal.args[0],
-        [hotelData, 'ratePlans', bookingInfo, 'currency', 'total', today]);
+      assert.equal(wtAdapter._checkPrice.callCount, 1);
+      assert.deepEqual(wtAdapter._checkPrice.args[0],
+        [hotelData, 'ratePlans', bookingInfo, {
+          currency: 'currency', total: 'total', cancellationFees: 'cancellationFees',
+        }, today]);
       assert.equal(wtAdapter._checkAvailability.callCount, 1);
       assert.deepEqual(wtAdapter._checkAvailability.args[0],
         [hotelData.availability.roomTypes, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure]);
@@ -489,7 +538,7 @@ describe('services - hotel adapter', function () {
       await wtAdapter.checkAdmissibility(bookingInfo, pricing, new Date(today), {});
       assert.equal(wtAdapter.getSupplierData.callCount, 0);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
-      assert.equal(wtAdapter._checkTotal.callCount, 0);
+      assert.equal(wtAdapter._checkPrice.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
     });
 
@@ -499,7 +548,7 @@ describe('services - hotel adapter', function () {
       });
       assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 1);
-      assert.equal(wtAdapter._checkTotal.callCount, 0);
+      assert.equal(wtAdapter._checkPrice.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
     });
 
@@ -509,7 +558,7 @@ describe('services - hotel adapter', function () {
       });
       assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
-      assert.equal(wtAdapter._checkTotal.callCount, 1);
+      assert.equal(wtAdapter._checkPrice.callCount, 1);
       assert.equal(wtAdapter._checkAvailability.callCount, 0);
     });
 
@@ -519,7 +568,7 @@ describe('services - hotel adapter', function () {
       });
       assert.equal(wtAdapter.getSupplierData.callCount, 1);
       assert.equal(wtAdapter._checkCancellationFees.callCount, 0);
-      assert.equal(wtAdapter._checkTotal.callCount, 0);
+      assert.equal(wtAdapter._checkPrice.callCount, 0);
       assert.equal(wtAdapter._checkAvailability.callCount, 1);
     });
   });
