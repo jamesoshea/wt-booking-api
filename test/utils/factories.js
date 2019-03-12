@@ -110,6 +110,14 @@ module.exports.getHotelBooking = function (withComponents = false) {
               guestId: '1',
               ratePlanId: 'rp1',
               resultingPrice: 55,
+              basePrice: 55,
+              modifier: {
+                adjustment: 0,
+                unit: 'percentage',
+                conditions: {
+                  minOccupants: 2,
+                },
+              },
             },
             {
               guestId: '2',

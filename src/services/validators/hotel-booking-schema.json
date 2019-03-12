@@ -294,9 +294,8 @@
                           "type": "object",
                           "required": [
                             "adjustment",
-                            "change",
-                            "conditions",
-                            "unit"
+                            "unit",
+                            "conditions"
                           ],
                           "properties": {
                             "adjustment": {
@@ -340,13 +339,6 @@
                                   "type": "integer"
                                 }
                               }
-                            },
-                            "change": {
-                              "description": "An actual amount that was added/subtracted from the basePrice",
-                              "type": "number",
-                              "format": "float",
-                              "minimum": -3.402823669209385e+38,
-                              "maximum": 3.402823669209385e+38
                             }
                           }
                         }

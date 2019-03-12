@@ -334,17 +334,7 @@ components:
                       format: float
                     modifier:
                       description: Eventually applied RatePlanPriceModifier
-                      type: object
-                      allOf:
-                        - $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
-                        - type: object
-                          required:
-                            - change
-                          properties:
-                            change:
-                              description: An actual amount that was added/subtracted from the basePrice
-                              type: number
-                              format: float
+                      $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
     HotelBookingInfo:
       description: Information on the booked property
       type: object

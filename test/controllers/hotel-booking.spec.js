@@ -58,7 +58,7 @@ describe('controllers - hotel booking', function () {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
       request(server)
         .post('/booking')
-        .send(getHotelBooking())
+        .send(getHotelBooking(true))
         .expect(200)
         .expect('content-type', /application\/json/)
         .end(async (err, res) => {
