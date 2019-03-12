@@ -220,6 +220,9 @@ If everything went well, you should get a response with the
 status code "200" and you should see a change in the hotel's
 availability data.
 
+There are more optional details you can send with the booking. You can check
+it in the [API defintion](docs/swagger.yaml).
+
 The [swagger definition](docs/swagger.yaml) for airlines is just a bit different:
 
 ```sh
