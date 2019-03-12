@@ -194,7 +194,7 @@ components:
         booking:
           $ref: '#/components/schemas/HotelBookingInfo'
         pricing:
-          $ref: '#/components/schemas/Pricing'
+          $ref: '#/components/schemas/HotelPricing'
         # billing: TBD (cash on arrival, card on arrival, online payment, crypto)
         # guarantee: TBD (can be for example credit card info)
     Customer:
@@ -239,6 +239,15 @@ components:
           items:
             description: Which guests will be staying in this room? The strings should be id fields from guestInfo, so we can match the guests and their additional information when needed.
             type: string
+    HotelPricing:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Pricing'
+        - type: object
+          properties:
+            components:
+              $ref: '#/components/schemas/HotelPricingComponents'
+
     Pricing:
       type: object
       required:
@@ -252,7 +261,6 @@ components:
           description: Total price that should be paid. Including taxes - this is subject to change in the future.
           type: number
           format: float
-        # amenities
         cancellationFees:
           description: >-
             Under what conditions can this booking be cancelled and how much will it cost.
@@ -280,6 +288,57 @@ components:
                 description: Cost of cancellation in percents of the final price, 100 means non refundable. This means how much money will the airline/hotel keep.
                 type: number
                 format: float
+    HotelPricingComponents:
+      description: All components that form the final and total price.
+      type: object
+      properties:
+        # amenities
+        stay:
+          description: Price to be paid for the stay itself
+          type: array
+          items:
+            type: object
+            required:
+              - date
+              - subtotal
+            properties:
+              date:
+                description: To which date this item is related
+                type: string
+                format: date
+              subtotal:
+                description: Price for all guests for given date
+                type: number
+                format: float
+              guests:
+                description: List of used rate plans for every guest
+                type: array
+                items:
+                  type: object
+                  required:
+                    - guestId
+                    - ratePlanId
+                    - resultingPrice
+                  properties:
+                    guestId:
+                      description: To which guest is this related (see guestInfo)
+                      type: string
+                      maxLength: 255
+                    ratePlanId:
+                      description: Which rate plan was used to establish this price
+                      type: string
+                      maxLength: 255
+                    basePrice:
+                      description: Raw price coming from the rate plan itself
+                      type: number
+                      format: float
+                    resultingPrice:
+                      description: Price coming from applying eventual modifiers to the basePrice. This is the price that is part of the subtotal.
+                      type: number
+                      format: float
+                    modifier:
+                      description: Eventually applied RatePlanPriceModifier
+                      $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
     HotelBookingInfo:
       description: Information on the booked property
       type: object

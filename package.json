@@ -41,7 +41,7 @@
   "dependencies": {
     "@fragaria/address-formatter": "^2.0.2",
     "@sendgrid/mail": "^6.3.1",
-    "@windingtree/wt-pricing-algorithms": "^0.5.3",
+    "@windingtree/wt-pricing-algorithms": "^0.6.0",
     "awesome-phonenumber": "^2.6.0",
     "body-parser": "^1.18.3",
     "cors": "^2.8.4",

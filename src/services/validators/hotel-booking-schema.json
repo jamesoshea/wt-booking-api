@@ -232,6 +232,128 @@
               }
             }
           }
+        },
+        "components": {
+          "description": "All components that form the final and total price.",
+          "type": "object",
+          "properties": {
+            "stay": {
+              "description": "Price to be paid for the stay itself",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "subtotal"
+                ],
+                "properties": {
+                  "date": {
+                    "description": "To which date this item is related",
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "subtotal": {
+                    "description": "Price for all guests for given date",
+                    "type": "number",
+                    "format": "float",
+                    "minimum": -3.402823669209385e+38,
+                    "maximum": 3.402823669209385e+38
+                  },
+                  "guests": {
+                    "description": "List of used rate plans for every guest",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "guestId",
+                        "ratePlanId",
+                        "resultingPrice"
+                      ],
+                      "properties": {
+                        "guestId": {
+                          "description": "To which guest is this related (see guestInfo)",
+                          "type": "string",
+                          "maxLength": 255
+                        },
+                        "ratePlanId": {
+                          "description": "Which rate plan was used to establish this price",
+                          "type": "string",
+                          "maxLength": 255
+                        },
+                        "basePrice": {
+                          "description": "Raw price coming from the rate plan itself",
+                          "type": "number",
+                          "format": "float",
+                          "minimum": -3.402823669209385e+38,
+                          "maximum": 3.402823669209385e+38
+                        },
+                        "resultingPrice": {
+                          "description": "Price coming from applying eventual modifiers to the basePrice. This is the price that is part of the subtotal.",
+                          "type": "number",
+                          "format": "float",
+                          "minimum": -3.402823669209385e+38,
+                          "maximum": 3.402823669209385e+38
+                        },
+                        "modifier": {
+                          "description": "Eventually applied RatePlanPriceModifier",
+                          "type": "object",
+                          "required": [
+                            "adjustment",
+                            "unit",
+                            "conditions"
+                          ],
+                          "properties": {
+                            "adjustment": {
+                              "description": "How much will the resulting price be adjusted?",
+                              "type": "number",
+                              "format": "float",
+                              "minimum": -3.402823669209385e+38,
+                              "maximum": 3.402823669209385e+38
+                            },
+                            "unit": {
+                              "description": "In what unit is the adjustment?",
+                              "type": "string",
+                              "enum": [
+                                "percentage",
+                                "absolute"
+                              ]
+                            },
+                            "conditions": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "description": "First day the modifier is applied to (including)",
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "to": {
+                                  "description": "Last day the modifier is applied to (including)",
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "minLengthOfStay": {
+                                  "description": "Minimal length of stay the modifer is applicable to. If there are multiple modifiers with lengthOfStay condition matching the minimal length of stay, the price for the longest length of stay is used.",
+                                  "type": "integer"
+                                },
+                                "maxAge": {
+                                  "description": "The modifier is applicable to occupants of this age or younger at the time of arrival to the stay. If multiple modifiers are specified with different maxAge, the modifier with the lowest fitting limit is applied.",
+                                  "type": "integer"
+                                },
+                                "minOccupants": {
+                                  "description": "The modifier is applicable if there are at least this number of persons staying in a room. If multiple modifiers are specified with different minOccupants, the modifier with the highest fitting limit is applied.",
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

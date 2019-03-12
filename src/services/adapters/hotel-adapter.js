@@ -396,12 +396,11 @@ class WTHotelAdapter {
    * @param {Object} hotelDescription
    * @param {Object} ratePlans
    * @param {Object} bookingInfo
-   * @param {String} currency
-   * @param {float} total
+   * @param {Object} pricing
    * @return {Promise<void>}
    * @throw {InvalidPriceError}
    */
-  _checkTotal (hotelDescription, ratePlans, bookingInfo, currency, total, bookedAt) {
+  _checkPrice (hotelDescription, ratePlans, bookingInfo, pricing, bookedAt) {
     ratePlans = Object.values(ratePlans);
     const guestInfo = {};
     for (let item of bookingInfo.guestInfo) {
@@ -417,7 +416,7 @@ class WTHotelAdapter {
     });
     let price;
     try {
-      price = computeHotelPrice(bookingData, ratePlans, bookedAt, currency, hotelDescription.currency);
+      price = computeHotelPrice(bookingData, ratePlans, bookedAt, pricing.currency, hotelDescription.currency);
     } catch (err) {
       if (err instanceof NoRatePlanError) {
         throw new adapter.InvalidPriceError(err.message);
@@ -425,8 +424,29 @@ class WTHotelAdapter {
       throw err;
     }
 
-    if (total < (price - EPSILON)) {
+    if (pricing.total < (price - EPSILON)) {
       throw new adapter.InvalidPriceError(`The total is too low, expected ${price}.`);
+    }
+    if (pricing.components && pricing.components.stay) {
+      // check subtotals wrt total
+      const subtotalSum = pricing.components.stay
+        .map((s) => s.subtotal)
+        .reduce((agg, c) => agg + c, 0);
+      if (pricing.total !== subtotalSum) {
+        throw new adapter.InvalidPriceError(`The total is different than the sum of subtotals: ${pricing.total} vs. ${subtotalSum}.`);
+      }
+      // check resultingPrice wrt subtotals
+      pricing.components.stay
+        .map((s) => {
+          if (s.guests) {
+            const guestSum = s.guests
+              .map((g) => g.resultingPrice)
+              .reduce((agg, p) => agg + p, 0);
+            if (s.subtotal !== guestSum) {
+              throw new adapter.InvalidPriceError(`The subtotal is different than the sum of resultingPrice for guests for ${s.date}: ${s.subtotal} vs. ${guestSum}.`);
+            }
+          }
+        });
     }
   }
 
@@ -470,7 +490,7 @@ class WTHotelAdapter {
       }
       // check final price
       if (checkOpts.totalPrice) {
-        this._checkTotal(hotel, hotel.ratePlans, bookingInfo, pricing.currency, pricing.total, bookedAt);
+        this._checkPrice(hotel, hotel.ratePlans, bookingInfo, pricing, bookedAt);
       }
     }
   }
