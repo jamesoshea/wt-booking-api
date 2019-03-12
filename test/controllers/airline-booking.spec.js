@@ -83,6 +83,7 @@ describe('controllers - airline booking', function () {
             assert.propertyVal(booking, 'id', res.body.id);
             assert.propertyVal(booking, 'status', Booking.STATUS.CONFIRMED);
             assert.deepEqual(booking.rawData, {
+              origin: 'Fanciest OTA',
               airline: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
               pricing: {
                 cancellationFees: [

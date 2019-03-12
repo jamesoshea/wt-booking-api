@@ -13,6 +13,7 @@ const mdAirlineContents = fs.readFileSync(path.resolve(__dirname, './airline-mai
 const nonAsciiTest = 'Příliš žluťoučký kůň úpěl ďábelské ódy\'s &<>$';
 const noXssTest = 'random text with <b>HTML</b> and XSS <script>alert("xss");</script>';
 const fakeBaseMailData = {
+  origin: 'WT OTA',
   customer: {
     name: `${noXssTest} ${nonAsciiTest}`,
     surname: `${noXssTest} ${nonAsciiTest}`,

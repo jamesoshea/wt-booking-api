@@ -20,6 +20,7 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
     };
   });
   return {
+    origin: bookingBody.origin,
     customer: bookingBody.customer,
     note: bookingBody.note,
     hotel: hotelData,
@@ -58,6 +59,8 @@ module.exports.create = async (req, res, next) => {
 
     // We are not storing any personal information
     const bookingRecordData = {
+        origin: bookingData.origin,
+        hotel: bookingData.hotelId,
         arrival: booking.arrival,
         departure: booking.departure,
         rooms: booking.rooms.map((r) => (r.id)),

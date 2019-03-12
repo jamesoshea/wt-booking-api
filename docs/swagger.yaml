@@ -179,6 +179,10 @@ components:
         - booking
         - pricing
       properties:
+        origin:
+          description: Distribution partner name or where does this booking originate from. This can be a travel agency name, website name etc.
+          type: string
+          maxLength: 255
         customer:
           $ref: '#/components/schemas/Customer'
         note:
@@ -328,6 +332,10 @@ components:
         - booking
         - pricing
       properties:
+        origin:
+          description: Distribution partner name or where does this booking originate from. This can be a travel agency name, website name etc.
+          type: string
+          maxLength: 255
         customer:
           $ref: '#/components/schemas/Customer'
         note:

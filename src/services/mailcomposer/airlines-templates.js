@@ -10,6 +10,7 @@ const { normalizeAddress } = require('./common');
  *
  * ```
  * {
+ *    origin: <Booking origin name such as OTA name>,
  *    customer: <Customer from docs/swagger.yaml>,
  *    note: <string>,
  *    airline: <https://github.com/windingtree/wiki/blob/868b5d2685b1cd70647020978141be820ddccd30/airline-data-swagger.yaml> limited to name,contacts and code
@@ -104,6 +105,7 @@ const formatBooking = (data) => {
 ${formatCancellationFees(data.pricing.cancellationFees)}
 - Flight:
 ${formatFlight(data.booking)}
+${data.origin ? `- Origin: ${data.origin}` : ''}
 `;
   // Drop empty lines and return
   return template.replace(/^\s*[\r\n]/gm, '');

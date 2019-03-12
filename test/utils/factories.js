@@ -54,6 +54,7 @@ module.exports.getHotelData = function () {
 module.exports.getHotelBooking = function () {
   return {
     hotelId: config.adapterOpts.supplierId,
+    origin: 'Fancy OTA',
     customer: {
       name: 'Sherlock',
       surname: 'Holmes',
@@ -172,6 +173,7 @@ module.exports.getFlightInstanceData = function () {
 module.exports.getAirlineBooking = function () {
   return {
     airlineId: config.adapterOpts.supplierId,
+    origin: 'Fanciest OTA',
     customer: {
       name: 'Sherlock',
       surname: 'Holmes',
