@@ -54,7 +54,7 @@ class WTHotelAdapter {
         resolveWithFullResponse: true,
       });
       if (response.statusCode <= 299) {
-        return response.body.roomTypes;
+        return response.body.items;
       } else {
         throw new Error(`Error ${response.statusCode}`);
       }
@@ -479,7 +479,6 @@ class WTHotelAdapter {
         // Convert booking date to hotel's timezone and continue
         // all computation in hotel timezone.
         bookedAt = moment(bookingDate).tz(hotel.timezone).format('YYYY-MM-DD');
-      
       // check the room availability
       if (checkOpts.availability) {
         this._checkAvailability(hotel.availability.roomTypes, bookingInfo.rooms, bookingInfo.arrival, bookingInfo.departure);
