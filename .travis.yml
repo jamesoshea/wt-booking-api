@@ -15,6 +15,7 @@ jobs:
     - npm test
     - npm run coverage
   - stage: NPM develop release
+    if: branch = develop
     script:
     - npm version preminor --preid="$TRAVIS_COMMIT"
     deploy:
