@@ -1,8 +1,6 @@
+const fs = require('fs');
 const path = require('path');
 const YAML = require('yamljs');
-const { SCHEMA_PATH } = require('../constants');
-const { version } = require('../../package.json');
-const { config } = require('../config');
 
 const MODEL_DEFINITIONS = [
   '@windingtree/wt-shared-schemas',
@@ -50,14 +48,14 @@ const resolveReferences = (model) => {
  * @param model
  */
 const addDefinitions = (model) => {
-  for (let path of MODEL_DEFINITIONS) {
-    let refDef = YAML.load(`node_modules/${path}/dist/swagger.yaml`);
+  for (let modelPath of MODEL_DEFINITIONS) {
+    let refDef = YAML.load(path.resolve(__dirname, `../node_modules/${modelPath}/dist/swagger.yaml`));
     // We cannot use nested schemas, because the swagger-model-validator does not support that
-    refDef = replaceReferences(refDef, '#/components/schemas/', `#/components/schemas/${normalizePath(path)}-`);
+    refDef = replaceReferences(refDef, '#/components/schemas/', `#/components/schemas/${normalizePath(modelPath)}-`);
     model.components.schemas = Object.assign({},
       model.components.schemas,
       Object.keys(refDef.components.schemas).reduce((agg, curr) => {
-        agg[`${normalizePath(path)}-${curr}`] = refDef.components.schemas[curr];
+        agg[`${normalizePath(modelPath)}-${curr}`] = refDef.components.schemas[curr];
         return agg;
       }, {})
     );
@@ -65,25 +63,19 @@ const addDefinitions = (model) => {
   return model;
 };
 
-const SCHEMA_CACHE = {};
-
-const getSchema = (schemaPath = SCHEMA_PATH) => {
-  if (SCHEMA_CACHE[schemaPath]) {
-    return SCHEMA_CACHE[schemaPath];
-  }
-  let swaggerDocument = YAML.load(path.resolve(schemaPath));
-  if (schemaPath === SCHEMA_PATH) {
-    swaggerDocument.servers = [{ url: config.baseUrl }];
-    swaggerDocument.info.version = version;
-  }
+const convertSchema = () => {
+  let swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/source.yaml'));
   swaggerDocument = resolveReferences(swaggerDocument);
   const processed = addDefinitions(swaggerDocument);
-  SCHEMA_CACHE[schemaPath] = processed;
-  return SCHEMA_CACHE[schemaPath];
+  fs.writeFileSync(path.resolve(__dirname, '../docs/swagger.yaml'), YAML.dump(processed, 4, 4));
 };
 
 module.exports = {
   resolveReferences,
   addDefinitions,
-  getSchema,
+  convertSchema,
 };
+
+if (require.main === module) {
+  convertSchema();
+}

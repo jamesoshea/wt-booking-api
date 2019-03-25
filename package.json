@@ -12,7 +12,8 @@
     "docker-start": "npm run createdb && npm start",
     "createdb-dev": "WT_CONFIG=dev node management/createdb.js",
     "createdb": "node management/createdb.js",
-    "dev": "WT_CONFIG=dev node src/index.js",
+    "dev": "npm run resolve-swagger-references && WT_CONFIG=dev node src/index.js",
+    "resolve-swagger-references": "node management/resolve-swagger-references.js",
     "regenerate-schemas": "node management/regenerate-schemas.js",
     "validate-schemas": "[ -z\"$(git diff --name-status --diff-filter=M src/services/validators/)\" ] || exit 1"
   },

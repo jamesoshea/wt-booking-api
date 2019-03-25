@@ -24,6 +24,7 @@ openapi2schema('docs/swagger.yaml', { async: true }, (err, result) => {
   if (err) {
     // openapi2schema fails
     console.error(err);
+    process.exit(1);
   } else {
     for (let definition of SCHEMA_DEFS) {
       fs.writeFileSync(definition.filePath, JSON.stringify(result['/booking'].post.body.oneOf[definition.order], null, '  '));

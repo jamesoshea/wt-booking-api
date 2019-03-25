@@ -27,6 +27,7 @@ In order to install and run tests, we must:
 git clone git@github.com:windingtree/wt-write-api.git
 nvm install
 npm install
+npm run resolve-swagger-references
 npm test
 ```
 

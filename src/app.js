@@ -3,12 +3,13 @@ const express = require('express');
 const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
+const path = require('path');
+const YAML = require('yamljs');
 
 let { config } = require('./config');
 const { version } = require('../package.json');
 const { cancelBooking, createBooking } = require('./controllers/index');
 const { HttpError, HttpInternalError, Http404Error, HttpBadRequestError } = require('./errors');
-const { getSchema } = require('./services/api-schema');
 
 const app = express();
 
@@ -16,7 +17,10 @@ const app = express();
 app.disable('x-powered-by');
 
 // Swagger docs.
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(getSchema()));
+const swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/swagger.yaml'));
+swaggerDocument.servers = [{ url: config.baseUrl }];
+swaggerDocument.info.version = version;
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(cors());
 
