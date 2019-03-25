@@ -190,7 +190,7 @@ components:
           type: string
           maxLength: 3000
         hotelId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/EthereumAddressType
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         booking:
           $ref: '#/components/schemas/HotelBookingInfo'
         pricing:
@@ -212,7 +212,7 @@ components:
           type: string
           maxLength: 255
         address:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/AddressType
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/AddressType'
         email:
           description: E-mail contact
           type: string
@@ -256,7 +256,7 @@ components:
         - cancellationFees
       properties:
         currency:
-          $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/CurrencyType'
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/CurrencyType'
         total:
           description: Total price that should be paid. Including taxes - this is subject to change in the future.
           type: number
@@ -338,7 +338,7 @@ components:
                       format: float
                     modifier:
                       description: Eventually applied RatePlanPriceModifier
-                      $ref: 'https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/hotel-data-swagger.yaml#/components/schemas/RatePlanPriceModifier'
+                      $ref: '@windingtree/wt-hotel-schemas/swagger.yaml#/components/schemas/RatePlanPriceModifier'
     HotelBookingInfo:
       description: Information on the booked property
       type: object
@@ -402,7 +402,7 @@ components:
           type: string
           maxLength: 3000
         airlineId:
-          $ref: https://raw.githubusercontent.com/windingtree/wiki/e02e675c1b94c6c3a2866a5a6d523c6bbed039c1/shared-resources.yaml#/components/schemas/EthereumAddressType
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         booking:
           $ref: '#/components/schemas/AirlineBookingInfo'
         pricing:
