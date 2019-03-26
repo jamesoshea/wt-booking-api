@@ -5,6 +5,7 @@ const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
 const path = require('path');
 const YAML = require('yamljs');
+const slash = require('express-slash');
 
 let { config } = require('./config');
 const { version } = require('../package.json');
@@ -15,6 +16,7 @@ const app = express();
 
 // No need to leak information and waste bandwith with this header.
 app.disable('x-powered-by');
+app.enable('strict routing');
 
 // Swagger docs.
 const swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/swagger.yaml'));
@@ -51,8 +53,14 @@ app.get('/', (req, res) => {
 });
 
 // Booking
-app.post('/booking', createBooking);
-app.delete('/booking/:id', cancelBooking);
+const router = express.Router({
+  strict: true,
+});
+router.post('/booking', createBooking);
+router.delete('/booking/:id', cancelBooking);
+
+app.use(router);
+app.use(slash());
 
 // 404 handler
 app.use('*', (req, res, next) => {
