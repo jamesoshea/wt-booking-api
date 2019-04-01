@@ -1,5 +1,7 @@
 # WT Booking API
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/windingtree/wt-booking-api.svg)](https://greenkeeper.io/)
+
 A sample implementation of the WT booking API specification in node.js.
 
 This server is assumed to handle booking requests for a single
