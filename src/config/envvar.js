@@ -28,6 +28,9 @@ module.exports = {
     connection: JSON.parse(process.env.DB_CLIENT_OPTIONS || '{}'),
     useNullAsDefault: true,
   }),
+  throttling: {
+    allow: convertEnvVarToBoolean(process.env.THROTTLING_ALLOW, true),
+  },
   adapterOpts: {
     baseUrl: process.env.BASE_URL,
     readApiUrl: process.env.READ_API_URL,

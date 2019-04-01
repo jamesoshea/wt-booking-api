@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const YAML = require('yamljs');
 const slash = require('express-slash');
+const rateLimit = require('express-rate-limit');
 
 let { config } = require('./config');
 const { version } = require('../package.json');
@@ -16,7 +17,8 @@ const app = express();
 
 // No need to leak information and waste bandwith with this header.
 app.disable('x-powered-by');
-app.enable('strict routing');
+app.enable('strict routing'); // used by express-slash
+app.enable('trust proxy'); // used by express-rate-limit, required behind a reverse-proxy
 
 // Swagger docs.
 const swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/swagger.yaml'));
@@ -56,8 +58,28 @@ app.get('/', (req, res) => {
 const router = express.Router({
   strict: true,
 });
-router.post('/booking', createBooking);
-router.delete('/booking/:id', cancelBooking);
+const throttle = (opts) => {
+  const options = Object.assign({
+    max: 10,
+    windowMs: 60 * 60 * 1000,
+    message: 'Too many bookings created from this IP address',
+    keyGenerator: function (req) {
+      return req.ip;
+    },
+  }, opts);
+  if (config.throttling && config.throttling.allow) {
+    return rateLimit(options);
+  } else {
+    return function (req, res, next) {
+      return next();
+    };
+  }
+};
+
+router.post('/booking', throttle(), createBooking);
+router.delete('/booking/:id', throttle({
+  message: 'Too many bookings cancelled from this IP address',
+}), cancelBooking);
 
 app.use(router);
 app.use(slash());

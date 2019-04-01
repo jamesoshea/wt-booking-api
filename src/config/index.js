@@ -16,6 +16,9 @@ const config = Object.assign({
       }),
     ],
   }),
+  throttling: {
+    allow: false,
+  },
   adapterOpts: {
     // In your env config, replace these with suitable values.
     readApiUrl: 'http://localhost:3000',

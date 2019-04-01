@@ -81,6 +81,8 @@ paths:
           $ref: '#/components/responses/ConflictError'
         422:
           $ref: '#/components/responses/UnprocessableEntityError'
+        429:
+          $ref: '#/components/responses/RateLimitedError'
         502:
           $ref: '#/components/responses/BadGatewayError'
         503:
@@ -121,10 +123,18 @@ paths:
                       code:
                         enum:
                           - cannotCancel
+        429:
+          $ref: '#/components/responses/RateLimitedError'
 components:
   responses:
     BadRequestError:
       description: The server does not understand the request (HTTP code 400)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimitedError:
+      description: The server applied rate limiting for this IP address
       content:
         application/json:
           schema:

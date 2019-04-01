@@ -103,6 +103,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `WALLET_PASSWORD` - Password for an Ethereum wallet associated with used wt-write-api key.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
+- `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
 
 The following options are optional.
 
