@@ -46,7 +46,6 @@ jobs:
     sudo: true
     services:
     - docker
-    install: true
     if: tag IS present
     script:
     - npm run resolve-swagger-references
