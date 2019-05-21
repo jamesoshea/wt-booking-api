@@ -104,6 +104,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 - `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
+- `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests. Defaults to `true`.
 
 The following options are optional.
 
@@ -263,3 +264,40 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
   }
 }'
 ```
+
+## Message signing
+To ensure the booking request has been sent by the declared party and not 
+modified in transfer, it is recommended (and can be enforced by setting 
+`ALLOW_UNSIGNED_BOOKING_REQUESTS = false`) to use signed requests.
+
+A signed request contains two extra headers (`x-wt-signed-hash` and `x-wt-signature`)
+containing a cryptographically signed fingerprint of the data and a signature 
+generated using sender's private key. The API verifies the signature and
+the address thus proving immutability and accountability of the request.
+
+```js
+const Web3Utils = require('web3-utils');
+
+const wallet = wtJsLibs.createWallet(walletData);
+wallet.unlock(walletPassword);
+
+let booking = getBooking();  // HotelBooking or AirlineBooking according to docs/source.yaml
+booking.originAddress = wallet.address;
+let bookingHash = Web3Utils.soliditySha3(Web3Utils.utf8ToHex(JSON.stringify(booking)));
+let { claim: signedHash, signature } = await wallet.encodeAndSignData({ 'originAddress': walletAddress, 'dataHash': bookingHash }, 'originAddress');
+request.post({
+  uri: '/booking',
+  body: booking,
+  headers: {
+    'x-wt-signed-hash': signedHash,
+    'x-wt-signature': signature,
+  }
+});
+```
+
+Further instructions on how to create a signed request are described in 
+[the developer's portal](https://github.com/windingtree/developers/blob/0bf96a7e5d8bda93e93b4b70ad97950e4d20bb20/book/tutorials/how-to-earn-trust.md#identity-and-message-signing).
+<!-- TODO change link to developers.wt.com when merged -->
+
+See our [blog post](https://blog.windingtree.com/building-trust-on-a-trustless-blockchain-ba71872f8541) for 
+a detailed explanation. 

@@ -54,6 +54,7 @@ module.exports.getHotelData = function () {
 module.exports.getHotelBooking = function (withComponents = false) {
   const data = {
     hotelId: config.adapterOpts.supplierId,
+    originAddress: '0x0',
     origin: 'Fancy OTA',
     customer: {
       name: 'Sherlock',
@@ -221,6 +222,7 @@ module.exports.getAirlineBooking = function () {
   return {
     airlineId: config.adapterOpts.supplierId,
     origin: 'Fanciest OTA',
+    originAddress: '0x0',
     customer: {
       name: 'Sherlock',
       surname: 'Holmes',
@@ -254,4 +256,14 @@ module.exports.getAirlineBooking = function () {
       ],
     },
   };
+};
+
+module.exports.getWallet = function () {
+  const walletData = require('./test-wallet.js');
+  const walletPassword = 'test123';
+  const walletAddress = '0xD39Ca7d186a37bb6Bf48AE8abFeB4c687dc8F906';
+  const wallet = config.wtLibs.createWallet(walletData);
+  wallet.unlock(walletPassword);
+  wallet.address = walletAddress;
+  return wallet;
 };

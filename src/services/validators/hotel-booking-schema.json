@@ -13,6 +13,12 @@
       "type": "string",
       "maxLength": 255
     },
+    "originAddress": {
+      "description": "ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature",
+      "title": "Ethereum address",
+      "type": "string",
+      "maxLength": 300
+    },
     "customer": {
       "description": "Person responsible for this booking who should be contacted by the supplier if needed",
       "type": "object",

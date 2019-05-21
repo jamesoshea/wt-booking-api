@@ -44,7 +44,13 @@ module.exports = {
     cancellationFees: convertEnvVarToBoolean(process.env.CHECK_CANCELLATION_FEES, true),
     totalPrice: convertEnvVarToBoolean(process.env.CHECK_TOTAL_PRICE, true),
   },
+  wtLibsOptions: {
+    onChainDataOptions: {
+      provider: process.env.ETH_NETWORK_PROVIDER,
+    },
+  },
   defaultBookingState: process.env.DEFAULT_BOOKING_STATE || 'confirmed',
+  allowUnsignedBookingRequests: convertEnvVarToBoolean(process.env.ALLOW_UNSIGNED_BOOKING_REQUESTS, true),
   updateAvailability: convertEnvVarToBoolean(process.env.UPDATE_AVAILABILITY, true),
   allowCancel: convertEnvVarToBoolean(process.env.ALLOW_CANCELLATION, true),
   mailing: {

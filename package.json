@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/wt-booking-api",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "A sample API written in node.js implementing the WT booking interface.",
   "main": "src/index.js",
   "scripts": {
@@ -44,6 +44,7 @@
     "@sendgrid/mail": "^6.3.1",
     "@windingtree/wt-airline-schemas": "^0.6.6",
     "@windingtree/wt-hotel-schemas": "^0.7.0",
+    "@windingtree/wt-js-libs": "^0.11.2",
     "@windingtree/wt-pricing-algorithms": "^0.6.1",
     "@windingtree/wt-shared-schemas": "^0.6.6",
     "awesome-phonenumber": "^2.6.0",
