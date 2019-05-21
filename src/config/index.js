@@ -1,3 +1,5 @@
+const WtJsLibs = require('@windingtree/wt-js-libs').WtJsLibs;
+
 const winston = require('winston');
 const assert = require('assert');
 const { HOTEL_SEGMENT_ID, AIRLINE_SEGMENT_ID } = require('../constants');
@@ -7,6 +9,7 @@ const env = process.env.WT_CONFIG || 'dev';
 const config = Object.assign({
   port: 8935,
   baseUrl: process.env.BASE_URL || 'http://localhost:8935',
+  wtLibs: {},
   logger: winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     transports: [
@@ -58,7 +61,19 @@ const initSegment = () => {
   config.segment = segment;
   return config;
 };
+const initJsLibs = () => {
+  if (!config.wtLibsOptions.onChainDataOptions.provider) {
+    throw new Error('ETH_NETWORK_PROVIDER not set');
+  }
+  config.wtLibs = WtJsLibs.createInstance({
+    onChainDataOptions: { provider: config.wtLibsOptions.onChainDataOptions.provider },
+    offChainDataOptions: config.wtLibsOptions.offChainDataOptions,
+    trustClueOptions: config.wtLibsOptions.trustClueOptions,
+  });
+  return config;
+};
 initSegment();
+initJsLibs();
 
 module.exports = {
   config,

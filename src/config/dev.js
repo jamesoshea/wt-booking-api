@@ -25,4 +25,9 @@ module.exports = {
     writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
     writeApiWalletPassword: 'windingtree',
   },
+  wtLibsOptions: {
+    onChainDataOptions: {
+      provider: 'http://localhost:8545',
+    },
+  },
 };

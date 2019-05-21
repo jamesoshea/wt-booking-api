@@ -19,4 +19,9 @@ module.exports = {
       }),
     ],
   }),
+  wtLibsOptions: {
+    onChainDataOptions: {
+      provider: 'http://localhost:8545',
+    },
+  },
 };
