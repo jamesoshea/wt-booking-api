@@ -1,6 +1,7 @@
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
   Http404Error, HttpForbiddenError, HttpBadRequestError,
   HttpServiceUnavailable } = require('../errors');
+const { WT_HEADER_ORIGIN_ADDRESS } = require('../constants');
 const { config } = require('../config');
 const validators = require('../services/validators');
 const signing = require('../services/signing');
@@ -143,6 +144,19 @@ module.exports.create = async (req, res, next) => {
  */
 module.exports.cancel = async (req, res, next) => {
   try {
+    if (signing.isSignedRequest(req) && req.headers[WT_HEADER_ORIGIN_ADDRESS]) {
+      try {
+        // DELETE shouldn't contain body, so the originAddress is sent in headers and bookingId in query params
+        signing.verifySignedRequest({ body: req.params, headers: req.headers }, req.headers[WT_HEADER_ORIGIN_ADDRESS]);
+      } catch (e) {
+        return next(e);
+      }
+    } else {
+      if (!config.allowUnsignedBookingRequests) {
+        return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
+      }
+    }
+
     const bookingId = req.params.id,
       booking = await Booking.get(bookingId);
     if (!booking) {

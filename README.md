@@ -104,7 +104,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 - `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
-- `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests. Defaults to `true`.
+- `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests when false. Defaults to `true`.
 
 The following options are optional.
 
@@ -275,6 +275,20 @@ containing a cryptographically signed fingerprint of the data and a signature
 generated using sender's private key. The API verifies the signature and
 the address thus proving immutability and accountability of the request.
 
+The signed data need to contain `originAddress` and `dataHash` values. `originAddress` is an ETH address of 
+the sender that serves as a public key and `dataHash` is computed from:
+- body of a POST/PUT request (e.g. `HotelBooking` or `AirlineBooking` when creating a booking)
+- query params of a GET/DELETE request (e.g. `{ id: bookingId }` when cancelling a booking)
+
+> #### GET and DELETE methods
+> As GET and DELETE HTTP methods should not contain request body, a different approach is used.
+The hash is computed from the query parameters alone. Now the origin address is not part of 
+the message and needs to be sent in a `x-wt-origin-address` header.
+>
+> Upon verification the hash is also computed based on query parameters (instead of request body) and 
+compared to the origin address from headers.
+
+### Creating a booking
 ```js
 const Web3Utils = require('web3-utils');
 
@@ -291,6 +305,28 @@ request.post({
   headers: {
     'x-wt-signed-hash': signedHash,
     'x-wt-signature': signature,
+  }
+});
+```
+(The example is detailed to show what is going on behind the scenes. 
+Check `src/services/signing/index.js` for convenience methods.) 
+<!-- TODO add a link to hotel-explorer readme with example -->
+
+### Cancelling a booking
+```js
+const Web3Utils = require('web3-utils');
+
+const wallet = wtJsLibs.createWallet(walletData);
+wallet.unlock(walletPassword);
+
+let bookingHash = Web3Utils.soliditySha3(Web3Utils.utf8ToHex(JSON.stringify({ id: bookingId })));
+let { claim: signedHash, signature } = await wallet.encodeAndSignData({ 'originAddress': walletAddress, 'dataHash': bookingHash }, 'originAddress');
+request.delete({
+  uri: `/booking/${bookingId}`,
+  headers: {
+    'x-wt-signed-hash': signedHash,
+    'x-wt-signature': signature,
+    'x-wt-origin-address': wallet.address,
   }
 });
 ```

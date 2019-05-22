@@ -3,6 +3,7 @@ const AIRLINE_SEGMENT_ID = 'airlines';
 
 const WT_HEADER_SIGNED_HASH = 'x-wt-signed-hash';
 const WT_HEADER_SIGNATURE = 'x-wt-signature';
+const WT_HEADER_ORIGIN_ADDRESS = 'x-wt-origin-address';
 
 module.exports = {
   HOTEL_SEGMENT_ID,
@@ -10,4 +11,5 @@ module.exports = {
   SCHEMA_PATH: 'docs/swagger.yaml',
   WT_HEADER_SIGNED_HASH,
   WT_HEADER_SIGNATURE,
+  WT_HEADER_ORIGIN_ADDRESS,
 };
