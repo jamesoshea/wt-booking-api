@@ -17,7 +17,10 @@ module.exports.signHash = async (data, wallet) => {
   return wallet.encodeAndSignData({ 'originAddress': wallet.address, 'dataHash': dataHash }, 'originAddress');
 };
 
-module.exports.verifySignedRequest = (req) => {
+module.exports.verifySignedRequest = (req, originAddress = undefined) => {
+  if (originAddress === undefined) {
+    originAddress = req.body.originAddress;
+  }
   try {
     const trustClient = config.wtLibs.getTrustClueClient();
     let decoded = trustClient.verifyAndDecodeSignedData(req.headers[WT_HEADER_SIGNED_HASH], req.headers[WT_HEADER_SIGNATURE], 'originAddress');
@@ -26,7 +29,7 @@ module.exports.verifySignedRequest = (req) => {
     if (this.computeHash(req.body) !== decodedHash) {
       throw new HttpBadRequestError('badRequest', 'Request signature verification failed: tampered body');
     }
-    if (req.body.originAddress !== decodedOriginAddress) {
+    if (originAddress !== decodedOriginAddress) {
       throw new HttpBadRequestError('badRequest', 'Request signature verification failed: incorrect origin address');
     }
   } catch (e) {

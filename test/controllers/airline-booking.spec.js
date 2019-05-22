@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 /* eslint-disable promise/no-callback-in-promise */
-const { AIRLINE_SEGMENT_ID, WT_HEADER_SIGNED_HASH, WT_HEADER_SIGNATURE } = require('../../src/constants');
+const { AIRLINE_SEGMENT_ID, WT_HEADER_SIGNED_HASH, WT_HEADER_SIGNATURE, WT_HEADER_ORIGIN_ADDRESS } = require('../../src/constants');
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
@@ -529,6 +529,76 @@ describe('controllers - airline booking', function () {
             }
           });
       }).catch(done);
+    });
+
+    describe('DELETE /booking/:id signed', () => {
+      let bookingId;
+
+      beforeEach(async () => {
+        let booking = await Booking.create(getAirlineBooking(), Booking.STATUS.CONFIRMED);
+        bookingId = booking.id;
+      });
+
+      it('should accept a signed booking cancellation', async () => {
+        const wallet = getWallet();
+        let { claim: signedHash, signature } = await signing.signHash({ id: bookingId }, wallet);
+        console.log('signed');
+
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_SIGNED_HASH, signedHash)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(204);
+      });
+
+      it('should reject a booking cancellation signed by other than originAddress', async () => {
+        const wallet = getWallet();
+        let { claim: signedHash, signature } = await signing.signHash({ id: bookingId }, wallet);
+
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_SIGNED_HASH, signedHash)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, '0x04e46f24307e4961157b986a0b653a0d88f9dbd6')
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address');
+          });
+      });
+
+      it('should reject a booking cancellation with tampered body', async () => {
+        const wallet = getWallet();
+        let { claim: signedHash, signature } = await signing.signHash({ id: bookingId + 1 }, wallet);
+
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_SIGNED_HASH, signedHash)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'Request signature verification failed: tampered body');
+          });
+      });
+
+      it('should reject an unsigned booking cancellation when configured to', (done) => {
+        const orig = config.allowUnsignedBookingRequests;
+        config.allowUnsignedBookingRequests = false;
+
+        request(server)
+          .delete(`/booking/${bookingId}`)
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'API doesn\'t accept unsigned booking requests.');
+            config.allowUnsignedBookingRequests = orig;
+            done();
+          })
+          .catch(err => {
+            config.allowUnsignedBookingRequests = orig;
+            done(err);
+          });
+      });
     });
 
     it('should return 409 if the booking has already been cancelled', (done) => {
