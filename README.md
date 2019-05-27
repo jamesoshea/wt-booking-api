@@ -270,41 +270,44 @@ To ensure the booking request has been sent by the declared party and not
 modified in transfer, it is recommended (and can be enforced by setting 
 `ALLOW_UNSIGNED_BOOKING_REQUESTS = false`) to use signed requests.
 
-A signed request contains two extra headers (`x-wt-signed-hash` and `x-wt-signature`)
-containing a cryptographically signed fingerprint of the data and a signature 
-generated using sender's private key. The API verifies the signature and
-the address thus proving immutability and accountability of the request.
+A signed request contains an extra header (`x-wt-signature`)
+containing a signature generated using sender's private key. The API verifies 
+the signature against the origin address and request data thus proving immutability 
+and accountability of the request.
 
-The signed data need to contain `originAddress` and `dataHash` values. `originAddress` is an ETH address of 
-the sender that serves as a public key and `dataHash` is computed from:
-- body of a POST/PUT request (e.g. `HotelBooking` or `AirlineBooking` when creating a booking)
-- query params of a GET/DELETE request (e.g. `{ id: bookingId }` when cancelling a booking)
+`originAddress` is an ETH address of  the sender that serves as a public key. 
+Signed data mean:
+- string representation of the body of a POST/PUT request (e.g. `HotelBooking` or `AirlineBooking` when creating a booking)
+- URI of a GET/DELETE request (e.g. `https://booking.api/booking/1` when cancelling a booking)
+
+> #### POST and PUT methods
+> A raw string representation has to be used for both signing and verification as 
+> JSON serialization is ambiguous. You'll probably need to set the `content-type` header
+> explicitly, depending on your HTTP request library.
 
 > #### GET and DELETE methods
 > As GET and DELETE HTTP methods should not contain request body, a different approach is used.
-The hash is computed from the query parameters alone. Now the origin address is not part of 
+The hash is computed from the URI. In this case the origin address is not part of 
 the message and needs to be sent in a `x-wt-origin-address` header.
 >
-> Upon verification the hash is also computed based on query parameters (instead of request body) and 
+> Upon verification the hash is also computed based on the URI (instead of the raw request body) and 
 compared to the origin address from headers.
 
 ### Creating a booking
 ```js
-const Web3Utils = require('web3-utils');
-
 const wallet = wtJsLibs.createWallet(walletData);
 wallet.unlock(walletPassword);
 
 let booking = getBooking();  // HotelBooking or AirlineBooking according to docs/source.yaml
 booking.originAddress = wallet.address;
-let bookingHash = Web3Utils.soliditySha3(Web3Utils.utf8ToHex(JSON.stringify(booking)));
-let { claim: signedHash, signature } = await wallet.encodeAndSignData({ 'originAddress': walletAddress, 'dataHash': bookingHash }, 'originAddress');
+let serializedData = JSON.stringify(booking);
+let signature = await signing.signData(serializedData, wallet);
 request.post({
   uri: '/booking',
-  body: booking,
+  body: serializedData,
   headers: {
-    'x-wt-signed-hash': signedHash,
     'x-wt-signature': signature,
+    'content-type': 'application/json',
   }
 });
 ```
@@ -314,17 +317,14 @@ Check `src/services/signing/index.js` for convenience methods.)
 
 ### Cancelling a booking
 ```js
-const Web3Utils = require('web3-utils');
-
 const wallet = wtJsLibs.createWallet(walletData);
 wallet.unlock(walletPassword);
 
-let bookingHash = Web3Utils.soliditySha3(Web3Utils.utf8ToHex(JSON.stringify({ id: bookingId })));
-let { claim: signedHash, signature } = await wallet.encodeAndSignData({ 'originAddress': walletAddress, 'dataHash': bookingHash }, 'originAddress');
+let uri = `${bookingApi}/booking/${bookingId}`;
+let signature = await signing.signData(uri, wallet);
 request.delete({
-  uri: `/booking/${bookingId}`,
+  uri: uri,
   headers: {
-    'x-wt-signed-hash': signedHash,
     'x-wt-signature': signature,
     'x-wt-origin-address': wallet.address,
   }

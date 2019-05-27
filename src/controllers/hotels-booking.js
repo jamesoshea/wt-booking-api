@@ -42,15 +42,16 @@ module.exports.create = async (req, res, next) => {
   try {
     // 0. Verify signed request
     if (signing.isSignedRequest(req)) {
+      if (!req.rawBody) {
+        throw new HttpBadRequestError('badRequest', 'Couldn\'t find raw request body, is "content-type" header set properly? Try "application/json".');
+      }
       try {
-        signing.verifySignedRequest(req);
+        signing.verifySignedRequest(req.rawBody, req.headers, signing.verificationFnCreate(req.rawBody));
       } catch (e) {
         return next(e);
       }
-    } else {
-      if (!config.allowUnsignedBookingRequests) {
-        return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
-      }
+    } else if (!config.allowUnsignedBookingRequests) {
+      return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
     }
     // 1. Normalize request payload
     const bookingData = normalizers.normalizeBooking(req.body);
@@ -146,15 +147,13 @@ module.exports.cancel = async (req, res, next) => {
   try {
     if (signing.isSignedRequest(req) && req.headers[WT_HEADER_ORIGIN_ADDRESS]) {
       try {
-        // DELETE shouldn't contain body, so the originAddress is sent in headers and bookingId in query params
-        signing.verifySignedRequest({ body: req.params, headers: req.headers }, req.headers[WT_HEADER_ORIGIN_ADDRESS]);
+        // DELETE shouldn't contain body, so the originAddress is sent in a header and uri is signed instead of body
+        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(req.headers[WT_HEADER_ORIGIN_ADDRESS]));
       } catch (e) {
         return next(e);
       }
-    } else {
-      if (!config.allowUnsignedBookingRequests) {
-        return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
-      }
+    } else if (!config.allowUnsignedBookingRequests) {
+      return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
     }
 
     const bookingId = req.params.id,
