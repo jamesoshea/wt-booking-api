@@ -194,7 +194,7 @@ components:
           type: string
           maxLength: 255
         originAddress:
-          description: ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature
+          description: ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature. Required when sending a signed request.
           $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'
@@ -409,7 +409,7 @@ components:
           type: string
           maxLength: 255
         originAddress:
-          description: ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature
+          description: ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature. Required when sending a signed request.
           $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'
