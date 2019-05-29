@@ -29,6 +29,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(cors());
 
 app.use(bodyParser.json({
+  // Use parser's `verify` callback to get raw (unparsed) body of the request. Is used for signing verification.
   verify: (req, res, buf, encoding) => {
     if (buf && buf.length) {
       req.rawBody = buf.toString(encoding || 'utf8');

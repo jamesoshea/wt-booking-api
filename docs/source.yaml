@@ -98,6 +98,12 @@ paths:
               oneOf:
                 - $ref: '#/components/schemas/HotelBooking'
                 - $ref: '#/components/schemas/AirlineBooking'
+      parameters:
+        - name: x-wt-signature
+          in: header
+          description: Raw body (string) signed using `eth_sign`
+          schema:
+            type: string
       responses:
         200:
           description: Booking was successfuly processed
@@ -150,6 +156,16 @@ paths:
         description: Booking ID as returned by POST /booking
         schema:
           $ref: '#/components/schemas/BookingId'
+      - name: x-wt-signature
+        in: header
+        description: URI signed using `eth_sign`
+        schema:
+          type: string
+      - name: x-wt-origin-address
+        in: header
+        description: Address of the ethereum wallet used for signing
+        schema:
+          type: string
     delete:
       summary: Cancel booking
       responses:

@@ -4,6 +4,7 @@ const { HOTEL_SEGMENT_ID, WT_HEADER_SIGNATURE, WT_HEADER_ORIGIN_ADDRESS } = requ
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
+const TrustClueClient = require('@windingtree/wt-js-libs').TrustClueClient;
 
 const { initSegment } = require('../../src/config');
 let config;
@@ -13,6 +14,7 @@ const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapters/base-adapter');
 const Booking = require('../../src/models/booking');
 const validator = require('../../src/services/validators/index');
+const trustClueOptions = require('../utils/trust-clue-options').trustClueOptions;
 
 describe('controllers - hotel booking', function () {
   let server, wtAdapterOrig, wtAdapter,
@@ -251,6 +253,53 @@ describe('controllers - hotel booking', function () {
             done(err);
           }
         });
+    });
+
+    describe('trust clues', () => {
+      let orig;
+      beforeEach(() => {
+        orig = config.wtLibs.getTrustClueClient();
+        config.wtLibs.trustClueClient = TrustClueClient.createInstance(trustClueOptions);
+      });
+      afterEach(() => {
+        config.wtLibs.trustClueClient = orig;
+      });
+
+      it('should accept a booking by trusted party', async () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+
+        return request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(200);
+      });
+
+      it('should reject a booking by untrusted party', async () => {
+        const hotelBooking = getHotelBooking();
+
+        return request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Untrusted caller/i);
+          });
+      });
+
+      it('should reject a booking by unknown party', async () => {
+        const hotelBooking = getHotelBooking();
+        delete hotelBooking.originAddress;
+
+        return request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Unknown caller/i);
+          });
+      });
     });
 
     it('should accept a signed booking', async () => {

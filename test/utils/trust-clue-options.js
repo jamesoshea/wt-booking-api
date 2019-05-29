@@ -2,11 +2,8 @@ const trustClueOptions = {
   provider: 'http://localhost:8545',
   clues: {
     'test-list': {
-      options: {
-        walletPath: '../utils/factories',
-      },
       create: async (options) => {
-        const { getWallet } = require(options.walletPath);
+        const { getWallet } = require('../utils/factories');
         const wallet = getWallet();
         return {
           getMetadata: () => ({
@@ -25,10 +22,9 @@ const trustClueOptions = {
     'test-deposit': {
       options: {
         threshold: 500,
-        walletPath: '../utils/factories',
       },
       create: async (options) => {
-        const { getWallet } = require(options.walletPath);
+        const { getWallet } = require('../utils/factories');
         const wallet = getWallet();
         let getValue = function (addr) {
           if (addr === wallet.address) {
