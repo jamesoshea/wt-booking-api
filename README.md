@@ -271,9 +271,12 @@ modified in transfer, it is recommended (and can be enforced by setting
 `ALLOW_UNSIGNED_BOOKING_REQUESTS = false`) to use signed requests.
 
 A signed request contains an extra header (`x-wt-signature`)
-containing a signature generated using sender's private key. The API verifies 
-the signature against the origin address and request data thus proving immutability 
-and accountability of the request.
+containing a signature generated using sender's private key. 
+Signing can be done either using WtJsLibs.wallet.signData convenience method 
+or directly with [web3.eth_sign](https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign).
+
+The API verifies  the signature against the origin address and request data 
+thus proving immutability and accountability of the request.
 
 `originAddress` is an ETH address of  the sender that serves as a public key. 
 Signed data mean:
@@ -295,13 +298,15 @@ compared to the origin address from headers.
 
 ### Creating a booking
 ```js
+const Web3Utils = require('web3-utils');
 const wallet = wtJsLibs.createWallet(walletData);
 wallet.unlock(walletPassword);
 
 let booking = getBooking();  // HotelBooking or AirlineBooking according to docs/source.yaml
 booking.originAddress = wallet.address;
 let serializedData = JSON.stringify(booking);
-let signature = await signing.signData(serializedData, wallet);
+let dataHash = Web3Utils.soliditySha3(serializedData);
+let signature = await wallet.signData(dataHash);
 request.post({
   uri: '/booking',
   body: serializedData,
@@ -317,11 +322,13 @@ Check `src/services/signing/index.js` for convenience methods.)
 
 ### Cancelling a booking
 ```js
+const Web3Utils = require('web3-utils');
 const wallet = wtJsLibs.createWallet(walletData);
 wallet.unlock(walletPassword);
 
 let uri = `${bookingApi}/booking/${bookingId}`;
-let signature = await signing.signData(uri, wallet);
+let dataHash = Web3Utils.soliditySha3(uri);
+let signature = await wallet.signData(dataHash);
 request.delete({
   uri: uri,
   headers: {
