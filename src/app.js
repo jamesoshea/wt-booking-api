@@ -51,12 +51,15 @@ app.use(morgan(':remote-addr :remote-user [:date[clf]] :method :url HTTP/:http-v
 }));
 
 // Root handler
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   res.status(200).json({
     docs: `${config.baseUrl}/docs/`,
     info: 'https://github.com/windingtree/wt-booking-api/blob/master/README.md',
     version,
     config: process.env.WT_CONFIG,
+    allowUnsignedBookingRequests: config.allowUnsignedBookingRequests,
+    allowThrottling: config.throttling.allow,
+    trustClues: await config.wtLibs.getTrustClueClient().getMetadataForAllClues(),
   });
 });
 

@@ -4,8 +4,9 @@ const { AIRLINE_SEGMENT_ID, WT_HEADER_SIGNATURE, WT_HEADER_ORIGIN_ADDRESS } = re
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
+const TrustClueClient = require('@windingtree/wt-js-libs').TrustClueClient;
 
-let { initSegment } = require('../../src/config');
+const { initSegment } = require('../../src/config');
 let config;
 const { getAirlineBooking, getAirlineData, getFlightInstanceData, getWallet } = require('../utils/factories');
 const signing = require('../../src/services/signing');
@@ -13,6 +14,7 @@ const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapters/base-adapter');
 const Booking = require('../../src/models/booking');
 const validator = require('../../src/services/validators/index');
+const trustClueOptions = require('../utils/trust-clue-options').trustClueOptions;
 
 describe('controllers - airline booking', function () {
   let server, wtAdapterOrig, wtAdapter,
@@ -263,6 +265,53 @@ describe('controllers - airline booking', function () {
             done(err);
           }
         });
+    });
+
+    describe('trust clues', () => {
+      let orig;
+      beforeEach(() => {
+        orig = config.wtLibs.getTrustClueClient();
+        config.wtLibs.trustClueClient = TrustClueClient.createInstance(trustClueOptions);
+      });
+      afterEach(() => {
+        config.wtLibs.trustClueClient = orig;
+      });
+
+      it('should accept a booking by trusted party', async () => {
+        const wallet = getWallet();
+        const airlineBooking = getAirlineBooking();
+        airlineBooking.originAddress = wallet.address;
+
+        return request(server)
+          .post('/booking')
+          .send(airlineBooking)
+          .expect(200);
+      });
+
+      it('should reject a booking by untrusted party', async () => {
+        const airlineBooking = getAirlineBooking();
+
+        return request(server)
+          .post('/booking')
+          .send(airlineBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Untrusted caller/i);
+          });
+      });
+
+      it('should reject a booking by unknown party', async () => {
+        const airlineBooking = getAirlineBooking();
+        delete airlineBooking.originAddress;
+
+        return request(server)
+          .post('/booking')
+          .send(airlineBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Unknown caller/i);
+          });
+      });
     });
 
     it('should accept a signed booking', async () => {

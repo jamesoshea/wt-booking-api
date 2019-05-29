@@ -61,7 +61,18 @@ module.exports.create = async (req, res, next) => {
     if (bookingData.hotelId.toLowerCase() !== hotelId) {
       throw new validators.ValidationError('Unexpected hotelId.');
     }
-    // 4. Assemble the intended availability update and try to apply it.
+    // 4. Evaluate trust
+    if (!bookingData.originAddress) {
+      return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to fill `originAddress` field so the API can evaluate trust clues.'));
+    }
+    const interpretedClues = await config.wtLibs.getTrustClueClient().interpretAllValues(bookingData.originAddress);
+
+    // Let's say we're okay with at least one clue passing. Customize following logic to suit your needs (e.g. use `interpretedClues.every`).
+    const someCluesPass = interpretedClues.some(c => c.value) || interpretedClues.length === 0;
+    if (!someCluesPass) {
+      return next(new HttpForbiddenError('forbidden', `Untrusted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`));
+    }
+    // 5. Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = bookingData.booking,
@@ -81,7 +92,7 @@ module.exports.create = async (req, res, next) => {
         rooms: booking.rooms.map((r) => (r.id)),
       },
       bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
-    // 4. E-mail confirmations
+    // 6. E-mail confirmations
     const mailer = mailerService.get();
     const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
       ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
@@ -102,7 +113,7 @@ module.exports.create = async (req, res, next) => {
         ...mailComposer.renderCustomer(mailInformation),
       });
     }
-    // 5. Return confirmation.
+    // 7. Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
       // would probably come from the hotel's property

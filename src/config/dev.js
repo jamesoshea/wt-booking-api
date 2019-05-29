@@ -29,5 +29,6 @@ module.exports = {
     onChainDataOptions: {
       provider: 'http://localhost:8545',
     },
+    trustClueOptions: require('../../test/utils/trust-clue-options').trustClueOptions,
   },
 };

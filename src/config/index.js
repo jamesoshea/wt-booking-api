@@ -40,6 +40,7 @@ const config = Object.assign({
     totalPrice: true, // If false, the price is not validated against ratePlans/bookingClasses. This may lead to conditions unfavourable for a supplier
   },
   defaultBookingState: 'confirmed', // Or 'pending'
+  allowUnsignedBookingRequests: true, // If false reject all unsigned requests
   updateAvailability: true, // If false, availability is not updated in data stored in WT platform
   allowCancel: true, // If false, booking cancellation is not allowed.
   mailing: {
