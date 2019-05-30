@@ -1,10 +1,12 @@
 const _ = require('lodash');
 
 const { HttpValidationError, HttpBadGatewayError, HttpConflictError,
-  Http404Error, HttpForbiddenError,
+  Http404Error, HttpForbiddenError, HttpBadRequestError,
   HttpServiceUnavailable } = require('../errors');
+const { WT_HEADER_ORIGIN_ADDRESS } = require('../constants');
 const { config } = require('../config');
 const validators = require('../services/validators');
+const signing = require('../services/signing');
 const normalizers = require('../services/normalizers');
 const adapter = require('../services/adapters/base-adapter');
 const mailComposer = require('../services/mailcomposer');
@@ -34,15 +36,28 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
  */
 module.exports.create = async (req, res, next) => {
   try {
-    // 0. Normalize request payload
+    // 0. Verify signed request
+    if (signing.isSignedRequest(req)) {
+      if (!req.rawBody) {
+        throw new HttpBadRequestError('badRequest', 'Couldn\'t find raw request body, is "content-type" header set properly? Try "application/json".');
+      }
+      try {
+        signing.verifySignedRequest(req.rawBody, req.headers, signing.verificationFnCreate(req.rawBody));
+      } catch (e) {
+        return next(e);
+      }
+    } else if (!config.allowUnsignedBookingRequests) {
+      return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
+    }
+    // 1. Normalize request payload
     const bookingData = normalizers.normalizeBooking(req.body);
-    // 1. Validate request payload.
+    // 2. Validate request payload.
     validators.validateBooking(bookingData);
-    // 2. Verify that airlineId is the expected one.
+    // 3. Verify that airlineId is the expected one.
     if (bookingData.airlineId.toLowerCase() !== airlineId) {
       throw new validators.ValidationError('Unexpected airlineId.');
     }
-    // 3. Assemble the intended availability update and try to apply it.
+    // 4. Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = bookingData.booking,
@@ -132,6 +147,17 @@ module.exports.create = async (req, res, next) => {
  */
 module.exports.cancel = async (req, res, next) => {
   try {
+    if (signing.isSignedRequest(req) && req.headers[WT_HEADER_ORIGIN_ADDRESS]) {
+      try {
+        // DELETE shouldn't contain body, so the originAddress is sent in a header and uri is signed instead of body
+        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(req.headers[WT_HEADER_ORIGIN_ADDRESS]));
+      } catch (e) {
+        return next(e);
+      }
+    } else if (!config.allowUnsignedBookingRequests) {
+      return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
+    }
+
     const bookingId = req.params.id,
       bookingRecord = await Booking.get(bookingId);
     if (!bookingRecord) {

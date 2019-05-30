@@ -104,6 +104,7 @@ example `{"filename": "./envvar.sqlite"}`.
 - `LOG_LEVEL` - Set log level for [winston](https://www.npmjs.com/package/winston).
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 - `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
+- `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests when false. Defaults to `true`.
 
 The following options are optional.
 
@@ -263,3 +264,83 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
   }
 }'
 ```
+
+## Message signing
+To ensure the booking request has been sent by the declared party and not 
+modified in transfer, it is recommended (and can be enforced by setting 
+`ALLOW_UNSIGNED_BOOKING_REQUESTS = false`) to use signed requests.
+
+A signed request contains an extra header (`x-wt-signature`)
+containing a signature generated using sender's private key. 
+Signing can be done either using WtJsLibs.wallet.signData convenience method 
+or directly with [web3.eth_sign](https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign).
+
+The API verifies  the signature against the origin address and request data 
+thus proving immutability and accountability of the request.
+
+`originAddress` is an ETH address of  the sender that serves as a public key. 
+Signed data mean:
+- string representation of the body of a POST/PUT request (e.g. `HotelBooking` or `AirlineBooking` when creating a booking)
+- URI of a GET/DELETE request (e.g. `https://booking.api/booking/1` when cancelling a booking)
+
+> #### POST and PUT methods
+> A raw string representation has to be used for both signing and verification as 
+> JSON serialization is ambiguous. You'll probably need to set the `content-type` header
+> explicitly, depending on your HTTP request library.
+
+> #### GET and DELETE methods
+> As GET and DELETE HTTP methods should not contain request body, a different approach is used.
+The hash is computed from the URI. In this case the origin address is not part of 
+the message and needs to be sent in a `x-wt-origin-address` header.
+>
+> Upon verification the hash is also computed based on the URI (instead of the raw request body) and 
+compared to the origin address from headers.
+
+### Creating a booking
+```js
+const Web3Utils = require('web3-utils');
+const wallet = wtJsLibs.createWallet(walletData);
+wallet.unlock(walletPassword);
+
+let booking = getBooking();  // HotelBooking or AirlineBooking according to docs/source.yaml
+booking.originAddress = wallet.address;
+let serializedData = JSON.stringify(booking);
+let dataHash = Web3Utils.soliditySha3(serializedData);
+let signature = await wallet.signData(dataHash);
+request.post({
+  uri: '/booking',
+  body: serializedData,
+  headers: {
+    'x-wt-signature': signature,
+    'content-type': 'application/json',
+  }
+});
+```
+(The example is detailed to show what is going on behind the scenes. 
+Check `src/services/signing/index.js` for convenience methods.) 
+<!-- TODO add a link to hotel-explorer readme with example -->
+
+### Cancelling a booking
+```js
+const Web3Utils = require('web3-utils');
+const wallet = wtJsLibs.createWallet(walletData);
+wallet.unlock(walletPassword);
+
+let uri = `${bookingApi}/booking/${bookingId}`;
+let dataHash = Web3Utils.soliditySha3(uri);
+let signature = await wallet.signData(dataHash);
+request.delete({
+  uri: uri,
+  headers: {
+    'x-wt-signature': signature,
+    'x-wt-origin-address': wallet.address,
+  }
+});
+```
+
+Further instructions on how to create a signed request are described in 
+[the developer's portal](https://github.com/windingtree/developers/blob/0bf96a7e5d8bda93e93b4b70ad97950e4d20bb20/book/tutorials/how-to-earn-trust.md#identity-and-message-signing).
+<!-- TODO change link to developers.wt.com when merged -->
+
+See our [blog post](https://blog.windingtree.com/building-trust-on-a-trustless-blockchain-ba71872f8541) for 
+a detailed explanation. 

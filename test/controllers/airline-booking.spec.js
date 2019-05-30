@@ -1,13 +1,14 @@
 /* eslint-env mocha */
 /* eslint-disable promise/no-callback-in-promise */
-const { AIRLINE_SEGMENT_ID } = require('../../src/constants');
+const { AIRLINE_SEGMENT_ID, WT_HEADER_SIGNATURE, WT_HEADER_ORIGIN_ADDRESS } = require('../../src/constants');
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
 
 let { initSegment } = require('../../src/config');
 let config;
-const { getAirlineBooking, getAirlineData, getFlightInstanceData } = require('../utils/factories');
+const { getAirlineBooking, getAirlineData, getFlightInstanceData, getWallet } = require('../utils/factories');
+const signing = require('../../src/services/signing');
 const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapters/base-adapter');
 const Booking = require('../../src/models/booking');
@@ -15,7 +16,7 @@ const validator = require('../../src/services/validators/index');
 
 describe('controllers - airline booking', function () {
   let server, wtAdapterOrig, wtAdapter,
-    mailerOrig, mailer;
+    mailerOrig, mailer, allowUnsignedOrig;
 
   before(async () => {
     process.env.WT_SEGMENT = AIRLINE_SEGMENT_ID;
@@ -43,6 +44,8 @@ describe('controllers - airline booking', function () {
     };
     mailerService.set(mailer);
     adapter.set(wtAdapter);
+    allowUnsignedOrig = config.allowUnsignedBookingRequests;
+    config.allowUnsignedBookingRequests = true;
   });
 
   beforeEach(() => {
@@ -55,6 +58,7 @@ describe('controllers - airline booking', function () {
     server.close();
     adapter.set(wtAdapterOrig);
     mailerService.set(mailerOrig);
+    config.allowUnsignedBookingRequests = allowUnsignedOrig;
   });
 
   describe('POST /booking', () => {
@@ -261,6 +265,76 @@ describe('controllers - airline booking', function () {
         });
     });
 
+    it('should accept a signed booking', async () => {
+      const wallet = getWallet();
+      const airlineBooking = getAirlineBooking();
+      airlineBooking.originAddress = wallet.address;
+      let serializedData = JSON.stringify(airlineBooking);
+      let signature = await signing.signData(serializedData, wallet);
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(serializedData)
+        .expect(200);
+    });
+
+    it('should reject a booking signed by other than originAddress', async () => {
+      const wallet = getWallet();
+      const airlineBooking = getAirlineBooking();
+      airlineBooking.originAddress = '0x04e46f24307e4961157b986a0b653a0d88f9dbd6';
+      let serializedData = JSON.stringify(airlineBooking);
+      let signature = await signing.signData(serializedData, wallet);
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(serializedData)
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+        });
+    });
+
+    it('should reject a booking with tampered body', async () => {
+      const wallet = getWallet();
+      const airlineBooking = getAirlineBooking();
+      airlineBooking.originAddress = wallet.address;
+      let signature = await signing.signData(JSON.stringify(airlineBooking), wallet);
+
+      airlineBooking.pricing.total = 1;
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(JSON.stringify(airlineBooking))
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+        });
+    });
+
+    it('should reject an unsigned booking when configured to', (done) => {
+      const orig = config.allowUnsignedBookingRequests;
+      config.allowUnsignedBookingRequests = false;
+      request(server)
+        .post('/booking')
+        .send(getAirlineBooking())
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'API doesn\'t accept unsigned booking requests.');
+          config.allowUnsignedBookingRequests = orig;
+          done();
+        })
+        .catch(err => {
+          config.allowUnsignedBookingRequests = orig;
+          done(err);
+        });
+    });
+
     it('should return 200 if the customer has both e-mail and phone', (done) => {
       const booking = getAirlineBooking();
       booking.customer.phone = '+420777777777';
@@ -457,6 +531,74 @@ describe('controllers - airline booking', function () {
             }
           });
       }).catch(done);
+    });
+
+    describe('DELETE /booking/:id signed', () => {
+      let bookingId;
+
+      beforeEach(async () => {
+        let booking = await Booking.create(getAirlineBooking(), Booking.STATUS.CONFIRMED);
+        bookingId = booking.id;
+      });
+
+      it('should accept a signed booking cancellation', async () => {
+        const wallet = getWallet();
+        let uri = `/booking/${bookingId}`;
+        let signature = await signing.signData(uri, wallet);
+
+        return request(server)
+          .delete(uri)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(204);
+      });
+
+      it('should reject a booking cancellation signed by other than originAddress', async () => {
+        const wallet = getWallet();
+        let uri = `/booking/${bookingId}`;
+        let signature = await signing.signData(uri, wallet);
+
+        return request(server)
+          .delete(uri)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, '0x04e46f24307e4961157b986a0b653a0d88f9dbd6')
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+          });
+      });
+
+      it('should reject a booking cancellation with tampered body', async () => {
+        const wallet = getWallet();
+        let signature = await signing.signData(`/booking/${bookingId + 1}`, wallet);
+
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_SIGNATURE, signature)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+          });
+      });
+
+      it('should reject an unsigned booking cancellation when configured to', (done) => {
+        const orig = config.allowUnsignedBookingRequests;
+        config.allowUnsignedBookingRequests = false;
+
+        request(server)
+          .delete(`/booking/${bookingId}`)
+          .expect(400)
+          .then((err, res) => {
+            assert.equal(err.body.long, 'API doesn\'t accept unsigned booking requests.');
+            config.allowUnsignedBookingRequests = orig;
+            done();
+          })
+          .catch(err => {
+            config.allowUnsignedBookingRequests = orig;
+            done(err);
+          });
+      });
     });
 
     it('should return 409 if the booking has already been cancelled', (done) => {

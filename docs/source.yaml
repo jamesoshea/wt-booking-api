@@ -43,6 +43,12 @@ paths:
               oneOf:
                 - $ref: '#/components/schemas/HotelBooking'
                 - $ref: '#/components/schemas/AirlineBooking'
+      parameters:
+        - name: x-wt-signature
+          in: header
+          description: Raw body (string) signed using `eth_sign`
+          schema:
+            type: string
       responses:
         200:
           description: Booking was successfuly processed
@@ -95,6 +101,16 @@ paths:
         description: Booking ID as returned by POST /booking
         schema:
           $ref: '#/components/schemas/BookingId'
+      - name: x-wt-signature
+        in: header
+        description: URI signed using `eth_sign`
+        schema:
+          type: string
+      - name: x-wt-origin-address
+        in: header
+        description: Address of the ethereum wallet used for signing
+        schema:
+          type: string
     delete:
       summary: Cancel booking
       responses:
@@ -193,6 +209,9 @@ components:
           description: Distribution partner name or where does this booking originate from. This can be a travel agency name, website name etc.
           type: string
           maxLength: 255
+        originAddress:
+          description: ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature. Required when sending a signed request.
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'
         note:
@@ -405,6 +424,9 @@ components:
           description: Distribution partner name or where does this booking originate from. This can be a travel agency name, website name etc.
           type: string
           maxLength: 255
+        originAddress:
+          description: ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature. Required when sending a signed request.
+          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'
         note:
