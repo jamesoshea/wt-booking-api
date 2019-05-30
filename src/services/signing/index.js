@@ -17,7 +17,7 @@ module.exports.computeHash = (data) => {
 };
 
 module.exports.isSignedRequest = (req) => {
-  return req.headers[WT_HEADER_SIGNATURE];
+  return !!req.headers[WT_HEADER_SIGNATURE];
 };
 
 module.exports.signData = async (data, wallet) => {
