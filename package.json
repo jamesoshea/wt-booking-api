@@ -45,7 +45,7 @@
     "@windingtree/wt-airline-schemas": "^0.6.6",
     "@windingtree/wt-hotel-schemas": "^0.7.0",
     "@windingtree/wt-js-libs": "^0.12.0",
-    "@windingtree/wt-pricing-algorithms": "^0.6.1",
+    "@windingtree/wt-pricing-algorithms": "^0.6.2",
     "@windingtree/wt-shared-schemas": "^0.6.6",
     "awesome-phonenumber": "^2.6.0",
     "body-parser": "^1.18.3",
