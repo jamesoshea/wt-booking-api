@@ -54,6 +54,10 @@ const config = Object.assign({
       from: 'booking-noreply@windingtree.com', // E-mail originator
     },
   },
+  spamProtectionOptions: {
+    whitelist: [],
+    blacklist: [],
+  },
 }, require(`./${env}`));
 
 const initSegment = () => {

@@ -31,4 +31,8 @@ module.exports = {
     },
     trustClueOptions: require('../../test/utils/trust-clue-options').trustClueOptions,
   },
+  spamProtectionOptions: {
+    whitelist: [ '0xD39Ca7d186a37bb6Bf48AE8abFeB4c687dc8F906' ],
+    blacklist: [],
+  },
 };

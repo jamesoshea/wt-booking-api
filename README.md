@@ -105,6 +105,8 @@ example `{"filename": "./envvar.sqlite"}`.
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 - `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
 - `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests when false. Defaults to `true`.
+- `WHITELIST` - 
+- `BLACKLIST` - 
 
 The following options are optional.
 
@@ -162,6 +164,9 @@ $ docker run -p 8080:8935 \
 After that you can access the wt-booking-api on local port `8080`.
 Database will also be setup during the container startup in the current setup.
 You can skip this with `SKIP_DB_SETUP` environment variable.
+
+## Blacklist, whitelist
+No trust clues means accept.
 
 ## Examples
 
@@ -319,6 +324,7 @@ request.post({
 (The example is detailed to show what is going on behind the scenes. 
 Check `src/services/signing/index.js` for convenience methods.) 
 <!-- TODO add a link to hotel-explorer readme with example -->
+
 
 ### Cancelling a booking
 ```js

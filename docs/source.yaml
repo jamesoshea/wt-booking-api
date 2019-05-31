@@ -39,41 +39,15 @@ paths:
                     type: boolean
                     description: Allow only 10 booking/cancellation requests per hour.
                   whitelist:
-                    type: object
-                    properties:
-                      strictness:
-                        type: string
-                        description: >-
-                          Specifies how is the list interpreted:
-                            - onlyTrustList: accept anyone who is on the list, reject anyone who is not
-                            - trustList: accept anyone on the list, evaluate trust clues for others
-                            - ignoreList: don't use whitelist, evaluate trust clues
-                        enum:
-                          - onlyTrustList
-                          - trustList
-                          - ignoreList
+                    description: A list of addresses to trust, no need to evaluate trust clues.
+                    type: array
                       items:
-                        type: array
-                          items:
-                            $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                        $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
                   blacklist:
-                    type: object
-                    properties:
-                      strictness:
-                        type: string
-                        description: >-
-                          Specifies how is the list interpreted:
-                            - onlyTrustList: reject anyone who is on the list, accept anyone who is not
-                            - trustList: reject anyone on the list, evaluate trust clues for others
-                            - ignoreList: don't use blacklist, evaluate trust clues
-                        enum:
-                          - onlyTrustList
-                          - trustList
-                          - ignoreList
-                      items:
-                        type: array
-                          items:
-                            $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                    description: A list of addresses to reject disregarding trust clues. Takes precedence over whitelist.
+                      type: array
+                        items:
+                          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
                   trustClues:
                     description: >-
                       Lists all used trust clues and their metadata. Every clue contains name and

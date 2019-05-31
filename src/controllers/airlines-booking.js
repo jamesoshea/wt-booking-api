@@ -32,11 +32,57 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
 };
 
 /**
+ * Check if caller address is present on spam protection whitelist or blacklist.
+ * Throws when caller is on blacklist. Takes precedence over whitelist.
+ * Returns true if caller is on whitelist.
+ * @param originAddress {String}
+ * @returns isWhitelisted {boolean} Caller is whitelisted.
+ */
+const checkBWLists = (originAddress) => {
+    let hasWhitelist = !!config.spamProtectionOptions.whitelist.length;
+    let hasBlacklist = !!config.spamProtectionOptions.blacklist.length;
+    let isWhitelisted = false;
+    let isBlacklisted = false;
+    if (hasBlacklist) {
+      isBlacklisted = config.spamProtectionOptions.blacklist.includes(originAddress);
+    }
+    if (isBlacklisted) {
+      throw new Error(`Blacklisted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`);
+    }
+    if (hasWhitelist) {
+      isWhitelisted = config.spamProtectionOptions.whitelist.includes(originAddress);
+    }
+  return isWhitelisted;
+};
+
+/**
+ * Evaluate trust for caller address based on configured trust clues.
+ * Throws when caller is not trusted.
+ * When no trust clues are configured, caller is accepted.
+ * @param originAddress {String}
+ * @returns {Promise<void>}
+ * @throws Error when caller is not trusted
+ */
+const evaluateTrust = async (originAddress) => {
+  if (config.wtLibsOptions.trustClueOptions) {
+    const interpretedClues = await config.wtLibs.getTrustClueClient().interpretAllValues(originAddress);
+
+    // Let's say we're okay with at least one clue passing.
+    // Customize following logic to suit your needs (e.g. use `interpretedClues.every`).
+    // Also allow requests when no trust clues are configured.
+    const someCluesPass = interpretedClues.length === 0 || interpretedClues.some(c => c.value); // TODO remove length == 0?
+    if (!someCluesPass) {
+      throw new Error(`Untrusted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`);
+    }
+  }
+};
+
+/**
  * Create a new booking.
  */
 module.exports.create = async (req, res, next) => {
   try {
-    // 0. Verify signed request
+    // Verify signed request
     if (signing.isSignedRequest(req)) {
       if (!req.rawBody) {
         throw new HttpBadRequestError('badRequest', 'Couldn\'t find raw request body, is "content-type" header set properly? Try "application/json".');
@@ -49,27 +95,35 @@ module.exports.create = async (req, res, next) => {
     } else if (!config.allowUnsignedBookingRequests) {
       return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
     }
-    // 1. Normalize request payload
+    // Normalize request payload
     const bookingData = normalizers.normalizeBooking(req.body);
-    // 2. Validate request payload.
+    // Validate request payload.
     validators.validateBooking(bookingData);
-    // 3. Verify that airlineId is the expected one.
+    // Verify that airlineId is the expected one.
     if (bookingData.airlineId.toLowerCase() !== airlineId) {
       throw new validators.ValidationError('Unexpected airlineId.');
     }
-    // 4. Evaluate trust
-    if (!bookingData.originAddress) {
+    // Check white/blacklist
+    if (bookingData.originAddress) {
+      let isWhitelisted = false;
+      try {
+        isWhitelisted = checkBWLists(bookingData.originAddress);
+      } catch (e) {
+        return next(new HttpForbiddenError('forbidden', e.message))
+      }
+      // Evaluate trust
+      if (!isWhitelisted) {
+        try {
+          await evaluateTrust(bookingData.originAddress);
+        } catch (e) {
+          return next(new HttpForbiddenError('forbidden', e.message));
+        }
+      }
+    } else if (config.wtLibsOptions.trustClueOptions) {
       return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to fill `originAddress` field so the API can evaluate trust clues.'));
     }
-    const interpretedClues = await config.wtLibs.getTrustClueClient().interpretAllValues(bookingData.originAddress);
 
-    // Let's say we're okay with at least one clue passing. Customize following logic to suit your needs (e.g. use `interpretedClues.every`).
-    const someCluesPass = interpretedClues.some(c => c.value) || interpretedClues.length === 0;
-    if (!someCluesPass) {
-      return next(new HttpForbiddenError('forbidden', `Untrusted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`));
-    }
-
-    // 5. Assemble the intended availability update and try to apply it.
+    // Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = bookingData.booking,
@@ -95,7 +149,7 @@ module.exports.create = async (req, res, next) => {
         },
       },
       bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
-    // 4. E-mail confirmations
+    // E-mail confirmations
     const mailer = mailerService.get();
     const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
       ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
@@ -116,7 +170,7 @@ module.exports.create = async (req, res, next) => {
         ...mailComposer.renderCustomer(mailInformation),
       });
     }
-    // 5. Return confirmation.
+    // Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
       // would probably come from the airline's property
@@ -159,15 +213,36 @@ module.exports.create = async (req, res, next) => {
  */
 module.exports.cancel = async (req, res, next) => {
   try {
-    if (signing.isSignedRequest(req) && req.headers[WT_HEADER_ORIGIN_ADDRESS]) {
+    let originAddress = req.headers[WT_HEADER_ORIGIN_ADDRESS];
+    if (signing.isSignedRequest(req) && originAddress) {
       try {
         // DELETE shouldn't contain body, so the originAddress is sent in a header and uri is signed instead of body
-        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(req.headers[WT_HEADER_ORIGIN_ADDRESS]));
+        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(originAddress));
       } catch (e) {
         return next(e);
       }
     } else if (!config.allowUnsignedBookingRequests) {
       return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
+    }
+
+    if (originAddress) {
+      // Check white/blacklist
+      let isWhitelisted = false;
+      try {
+        isWhitelisted = checkBWLists(originAddress);
+      } catch (e) {
+        return next(new HttpForbiddenError('forbidden', e.message))
+      }
+      // Evaluate trust
+      if (!isWhitelisted) {
+        try {
+          await evaluateTrust(originAddress);
+        } catch (e) {
+          return next(new HttpForbiddenError('forbidden', e.message));
+        }
+      }
+    } else if (config.wtLibsOptions.trustClueOptions.clues) {
+      return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to set `x-wt-origin-address` header so the API can evaluate trust clues.'));
     }
 
     const bookingId = req.params.id,

@@ -40,6 +40,8 @@ describe('API', function () {
           expect(res.body).to.have.property('allowUnsignedBookingRequests');
           expect(res.body).to.have.property('allowThrottling');
           expect(res.body).to.have.property('trustClues');
+          expect(res.body).to.have.property('whitelist');
+          expect(res.body).to.have.property('blacklist');
         });
     });
 

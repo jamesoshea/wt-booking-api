@@ -61,6 +61,8 @@ app.get('/', async (req, res) => {
     allowUnsignedBookingRequests: config.allowUnsignedBookingRequests,
     allowThrottling: config.throttling.allow,
     trustClues: await config.wtLibs.getTrustClueClient().getMetadataForAllClues(),
+    whitelist: config.spamProtectionOptions.whitelist,
+    blacklist: config.spamProtectionOptions.blacklist
   });
 });
 

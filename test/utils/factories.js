@@ -219,7 +219,7 @@ module.exports.getFlightInstanceData = function () {
 };
 
 module.exports.getAirlineBooking = function () {
-  return {
+  return Object.assign({}, {
     airlineId: config.adapterOpts.supplierId,
     origin: 'Fanciest OTA',
     originAddress: '0x0',
@@ -255,7 +255,7 @@ module.exports.getAirlineBooking = function () {
         },
       ],
     },
-  };
+  });
 };
 
 module.exports.getWallet = function () {

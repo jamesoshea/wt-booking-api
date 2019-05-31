@@ -33,9 +33,6 @@ module.exports = {
     onChainDataOptions: {
       provider: web3ProviderAddress,
     },
-    trustClueOptions: {
-      provider: web3ProviderAddress,
-      clues: {},
-    },
+    trustClueOptions: {},
   },
 };
