@@ -267,3 +267,27 @@ module.exports.getWallet = function () {
   wallet.address = walletAddress;
   return wallet;
 };
+
+module.exports.getRejectingTrustClueOptions = function () {
+  return {
+    provider: 'http://localhost:8545',
+    clues: {
+      'test-list': {
+        create: async (options) => {
+          return {
+            getMetadata: () => ({
+              name: 'test-list',
+              description: 'Test trust clue whitelist for 0x04e46f24307e4961157b986a0b653a0d88f9dbd6',
+            }),
+            getValueFor: (addr) => {
+              return addr === '0x04e46f24307e4961157b986a0b653a0d88f9dbd6';
+            },
+            interpretValueFor: (addr) => {
+              return addr === '0x04e46f24307e4961157b986a0b653a0d88f9dbd6';
+            },
+          };
+        },
+      }
+    }
+  };
+};

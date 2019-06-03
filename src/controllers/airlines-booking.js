@@ -119,7 +119,7 @@ module.exports.create = async (req, res, next) => {
           return next(new HttpForbiddenError('forbidden', e.message));
         }
       }
-    } else if (config.wtLibsOptions.trustClueOptions) {
+    } else if (config.wtLibsOptions.trustClueOptions.clues) {
       return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to fill `originAddress` field so the API can evaluate trust clues.'));
     }
 
