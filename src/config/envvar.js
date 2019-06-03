@@ -1,5 +1,12 @@
 const knex = require('knex');
 
+const convertEnvVarToList = (val, defaults) => {
+  if (val === undefined) {
+    return defaults;
+  }
+  return val.split(',');
+};
+
 const convertEnvVarToBoolean = (val, defaults) => {
   if (val === undefined) {
     return defaults;
@@ -61,5 +68,9 @@ module.exports = {
   mailerOpts: {
     provider: process.env.MAIL_PROVIDER || undefined, // dummy, sendgrid
     providerOpts: JSON.parse(process.env.MAIL_PROVIDER_OPTIONS || '{}'),
+  },
+  spamProtectionOptions: {
+    whitelist: convertEnvVarToList(process.env.SPAM_WHITELIST, []),
+    blacklist: convertEnvVarToList(process.env.SPAM_BLACKLIST, []),
   },
 };

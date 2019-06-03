@@ -10,6 +10,9 @@ hotel. Within this scope, it:
 - Validates booking requests against hotel data in WT (rate plans,
   cancellation policies, available rooms)
 
+- Checks the sender's trustworthiness and message integrity based on
+  configurable trust clues and lists.
+
 - Performs the necessary bookkeeping directly in the WT platform
   (i.e. it updates availability data based on accepted booking
   requests). This implementation does not change availability
@@ -105,8 +108,10 @@ example `{"filename": "./envvar.sqlite"}`.
 - `WT_SEGMENT` - Choose segment (`hotels`, `airlines`) this instance is intended for. Defaults to `hotels`.
 - `THROTTLING_ALLOW` - Allows only 10 bookings and cancellation in one hour if allowed. Defaults to `true`.
 - `ALLOW_UNSIGNED_BOOKING_REQUESTS` - Accept only signed booking requests when false. Defaults to `true`.
-- `WHITELIST` - 
-- `BLACKLIST` - 
+- `SPAM_WHITELIST` - Comma separated list of eth addresses to always allow.
+  Defaults to empty list.
+- `SPAM_BLACKLIST` - Comma separated list of eth addresses to always
+  reject. Defaults to empty list.
 
 The following options are optional.
 
@@ -164,9 +169,6 @@ $ docker run -p 8080:8935 \
 After that you can access the wt-booking-api on local port `8080`.
 Database will also be setup during the container startup in the current setup.
 You can skip this with `SKIP_DB_SETUP` environment variable.
-
-## Blacklist, whitelist
-No trust clues means accept.
 
 ## Examples
 
@@ -270,7 +272,36 @@ $ curl -X POST localhost:8935/booking -H 'Content-Type: application/json' --data
 }'
 ```
 
-## Message signing
+## Spam protection
+Exposing booking API openly to the wild is vulnerable to spamming and
+other kinds of booking/cancellation requests by bad actors. We provide
+several methods which can be combined to prevent this.
+
+### Trust clues
+An extensible list of trust clues allows you to evaluate virtually any
+desirable condition in order to determine whether to trust the sender or
+not. Please see documentation on the
+[developer portal](https://github.com/windingtree/developers/blob/0bf96a7e5d8bda93e93b4b70ad97950e4d20bb20/book/tutorials/how-to-earn-trust.md#trust-clues)
+to learn more about trust clues.
+<!-- TODO change link to developers.wt.com when merged -->
+
+
+### Blacklist, whitelist
+Beside trust clues - which may be complicated to set up and take time to
+evaluate (e.g. chain-based clues) - a simpler method of spam protection
+is provided in the form of `SPAM_WHITELIST` and `SPAM_BLACKLIST`
+envvars. All requests (both booking and cancellation) originated by
+addresses on blacklist will be rejected and whitelisted addresses will be
+accepted. For the rest the trust clues will be evaluated and request
+will be accepted if at least one clue evaluates to true. Request will be
+accepted if no trust clues are set up.
+
+Lists can also be set via environment config files in `/src/config`.
+
+> Note that unless `ALLOW_UNSIGNED_BOOKING_REQUESTS` is set to false,
+> caller may bypass blacklist by not sending its `originAddress`.
+ 
+### Message signing
 To ensure the booking request has been sent by the declared party and not 
 modified in transfer, it is recommended (and can be enforced by setting 
 `ALLOW_UNSIGNED_BOOKING_REQUESTS = false`) to use signed requests.
@@ -301,7 +332,7 @@ the message and needs to be sent in a `x-wt-origin-address` header.
 > Upon verification the hash is also computed based on the URI (instead of the raw request body) and 
 compared to the origin address from headers.
 
-### Creating a booking
+## Creating a booking
 ```js
 const Web3Utils = require('web3-utils');
 const wallet = wtJsLibs.createWallet(walletData);
@@ -321,12 +352,13 @@ request.post({
   }
 });
 ```
-(The example is detailed to show what is going on behind the scenes. 
-Check `src/services/signing/index.js` for convenience methods.) 
-<!-- TODO add a link to hotel-explorer readme with example -->
+Check
+[hotel explorer code](https://github.com/windingtree/wt-hotel-explorer/blob/develop/src/actions/booking.jsx#L127)
+for a working example and `src/services/signing/index.js` for
+convenience methods.
 
 
-### Cancelling a booking
+## Cancelling a booking
 ```js
 const Web3Utils = require('web3-utils');
 const wallet = wtJsLibs.createWallet(walletData);
