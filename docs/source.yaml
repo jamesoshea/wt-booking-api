@@ -41,13 +41,13 @@ paths:
                   whitelist:
                     description: A list of addresses to trust, no need to evaluate trust clues.
                     type: array
-                      items:
-                        $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                    items:
+                      $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
                   blacklist:
                     description: A list of addresses to reject disregarding trust clues. Takes precedence over whitelist.
-                      type: array
-                        items:
-                          $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                    type: array
+                    items:
+                      $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
                   trustClues:
                     description: >-
                       Lists all used trust clues and their metadata. Every clue contains name and
