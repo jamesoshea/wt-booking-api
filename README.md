@@ -286,15 +286,15 @@ to learn more about trust clues.
 <!-- TODO change link to developers.wt.com when merged -->
 
 
-### Blacklist, whitelist
+### Access lists
 Beside trust clues - which may be complicated to set up and take time to
 evaluate (e.g. chain-based clues) - a simpler method of spam protection
 is provided in the form of `SPAM_WHITELIST` and `SPAM_BLACKLIST`
 envvars. All requests (both booking and cancellation) originated by
-addresses on blacklist will be rejected and whitelisted addresses will be
-accepted. For the rest the trust clues will be evaluated and request
-will be accepted if at least one clue evaluates to true. Request will be
-accepted if no trust clues are set up.
+addresses on blacklist will be rejected and whitelisted addresses will
+be accepted. For the rest the trust clues will be evaluated and request
+will be accepted if all clues evaluate to true. Request will be accepted
+if no trust clues are set up.
 
 Lists can also be set via environment config files in `/src/config`.
 

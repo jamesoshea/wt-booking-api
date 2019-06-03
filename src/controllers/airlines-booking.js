@@ -12,7 +12,7 @@ const adapter = require('../services/adapters/base-adapter');
 const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
-const { checkBWLists, evaluateTrust } = require('./utils');
+const { checkAccessLists, evaluateTrust } = require('./utils');
 
 const airlineId = config.adapterOpts.supplierId.toLowerCase();
 
@@ -62,7 +62,7 @@ module.exports.create = async (req, res, next) => {
     if (bookingData.originAddress) {
       let isWhitelisted = false;
       try {
-        isWhitelisted = checkBWLists(bookingData.originAddress);
+        isWhitelisted = checkAccessLists(bookingData.originAddress);
       } catch (e) {
         return next(new HttpForbiddenError('forbidden', e.message));
       }
@@ -184,7 +184,7 @@ module.exports.cancel = async (req, res, next) => {
       // Check white/blacklist
       let isWhitelisted = false;
       try {
-        isWhitelisted = checkBWLists(originAddress);
+        isWhitelisted = checkAccessLists(originAddress);
       } catch (e) {
         return next(new HttpForbiddenError('forbidden', e.message));
       }

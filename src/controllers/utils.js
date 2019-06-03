@@ -7,7 +7,7 @@ const { config } = require('../config');
  * @param originAddress {String}
  * @returns boolean Caller is whitelisted.
  */
-module.exports.checkBWLists = (originAddress) => {
+module.exports.checkAccessLists = (originAddress) => {
   let hasWhitelist = !!config.spamProtectionOptions.whitelist.length;
   let hasBlacklist = !!config.spamProtectionOptions.blacklist.length;
   let isWhitelisted = false;
@@ -36,10 +36,9 @@ module.exports.evaluateTrust = async (originAddress) => {
   if (config.wtLibsOptions.trustClueOptions) {
     const interpretedClues = await config.wtLibs.getTrustClueClient().interpretAllValues(originAddress);
 
-    // Let's say we're okay with at least one clue passing.
-    // Customize following logic to suit your needs (e.g. use `interpretedClues.every`).
-    // Also allow requests when no trust clues are configured.
-    const someCluesPass = interpretedClues.length === 0 || interpretedClues.some(c => c.value);
+    // Customize following logic to suit your needs (e.g. use `interpretedClues.some`).
+    // Allow requests when no trust clues are configured.
+    const someCluesPass = interpretedClues.length === 0 || interpretedClues.every(c => c.value);
     if (!someCluesPass) {
       throw new Error(`Untrusted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`);
     }
