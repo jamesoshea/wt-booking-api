@@ -287,7 +287,7 @@ module.exports.getRejectingTrustClueOptions = function () {
             },
           };
         },
-      }
-    }
+      },
+    },
   };
 };

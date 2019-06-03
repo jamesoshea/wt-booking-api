@@ -12,6 +12,7 @@ const adapter = require('../services/adapters/base-adapter');
 const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
+const { checkBWLists, evaluateTrust } = require('./utils');
 
 const airlineId = config.adapterOpts.supplierId.toLowerCase();
 
@@ -29,52 +30,6 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
     id: bookingRecord.id,
     status: bookingRecord.status,
   };
-};
-
-/**
- * Check if caller address is present on spam protection whitelist or blacklist.
- * Throws when caller is on blacklist. Takes precedence over whitelist.
- * Returns true if caller is on whitelist.
- * @param originAddress {String}
- * @returns isWhitelisted {boolean} Caller is whitelisted.
- */
-const checkBWLists = (originAddress) => {
-    let hasWhitelist = !!config.spamProtectionOptions.whitelist.length;
-    let hasBlacklist = !!config.spamProtectionOptions.blacklist.length;
-    let isWhitelisted = false;
-    let isBlacklisted = false;
-    if (hasBlacklist) {
-      isBlacklisted = config.spamProtectionOptions.blacklist.includes(originAddress);
-    }
-    if (isBlacklisted) {
-      throw new Error(`Blacklisted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`);
-    }
-    if (hasWhitelist) {
-      isWhitelisted = config.spamProtectionOptions.whitelist.includes(originAddress);
-    }
-  return isWhitelisted;
-};
-
-/**
- * Evaluate trust for caller address based on configured trust clues.
- * Throws when caller is not trusted.
- * When no trust clues are configured, caller is accepted.
- * @param originAddress {String}
- * @returns {Promise<void>}
- * @throws Error when caller is not trusted
- */
-const evaluateTrust = async (originAddress) => {
-  if (config.wtLibsOptions.trustClueOptions) {
-    const interpretedClues = await config.wtLibs.getTrustClueClient().interpretAllValues(originAddress);
-
-    // Let's say we're okay with at least one clue passing.
-    // Customize following logic to suit your needs (e.g. use `interpretedClues.every`).
-    // Also allow requests when no trust clues are configured.
-    const someCluesPass = interpretedClues.length === 0 || interpretedClues.some(c => c.value); // TODO remove length == 0?
-    if (!someCluesPass) {
-      throw new Error(`Untrusted caller. Check information on trust clues provided at ${config.adapterOpts.baseUrl}/`);
-    }
-  }
 };
 
 /**
@@ -109,7 +64,7 @@ module.exports.create = async (req, res, next) => {
       try {
         isWhitelisted = checkBWLists(bookingData.originAddress);
       } catch (e) {
-        return next(new HttpForbiddenError('forbidden', e.message))
+        return next(new HttpForbiddenError('forbidden', e.message));
       }
       // Evaluate trust
       if (!isWhitelisted) {
@@ -231,7 +186,7 @@ module.exports.cancel = async (req, res, next) => {
       try {
         isWhitelisted = checkBWLists(originAddress);
       } catch (e) {
-        return next(new HttpForbiddenError('forbidden', e.message))
+        return next(new HttpForbiddenError('forbidden', e.message));
       }
       // Evaluate trust
       if (!isWhitelisted) {

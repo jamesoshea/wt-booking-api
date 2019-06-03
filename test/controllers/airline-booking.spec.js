@@ -16,8 +16,6 @@ const Booking = require('../../src/models/booking');
 const validator = require('../../src/services/validators/index');
 const trustClueOptions = require('../utils/trust-clue-options').trustClueOptions;
 
-// TODO improve implement for hotels, add docs
-
 describe('controllers - airline booking', function () {
   let server, wtAdapterOrig, wtAdapter,
     mailerOrig, mailer, allowUnsignedOrig;
@@ -67,9 +65,6 @@ describe('controllers - airline booking', function () {
 
   describe('POST /booking', () => {
     it('should accept the booking, store it, perform the update and return a confirmation', (done) => {
-      const orig = config;
-      config.defaultBookingState = 'confirmed';
-      config.updateAvailability = true;
       request(server)
         .post('/booking')
         .send(getAirlineBooking())
@@ -119,10 +114,8 @@ describe('controllers - airline booking', function () {
                 ],
               },
             });
-            config = orig;
             done();
           } catch (err) {
-            config = orig;
             done(err);
           }
         });
@@ -270,7 +263,7 @@ describe('controllers - airline booking', function () {
     });
 
     describe('trust clues, blacklist, whitelist', () => {
-      let origClient, origTrustClueOptions, origSpam, origAllow;
+      let origClient, origTrustClueOptions, origSpam;
       beforeEach(() => {
         wtAdapter.updateAvailability.resetHistory();
         wtAdapter.checkAdmissibility.resetHistory();
@@ -278,15 +271,13 @@ describe('controllers - airline booking', function () {
         origClient = config.wtLibs.getTrustClueClient();
         origTrustClueOptions = config.wtLibsOptions.trustClueOptions;
         origSpam = config.spamProtectionOptions;
-        origAllow = config.allowUnsignedBookingRequests;
         config.wtLibs.trustClueClient = TrustClueClient.createInstance(trustClueOptions);
-        config.wtLibs.trustClueOptions = trustClueOptions;
+        config.wtLibsOptions.trustClueOptions = trustClueOptions;
       });
       afterEach(() => {
         config.wtLibs.trustClueClient = origClient;
-        config.wtLibs.trustClueOptions = origTrustClueOptions;
+        config.wtLibsOptions.trustClueOptions = origTrustClueOptions;
         config.spamProtectionOptions = origSpam;
-        config.allowUnsignedBookingRequests = origAllow;
       });
 
       it('should accept a booking by trusted party', () => {
@@ -300,10 +291,10 @@ describe('controllers - airline booking', function () {
           .expect(200);
       });
 
-      it('should reject a booking by untrusted party', async () => {
+      it('should reject a booking by untrusted party', () => {
         const airlineBooking = getAirlineBooking();
 
-        return request(server)
+        request(server)
           .post('/booking')
           .send(airlineBooking)
           .expect(403)
@@ -312,11 +303,11 @@ describe('controllers - airline booking', function () {
           });
       });
 
-      it('should reject a booking by unknown party', async () => {
+      it('should reject a booking by unknown party', () => {
         const airlineBooking = getAirlineBooking();
         delete airlineBooking.originAddress;
 
-        return request(server)
+        request(server)
           .post('/booking')
           .send(airlineBooking)
           .expect(403)
@@ -357,7 +348,7 @@ describe('controllers - airline booking', function () {
 
       it('should reject a booking by unknown party based on trust clues', () => {
         const rejectingTrustClueOptions = getRejectingTrustClueOptions();
-        config.wtLibs.options.trustClueOptions = rejectingTrustClueOptions;
+        config.wtLibsOptions.trustClueOptions = rejectingTrustClueOptions;
         config.wtLibs.trustClueClient = TrustClueClient.createInstance(rejectingTrustClueOptions);
         const wallet = getWallet();
         const airlineBooking = getAirlineBooking();
@@ -419,6 +410,16 @@ describe('controllers - airline booking', function () {
       const booking = getAirlineBooking();
       delete booking.customer.phone;
       delete booking.customer.email;
+      request(server)
+        .post('/booking')
+        .send(booking)
+        .expect(422)
+        .end(done);
+    });
+
+    it('should return 422 if non-string phone is supplied', (done) => {
+      const booking = getAirlineBooking();
+      booking.customer.phone = {};
       request(server)
         .post('/booking')
         .send(booking)
@@ -742,7 +743,6 @@ describe('controllers - airline booking', function () {
     });
 
     it('should return 409 if the booking has already been cancelled', (done) => {
-      config.wtLibsOptions.trustClueOptions = {};
       Booking.create({ data: 'dummy' }, Booking.STATUS.CANCELLED).then((booking) => {
         request(server)
           .delete(`/booking/${booking.id}`)
@@ -751,7 +751,6 @@ describe('controllers - airline booking', function () {
     });
 
     it('should return 404 if the booking does not exist', (done) => {
-      config.wtLibsOptions.trustClueOptions = {};
       request(server)
         .delete('/booking/nonexistent')
         .expect(404, done);

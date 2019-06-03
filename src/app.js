@@ -62,7 +62,7 @@ app.get('/', async (req, res) => {
     allowThrottling: config.throttling.allow,
     trustClues: await config.wtLibs.getTrustClueClient().getMetadataForAllClues(),
     whitelist: config.spamProtectionOptions.whitelist,
-    blacklist: config.spamProtectionOptions.blacklist
+    blacklist: config.spamProtectionOptions.blacklist,
   });
 });
 
