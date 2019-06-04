@@ -14,7 +14,7 @@
       "maxLength": 255
     },
     "originAddress": {
-      "description": "ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature",
+      "description": "ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature. Required when sending a signed request or when the API uses trust clues.",
       "title": "Ethereum address",
       "type": "string",
       "maxLength": 300

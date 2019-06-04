@@ -32,6 +32,35 @@ paths:
                   config:
                     type: string
                     description: Which config is the API using.
+                  allowUnsignedBookingRequests:
+                    type: boolean
+                    description: Allow/forbid unsigned requests
+                  allowThrottling:
+                    type: boolean
+                    description: Allow only 10 booking/cancellation requests per hour.
+                  whitelist:
+                    description: A list of addresses to trust, no need to evaluate trust clues.
+                    type: array
+                    items:
+                      $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                  blacklist:
+                    description: A list of addresses to reject disregarding trust clues. Takes precedence over whitelist.
+                    type: array
+                    items:
+                      $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
+                  trustClues:
+                    description: >-
+                      Lists all used trust clues and their metadata. Every clue contains name and
+                      description field, but it might contain other fields depending on the clue
+                      (e.g. a threshold, address of the underlying contract, ...)
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        description:
+                          type: string
   /booking:
     post:
       summary: Create booking. Schema to be used depends on WT_SEGMENT this instance is run with.
@@ -210,7 +239,9 @@ components:
           type: string
           maxLength: 255
         originAddress:
-          description: ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature. Required when sending a signed request.
+          description: >-
+            ETH address of booking originator (OTA, guest, ...), will be verified when checking the booking signature.
+            Required when sending a signed request or when the API uses trust clues.
           $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'
@@ -425,7 +456,9 @@ components:
           type: string
           maxLength: 255
         originAddress:
-          description: ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature. Required when sending a signed request.
+          description: >-
+            ETH address of booking originator (OTA, passenger, ...), will be verified when checking the booking signature.
+            Required when sending a signed request or when the API uses trust clues.
           $ref: '@windingtree/wt-shared-schemas/swagger.yaml#/components/schemas/EthereumAddressType'
         customer:
           $ref: '#/components/schemas/Customer'

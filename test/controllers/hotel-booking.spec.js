@@ -4,15 +4,17 @@ const { HOTEL_SEGMENT_ID, WT_HEADER_SIGNATURE, WT_HEADER_ORIGIN_ADDRESS } = requ
 const { assert } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
+const TrustClueClient = require('@windingtree/wt-js-libs').TrustClueClient;
 
 const { initSegment } = require('../../src/config');
 let config;
-const { getHotelBooking, getHotelData, getWallet } = require('../utils/factories');
+const { getHotelBooking, getHotelData, getWallet, getRejectingTrustClueOptions } = require('../utils/factories');
 const signing = require('../../src/services/signing');
 const mailerService = require('../../src/services/mailer');
 const adapter = require('../../src/services/adapters/base-adapter');
 const Booking = require('../../src/models/booking');
 const validator = require('../../src/services/validators/index');
+const trustClueOptions = require('../utils/trust-clue-options').trustClueOptions;
 
 describe('controllers - hotel booking', function () {
   let server, wtAdapterOrig, wtAdapter,
@@ -253,74 +255,137 @@ describe('controllers - hotel booking', function () {
         });
     });
 
-    it('should accept a signed booking', async () => {
-      const wallet = getWallet();
-      const hotelBooking = getHotelBooking();
-      hotelBooking.originAddress = wallet.address;
-      let serializedData = JSON.stringify(hotelBooking);
-      let signature = await signing.signData(serializedData, wallet);
+    describe('trust clues, blacklist, whitelist', () => {
+      let origClient, origTrustClueOptions, origSpam;
+      beforeEach(() => {
+        wtAdapter.updateAvailability.resetHistory();
+        wtAdapter.checkAdmissibility.resetHistory();
+        mailer.sendMail.resetHistory();
+        origClient = config.wtLibs.getTrustClueClient();
+        origTrustClueOptions = config.wtLibsOptions.trustClueOptions;
+        origSpam = config.spamProtectionOptions;
+        config.wtLibs.trustClueClient = TrustClueClient.createInstance(trustClueOptions);
+        config.wtLibsOptions.trustClueOptions = trustClueOptions;
+      });
+      afterEach(() => {
+        config.wtLibs.trustClueClient = origClient;
+        config.wtLibsOptions.trustClueOptions = origTrustClueOptions;
+        config.spamProtectionOptions = origSpam;
+      });
 
-      return request(server)
-        .post('/booking')
-        .set(WT_HEADER_SIGNATURE, signature)
-        .set('content-type', 'application/json')
-        .send(serializedData)
-        .expect(200);
-    });
+      it('should accept a booking by trusted party', () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
 
-    it('should reject a booking signed by other than originAddress', async () => {
-      const wallet = getWallet();
-      const hotelBooking = getHotelBooking();
-      hotelBooking.originAddress = '0x04e46f24307e4961157b986a0b653a0d88f9dbd6';
-      let serializedData = JSON.stringify(hotelBooking);
-      let signature = await signing.signData(serializedData, wallet);
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(200);
+      });
 
-      return request(server)
-        .post('/booking')
-        .set(WT_HEADER_SIGNATURE, signature)
-        .set('content-type', 'application/json')
-        .send(serializedData)
-        .expect(400)
-        .then((err, res) => {
-          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
-        });
-    });
+      it('should reject a booking by untrusted party', () => {
+        const hotelBooking = getHotelBooking();
 
-    it('should reject a booking with tampered body', async () => {
-      const wallet = getWallet();
-      const hotelBooking = getHotelBooking();
-      hotelBooking.originAddress = wallet.address;
-      let signature = await signing.signData(JSON.stringify(hotelBooking), wallet);
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Untrusted caller/i);
+          });
+      });
 
-      hotelBooking.pricing.total = 1;
+      it('should reject a booking by unknown party', () => {
+        const hotelBooking = getHotelBooking();
+        delete hotelBooking.originAddress;
 
-      return request(server)
-        .post('/booking')
-        .set(WT_HEADER_SIGNATURE, signature)
-        .set('content-type', 'application/json')
-        .send(JSON.stringify(hotelBooking))
-        .expect(400)
-        .then((err, res) => {
-          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
-        });
-    });
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Unknown caller/i);
+          });
+      });
 
-    it('should reject an unsigned booking when configured to', (done) => {
-      const orig = config.allowUnsignedBookingRequests;
-      config.allowUnsignedBookingRequests = false;
-      request(server)
-        .post('/booking')
-        .send(getHotelBooking())
-        .expect(400)
-        .then((err, res) => {
-          assert.equal(err.body.long, 'API doesn\'t accept unsigned booking requests.');
-          config.allowUnsignedBookingRequests = orig;
-          done();
-        })
-        .catch(err => {
-          config.allowUnsignedBookingRequests = orig;
-          done(err);
-        });
+      it('should accept a booking by whitelisted party', () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+        config.spamProtectionOptions = {
+          whitelist: [ wallet.address ],
+          blacklist: [],
+        };
+
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(200);
+      });
+
+      it('should accept a booking by unknown party based on trust clues', () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+        config.spamProtectionOptions = {
+          whitelist: [ '0x04e46f24307e4961157b986a0b653a0d88f9dbd6' ],
+          blacklist: [ '0x87265a62c60247f862b9149423061b36b460f4bb' ],
+        };
+
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(200);
+      });
+
+      it('should reject a booking by unknown party based on trust clues', () => {
+        const rejectingTrustClueOptions = getRejectingTrustClueOptions();
+        config.wtLibsOptions.trustClueOptions = rejectingTrustClueOptions;
+        config.wtLibs.trustClueClient = TrustClueClient.createInstance(rejectingTrustClueOptions);
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+        config.spamProtectionOptions = {
+          whitelist: [ '0x04e46f24307e4961157b986a0b653a0d88f9dbd6' ],
+          blacklist: [ '0x87265a62c60247f862b9149423061b36b460f4bb' ],
+        };
+
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403);
+      });
+
+      it('should reject a booking by blacklisted party', () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+        config.spamProtectionOptions = {
+          whitelist: [],
+          blacklist: [ wallet.address ],
+        };
+
+        request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403);
+      });
+
+      it('should prioritize blacklist to whitelist', () => {
+        const wallet = getWallet();
+        const hotelBooking = getHotelBooking();
+        hotelBooking.originAddress = wallet.address;
+        config.spamProtectionOptions = {
+          whitelist: [ wallet.address ],
+          blacklist: [ wallet.address ],
+        };
+
+        return request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(403);
+      });
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {
@@ -526,6 +591,76 @@ describe('controllers - hotel booking', function () {
           done(err);
         });
     });
+
+    it('should accept a signed booking', async () => {
+      const wallet = getWallet();
+      const hotelBooking = getHotelBooking();
+      hotelBooking.originAddress = wallet.address;
+      let serializedData = JSON.stringify(hotelBooking);
+      let signature = await signing.signData(serializedData, wallet);
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(serializedData)
+        .expect(200);
+    });
+
+    it('should reject a booking signed by other than originAddress', async () => {
+      const wallet = getWallet();
+      const hotelBooking = getHotelBooking();
+      hotelBooking.originAddress = '0x04e46f24307e4961157b986a0b653a0d88f9dbd6';
+      let serializedData = JSON.stringify(hotelBooking);
+      let signature = await signing.signData(serializedData, wallet);
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(serializedData)
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+        });
+    });
+
+    it('should reject a booking with tampered body', async () => {
+      const wallet = getWallet();
+      const hotelBooking = getHotelBooking();
+      hotelBooking.originAddress = wallet.address;
+      let signature = await signing.signData(JSON.stringify(hotelBooking), wallet);
+
+      hotelBooking.pricing.total = 1;
+
+      return request(server)
+        .post('/booking')
+        .set(WT_HEADER_SIGNATURE, signature)
+        .set('content-type', 'application/json')
+        .send(JSON.stringify(hotelBooking))
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'Request signature verification failed: incorrect origin address or tampered body');
+        });
+    });
+
+    it('should reject an unsigned booking when configured to', (done) => {
+      const orig = config.allowUnsignedBookingRequests;
+      config.allowUnsignedBookingRequests = false;
+      request(server)
+        .post('/booking')
+        .send(getHotelBooking())
+        .expect(400)
+        .then((err, res) => {
+          assert.equal(err.body.long, 'API doesn\'t accept unsigned booking requests.');
+          config.allowUnsignedBookingRequests = orig;
+          done();
+        })
+        .catch(err => {
+          config.allowUnsignedBookingRequests = orig;
+          done(err);
+        });
+    });
   });
 
   describe('DELETE /booking/:id', () => {
@@ -654,6 +789,93 @@ describe('controllers - hotel booking', function () {
       }).catch((err) => {
         config.allowCancel = orig;
         done(err);
+      });
+    });
+
+    describe('trust clues, blacklist, whitelist', () => {
+      let bookingId, origClient, origTrustClueOptions, origSpam, origAllow;
+
+      beforeEach(async () => {
+        let booking = await Booking.create(getHotelBooking(), Booking.STATUS.CONFIRMED);
+        bookingId = booking.id;
+        origClient = config.wtLibs.getTrustClueClient();
+        origTrustClueOptions = config.wtLibsOptions.trustClueOptions;
+        origSpam = config.spamProtectionOptions;
+        origAllow = config.allowUnsignedBookingRequests;
+        config.wtLibs.trustClueClient = TrustClueClient.createInstance(trustClueOptions);
+        config.wtLibsOptions.trustClueOptions = trustClueOptions;
+      });
+      afterEach(() => {
+        config.wtLibs.trustClueClient = origClient;
+        config.wtLibsOptions.trustClueOptions = origTrustClueOptions;
+        config.spamProtectionOptions = origSpam;
+        config.allowUnsignedBookingRequests = origAllow;
+      });
+
+      it('should accept a cancellation by trusted party', async () => {
+        const wallet = getWallet();
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(204);
+      });
+
+      it('should reject a cancellation by untrusted party', async () => {
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_ORIGIN_ADDRESS, '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299')
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Untrusted caller/i);
+          });
+      });
+
+      it('should reject a cancellation by unknown party', async () => {
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .expect(403)
+          .expect((res) => {
+            assert.match(res.error.text, /Unknown caller/i);
+          });
+      });
+
+      it('should accept a cancellation by whitelisted party', () => {
+        const wallet = getWallet();
+        config.spamProtectionOptions = {
+          whitelist: [ wallet.address ],
+          blacklist: [],
+        };
+
+        request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(200);
+      });
+
+      it('should reject a booking by blacklisted party', () => {
+        const wallet = getWallet();
+        config.spamProtectionOptions = {
+          whitelist: [],
+          blacklist: [ wallet.address ],
+        };
+
+        request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(403);
+      });
+
+      it('should prioritize blacklist to whitelist', () => {
+        const wallet = getWallet();
+        config.spamProtectionOptions = {
+          whitelist: [ wallet.address ],
+          blacklist: [ wallet.address ],
+        };
+
+        return request(server)
+          .delete(`/booking/${bookingId}`)
+          .set(WT_HEADER_ORIGIN_ADDRESS, wallet.address)
+          .expect(403);
       });
     });
   });

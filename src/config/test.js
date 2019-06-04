@@ -1,6 +1,8 @@
 const knex = require('knex');
 const winston = require('winston');
 
+const web3ProviderAddress = 'http://localhost:8545';
+
 module.exports = {
   port: 8920,
   db: knex({
@@ -10,6 +12,14 @@ module.exports = {
     },
     useNullAsDefault: true,
   }),
+  adapterOpts: {
+    baseUrl: 'http://localhost:8935',
+    readApiUrl: 'http://localhost:3000',
+    writeApiUrl: 'http://localhost:8000',
+    supplierId: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
+    writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
+    writeApiWalletPassword: 'windingtree',
+  },
   logger: winston.createLogger({
     level: 'warn',
     transports: [
@@ -21,7 +31,8 @@ module.exports = {
   }),
   wtLibsOptions: {
     onChainDataOptions: {
-      provider: 'http://localhost:8545',
+      provider: web3ProviderAddress,
     },
+    trustClueOptions: {},
   },
 };

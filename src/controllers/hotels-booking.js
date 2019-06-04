@@ -10,6 +10,7 @@ const adapter = require('../services/adapters/base-adapter');
 const mailComposer = require('../services/mailcomposer');
 const mailerService = require('../services/mailer');
 const Booking = require('../models/booking');
+const { checkAccessLists, evaluateTrust } = require('./utils');
 
 const hotelId = config.adapterOpts.supplierId.toLowerCase();
 
@@ -40,7 +41,7 @@ const prepareDataForConfirmationMail = async (bookingBody, bookingRecord, adapte
  */
 module.exports.create = async (req, res, next) => {
   try {
-    // 0. Verify signed request
+    // Verify signed request
     if (signing.isSignedRequest(req)) {
       if (!req.rawBody) {
         throw new HttpBadRequestError('badRequest', 'Couldn\'t find raw request body, is "content-type" header set properly? Try "application/json".');
@@ -53,15 +54,35 @@ module.exports.create = async (req, res, next) => {
     } else if (!config.allowUnsignedBookingRequests) {
       return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
     }
-    // 1. Normalize request payload
+    // Normalize request payload
     const bookingData = normalizers.normalizeBooking(req.body);
-    // 2. Validate request payload.
+    // Validate request payload.
     validators.validateBooking(bookingData);
-    // 3. Verify that hotelId is the expected one.
+    // Verify that hotelId is the expected one.
     if (bookingData.hotelId.toLowerCase() !== hotelId) {
       throw new validators.ValidationError('Unexpected hotelId.');
     }
-    // 4. Assemble the intended availability update and try to apply it.
+    // Check white/blacklist
+    if (bookingData.originAddress) {
+      let isWhitelisted = false;
+      try {
+        isWhitelisted = checkAccessLists(bookingData.originAddress);
+      } catch (e) {
+        return next(new HttpForbiddenError('forbidden', e.message));
+      }
+      // Evaluate trust
+      if (!isWhitelisted) {
+        try {
+          await evaluateTrust(bookingData.originAddress);
+        } catch (e) {
+          return next(new HttpForbiddenError('forbidden', e.message));
+        }
+      }
+    } else if (config.wtLibsOptions.trustClueOptions.clues) {
+      return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to fill `originAddress` field so the API can evaluate trust clues.'));
+    }
+
+    // Assemble the intended availability update and try to apply it.
     // (Validation of the update is done inside the adapter.)
     const wtAdapter = adapter.get(),
       booking = bookingData.booking,
@@ -81,7 +102,7 @@ module.exports.create = async (req, res, next) => {
         rooms: booking.rooms.map((r) => (r.id)),
       },
       bookingRecord = await Booking.create(bookingRecordData, config.defaultBookingState);
-    // 4. E-mail confirmations
+    // E-mail confirmations
     const mailer = mailerService.get();
     const mailInformation = ((config.mailing.sendSupplier && config.mailing.supplierAddress) || config.mailing.sendCustomer)
       ? await prepareDataForConfirmationMail(bookingData, bookingRecord, wtAdapter)
@@ -102,7 +123,7 @@ module.exports.create = async (req, res, next) => {
         ...mailComposer.renderCustomer(mailInformation),
       });
     }
-    // 5. Return confirmation.
+    // Return confirmation.
     res.json({
       // In a non-demo implementation of booking API, the ID
       // would probably come from the hotel's property
@@ -145,15 +166,36 @@ module.exports.create = async (req, res, next) => {
  */
 module.exports.cancel = async (req, res, next) => {
   try {
-    if (signing.isSignedRequest(req) && req.headers[WT_HEADER_ORIGIN_ADDRESS]) {
+    let originAddress = req.headers[WT_HEADER_ORIGIN_ADDRESS];
+    if (signing.isSignedRequest(req) && originAddress) {
       try {
         // DELETE shouldn't contain body, so the originAddress is sent in a header and uri is signed instead of body
-        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(req.headers[WT_HEADER_ORIGIN_ADDRESS]));
+        signing.verifySignedRequest(req.url, req.headers, signing.verificationFnCancel(originAddress));
       } catch (e) {
         return next(e);
       }
     } else if (!config.allowUnsignedBookingRequests) {
       return next(new HttpBadRequestError('badRequest', 'API doesn\'t accept unsigned booking requests.'));
+    }
+
+    if (originAddress) {
+      // Check white/blacklist
+      let isWhitelisted = false;
+      try {
+        isWhitelisted = checkAccessLists(originAddress);
+      } catch (e) {
+        return next(new HttpForbiddenError('forbidden', e.message));
+      }
+      // Evaluate trust
+      if (!isWhitelisted) {
+        try {
+          await evaluateTrust(originAddress);
+        } catch (e) {
+          return next(new HttpForbiddenError('forbidden', e.message));
+        }
+      }
+    } else if (config.wtLibsOptions.trustClueOptions.clues) {
+      return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to set `x-wt-origin-address` header so the API can evaluate trust clues.'));
     }
 
     const bookingId = req.params.id,
