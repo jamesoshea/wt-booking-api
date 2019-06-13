@@ -3,9 +3,9 @@ servers:
   - description: Localhost
     url: 'http://localhost:8935'
 info:
-  description: Winding Tree booking interface.
+  description: Interface for Booking inventory on Winding Tree platform
   version: 'will-be-set-at-runtime'
-  title: WT booking API
+  title: WT Booking API
 paths:
   /:
     get:
