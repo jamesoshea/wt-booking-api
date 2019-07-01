@@ -55,6 +55,7 @@ module.exports = {
     onChainDataOptions: {
       provider: process.env.ETH_NETWORK_PROVIDER,
     },
+    trustClueOptions: JSON.parse(process.env.TRUST_CLUE_OPTIONS || '{}'), // TODO improve this, JSON.parse is not enough
   },
   defaultBookingState: process.env.DEFAULT_BOOKING_STATE || 'confirmed',
   allowUnsignedBookingRequests: convertEnvVarToBoolean(process.env.ALLOW_UNSIGNED_BOOKING_REQUESTS, true),
