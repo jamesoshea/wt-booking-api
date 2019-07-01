@@ -386,6 +386,17 @@ describe('controllers - hotel booking', function () {
           .send(hotelBooking)
           .expect(403);
       });
+
+      it('should not fail when no trust clues are configured', () => {
+        const hotelBooking = getHotelBooking();
+        delete hotelBooking.originAddress;
+        config.wtLibsOptions.trustClueOptions = { clues: {} };
+
+        return request(server)
+          .post('/booking')
+          .send(hotelBooking)
+          .expect(200);
+      });
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {

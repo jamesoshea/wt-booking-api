@@ -43,6 +43,7 @@ module.exports.create = async (req, res, next) => {
   try {
     // Verify signed request
     if (signing.isSignedRequest(req)) {
+      console.log('n');
       if (!req.rawBody) {
         throw new HttpBadRequestError('badRequest', 'Couldn\'t find raw request body, is "content-type" header set properly? Try "application/json".');
       }
@@ -78,7 +79,7 @@ module.exports.create = async (req, res, next) => {
           return next(new HttpForbiddenError('forbidden', e.message));
         }
       }
-    } else if (config.wtLibsOptions.trustClueOptions.clues) {
+    } else if (config.wtLibsOptions.trustClueOptions.clues && Object.keys(config.wtLibsOptions.trustClueOptions.clues).length) {
       return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to fill `originAddress` field so the API can evaluate trust clues.'));
     }
 
@@ -194,7 +195,7 @@ module.exports.cancel = async (req, res, next) => {
           return next(new HttpForbiddenError('forbidden', e.message));
         }
       }
-    } else if (config.wtLibsOptions.trustClueOptions.clues) {
+    } else if (config.wtLibsOptions.trustClueOptions.clues && Object.keys(config.wtLibsOptions.trustClueOptions.clues).length) {
       return next(new HttpForbiddenError('forbidden', 'Unknown caller. You need to set `x-wt-origin-address` header so the API can evaluate trust clues.'));
     }
 

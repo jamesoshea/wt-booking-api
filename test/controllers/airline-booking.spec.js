@@ -393,6 +393,17 @@ describe('controllers - airline booking', function () {
           .send(airlineBooking)
           .expect(403);
       });
+
+      it('should not fail when no trust clues are configured', () => {
+        const airlineBooking = getAirlineBooking();
+        delete airlineBooking.originAddress;
+        config.wtLibsOptions.trustClueOptions = { clues: {} };
+
+        return request(server)
+          .post('/booking')
+          .send(airlineBooking)
+          .expect(200);
+      });
     });
 
     it('should return 200 if the customer has both e-mail and phone', (done) => {
