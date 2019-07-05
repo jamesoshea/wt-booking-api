@@ -1,0 +1,39 @@
+{
+    "originAddress": "0x0275e1A76B1C3B67575e66074CdF4fD19D43983A",
+    "hotelId": "0xcca04822Ad9c178bdf9da9091218e241f4C28042",
+    "customer": {
+      "name": "Sherlock",
+      "surname": "Holmes",
+      "address": {
+        "city": "London",
+        "countryCode": "GB",
+        "road": "cool street",
+        "houseNumber": "420"
+      },
+      "email": "sherlock.holmes@houndofthebaskervilles.net"
+    },
+    "pricing": {
+      "currency": "RON",
+      "total": 24,
+      "cancellationFees": [
+        {"from":"2019-07-04","to":"2019-08-08","amount":24}
+      ]
+    },
+    "booking": {
+      "arrival": "2019-08-29",
+      "departure": "2019-08-30",
+      "rooms": [
+        {
+          "id": "single-room-economy",
+          "guestInfoIds": ["1"]
+        }
+      ],
+      "guestInfo": [
+        {
+          "id": "1",
+          "name": "Sherlock",
+          "surname": "Holmes"
+        }
+      ]
+    }
+  }
