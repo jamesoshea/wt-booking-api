@@ -100,6 +100,7 @@ class WTHotelAdapter {
         throw new Error(`Error ${response.statusCode}`);
       }
     } catch (err) {
+      console.log(err)
       if (err instanceof adapter.UpstreamError) {
         throw err;
       }

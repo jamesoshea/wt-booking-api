@@ -132,6 +132,7 @@ module.exports.create = async (req, res, next) => {
       status: bookingRecord.status,
     });
   } catch (err) {
+    console.log(err);
     if (err instanceof validators.ValidationError) {
       return next(new HttpValidationError('validationFailed', err.message));
     }

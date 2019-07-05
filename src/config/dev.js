@@ -1,38 +1,40 @@
-const knex = require('knex');
-const winston = require('winston');
+const knex = require("knex");
+const winston = require("winston");
 
 module.exports = {
   db: knex({
-    client: 'sqlite3',
+    client: "sqlite3",
     connection: {
-      filename: './.dev.sqlite',
+      filename: "./.dev.sqlite"
     },
-    useNullAsDefault: true,
+    useNullAsDefault: true
   }),
   logger: winston.createLogger({
-    level: 'debug',
+    level: "debug",
     transports: [
       new winston.transports.Console({
         format: winston.format.simple(),
-        stderrLevels: ['error'],
-      }),
-    ],
+        stderrLevels: ["error"]
+      })
+    ]
   }),
   adapterOpts: {
-    readApiUrl: 'http://localhost:3000',
-    writeApiUrl: 'http://localhost:8000',
-    supplierId: '0xe92a8f9a7264695f4aed8d1f397dbc687ba40299',
-    writeApiAccessKey: 'usgq6tSBW+wDYA/MBF367HnNp4tGKaCT',
-    writeApiWalletPassword: 'windingtree',
+    readApiUrl: "https://lisbon-api.windingtree.com",
+    writeApiUrl: "https://lisbon-write-api.windingtree.com",
+    supplierId: "0xcca04822Ad9c178bdf9da9091218e241f4C28042",
+    writeApiAccessKey: "m9D+YSqjAf99xADMQ+vknUFxkHfmLg5LLxi6ptLRheM=",
+    writeApiWalletPassword: "MEWpassword1,"
   },
+  checkTrustClues: false,
   wtLibsOptions: {
     onChainDataOptions: {
-      provider: 'http://localhost:8545',
+      provider: "http://localhost:8545"
     },
-    trustClueOptions: require('../../test/utils/trust-clue-options').trustClueOptions,
+    trustClueOptions: require("../../test/utils/trust-clue-options")
+      .trustClueOptions
   },
   spamProtectionOptions: {
-    whitelist: [ '0xD39Ca7d186a37bb6Bf48AE8abFeB4c687dc8F906' ],
-    blacklist: [],
-  },
+    whitelist: ["0x0275e1A76B1C3B67575e66074CdF4fD19D43983A"],
+    blacklist: []
+  }
 };
